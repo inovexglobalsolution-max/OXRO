@@ -16,6 +16,7 @@ import 'package:oxro/features/address/presentation/screens/address_selection_scr
 import 'package:oxro/features/bag/presentation/screens/bag_screen.dart';
 import 'package:oxro/features/help/presentation/screens/help_screen.dart';
 import 'package:oxro/features/notifications/data/notification_store.dart';
+import 'package:oxro/features/wallet/data/wallet_store.dart';
 import 'package:oxro/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:oxro/features/settings/presentation/screens/settings_screen.dart';
 import 'package:oxro/features/wallet/presentation/screens/wallet_screen.dart';
@@ -571,28 +572,133 @@ class _HomeScreenState extends State<HomeScreen>
           elevation: _scrolled ? 4 : 0,
           shadowColor: OxroColors.royalBlue
               .withValues(alpha: 0.12),
-          toolbarHeight: 64,
+          toolbarHeight: 112,
           titleSpacing: 0,
           title: Padding(
             padding:
                 EdgeInsets.symmetric(horizontal: context.padX),
-            child: Row(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.location_on_outlined,
-                    size: 18, color: OxroColors.primary),
-                const SizedBox(width: 4),
-                const Text('Chennai',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: OxroColors.dark)),
-                Expanded(
+                // Row 1: address (hero) + live wallet pill + profile.
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        key: const ValueKey('address_row'),
+                        onTap: () => pushScreen(
+                          context,
+                          const AddressSelectionScreen(
+                              manageMode: true),
+                        ),
+                        behavior: HitTestBehavior.opaque,
+                        child: const Row(
+                          children: [
+                            Icon(Icons.location_on_outlined,
+                                size: 18,
+                                color: OxroColors.primary),
+                            SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                  'HOME - Chennai, 80 feet road',
+                                  maxLines: 1,
+                                  overflow:
+                                      TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight:
+                                          FontWeight.w700,
+                                      color: OxroColors.dark)),
+                            ),
+                            Icon(Icons.keyboard_arrow_down,
+                                size: 18,
+                                color: OxroColors.muted),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ListenableBuilder(
+                      listenable: WalletStore.instance,
+                      builder: (context, _) {
+                        final bal =
+                            WalletStore.instance.balance;
+                        return GestureDetector(
+                          key: const ValueKey('wallet_pill'),
+                          onTap: () => pushScreen(
+                            context,
+                            const WalletScreen(),
+                          ),
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            padding:
+                                const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 7),
+                            decoration: BoxDecoration(
+                              color: OxroColors.pageBg,
+                              borderRadius:
+                                  BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: OxroColors.border),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                    Icons
+                                        .account_balance_wallet_outlined,
+                                    size: 16,
+                                    color: OxroColors.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  Product.inr(bal),
+                                  key: const ValueKey(
+                                      'wallet_balance'),
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight:
+                                          FontWeight.w800,
+                                      color: OxroColors.dark)),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      key:
+                          const ValueKey('profile_btn'),
+                      onTap: () => _switchTab(4),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: OxroColors.pageBg,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: OxroColors.border),
+                        ),
+                        child: const Icon(Icons.person_outline,
+                            size: 20,
+                            color: OxroColors.dark),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: context.rs(8)),
+                // Row 2: search (fixed 46) + voice + bell + bag.
+                Row(
+                  children: [
+                    Expanded(
                   child: GestureDetector(
                     onTap: () => pushScreen(
                         context, const SearchScreen()),
                     child: Container(
-                      height: 42,
-                      margin: const EdgeInsets.only(left: 12),
+                      height: 46,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12),
                       decoration: BoxDecoration(
@@ -649,6 +755,34 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 const SizedBox(width: 8),
+                GestureDetector(
+                  key: const ValueKey('voice_btn'),
+                  onTap: () => pushScreen(
+                      context, const SearchScreen()),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    width: 40,
+                    height: 46,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius:
+                          BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: OxroColors.royalBlue
+                              .withValues(alpha: 0.07),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.graphic_eq,
+                        size: 20,
+                        color: OxroColors.dark),
+                  ),
+                ),
+                const SizedBox(width: 4),
                 ListenableBuilder(
                   listenable: NotifStore.instance,
                   builder: (context, _) {
@@ -720,6 +854,8 @@ class _HomeScreenState extends State<HomeScreen>
                       top: 6,
                       child: const BagBadge(),
                     ),
+                  ],
+                ),
                   ],
                 ),
               ],

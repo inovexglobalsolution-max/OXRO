@@ -19,7 +19,16 @@ void main() {
         home: HomeScreen(welcomeName: 'Priya')));
     await _settle(tester);
 
-    expect(find.text('Chennai'), findsOneWidget);
+    expect(find.textContaining('Chennai'), findsOneWidget);
+    // 2-row header: wallet pill (live balance) + profile + voice.
+    expect(find.byKey(const ValueKey('wallet_pill')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('wallet_balance')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('profile_btn')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('voice_btn')),
+        findsOneWidget);
     // Banners are image-only art now: assert carousel presence.
     expect(find.byKey(const ValueKey('banner_cta_0')),
         findsOneWidget);
@@ -258,8 +267,7 @@ void main() {
     await _dispose(tester);
   });
 
-  testWidgets('Home 320 + 390 no overflow', (tester) async {
-    for (final size in [const Size(320, 568), const Size(390, 844)]) {
+  testWidgets('Home 320 + 390 no overflow', (tester) async {    for (final size in [const Size(320, 568), const Size(390, 844)]) {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -270,5 +278,29 @@ void main() {
           reason: 'overflow at $size');
       await _dispose(tester);
     }
+  });
+
+  testWidgets('Header wallet opens WalletScreen', (tester) async {
+    await tester.pumpWidget(
+        const MaterialApp(home: HomeScreen()));
+    await _settle(tester);
+
+    await tester.tap(find.byKey(const ValueKey('wallet_pill')));
+    await _settle(tester);
+    expect(find.text('OXRO Balance'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
+  testWidgets('Header profile jumps to Account tab', (tester) async {
+    await tester.pumpWidget(
+        const MaterialApp(home: HomeScreen()));
+    await _settle(tester);
+
+    await tester.tap(find.byKey(const ValueKey('profile_btn')));
+    await _settle(tester);
+    expect(find.text('Guest User'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
   });
 }
