@@ -143,7 +143,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.arrow_back));
     await _settle(tester);
-    expect(find.text('Deals of the Day'), findsOneWidget);
+    expect(find.text('Best Sellers'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });

@@ -186,7 +186,7 @@ void main() {
         findsOneWidget);
     await _pumpFrames(tester, 6);
     expect(find.text('OXRO Home'), findsNothing);
-    expect(find.text('Deals of the Day'), findsOneWidget);
+    expect(find.text('Best Sellers'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -202,7 +202,7 @@ void main() {
     await tester.tap(find.text('Verify'));
     await _pumpFrames(tester, 8);
     expect(find.text('OXRO Home'), findsNothing);
-    expect(find.text('Deals of the Day'), findsOneWidget);
+    expect(find.text('Best Sellers'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
