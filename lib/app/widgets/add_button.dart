@@ -20,7 +20,14 @@ class AddButton extends StatelessWidget {
       builder: (context, _) {
         final qty = CartStore.instance.qty(product.id);
         if (qty <= 0) {
-          return GestureDetector(
+          return TweenAnimationBuilder<double>(
+            key: ValueKey('add_pop_${product.id}_$qty'),
+            tween: Tween(begin: 0.85, end: 1.0),
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutBack,
+            builder: (context, v, _) => Transform.scale(
+              scale: v,
+              child: GestureDetector(
             key: ValueKey('add_${product.id}'),
             onTap: () => CartStore.instance.add(product),
             behavior: HitTestBehavior.opaque,
@@ -42,9 +49,18 @@ class AddButton extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       color: Colors.white)),
             ),
+          ),
+            ),
           );
         }
-        return Container(
+        return TweenAnimationBuilder<double>(
+          key: ValueKey('stepper_pop_${product.id}_$qty'),
+          tween: Tween(begin: 0.85, end: 1.0),
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutBack,
+          builder: (context, v, _) => Transform.scale(
+            scale: v,
+            child: Container(
           key: ValueKey('stepper_${product.id}'),
           width: double.infinity,
           decoration: BoxDecoration(
@@ -97,9 +113,11 @@ class AddButton extends StatelessWidget {
               ),
             ],
           ),
+            ),
+          ),
         );
-      },
-    );
+        },
+      );
   }
 }
 

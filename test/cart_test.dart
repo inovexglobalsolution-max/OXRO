@@ -129,7 +129,10 @@ void main() {
     }
 
     // First deal card is Nike Air Max (id 1).
-    await tester.tap(find.text('ADD').first);
+    final firstAdd = find.text('ADD').first;
+    await tester.ensureVisible(firstAdd);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(firstAdd);
     await tester.pump(const Duration(milliseconds: 300));
     expect(CartStore.instance.count, 1);
 
@@ -217,7 +220,10 @@ void main() {
     expect(find.byKey(const ValueKey('cart_bar')),
         findsNothing);
 
-    await tester.tap(find.text('ADD').first);
+    final firstAdd = find.text('ADD').first;
+    await tester.ensureVisible(firstAdd);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(firstAdd);
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const ValueKey('cart_bar')),

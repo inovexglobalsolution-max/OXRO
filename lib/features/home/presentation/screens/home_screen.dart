@@ -196,6 +196,60 @@ class _HomeScreenState extends State<HomeScreen>
     showOxroSnack(context, '$what — coming in the next screen');
   }
 
+  /// Recently-viewed thumbnail (no AddButton/Hero — rails own the keys).
+  Widget _recentThumb(BuildContext context, Product p) {
+    return PressScale(
+      key: ValueKey('recent_${p.id}'),
+      onTap: () =>
+          pushScreen(context, ProductDetailScreen(product: p)),
+      child: Container(
+        width: context.rs(96),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: OxroColors.border),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: context.rs(48),
+              height: context.rs(48),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    colors: p.colors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(p.icon,
+                  size: 24, color: OxroColors.muted),
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(p.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: OxroColors.charcoal)),
+            ),
+            Text(Product.inr(p.price),
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: OxroColors.dark)),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Blinkit-style mini promo card (static, no timer).
   Widget _miniPromo(
     BuildContext context, {
@@ -382,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen>
                         height: 220,
                         decoration: BoxDecoration(
                           color: OxroColors.primary
-                              .withValues(alpha: 0.07),
+                              .withValues(alpha: 0.04),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -398,7 +452,7 @@ class _HomeScreenState extends State<HomeScreen>
                         height: 200,
                         decoration: BoxDecoration(
                           color: OxroColors.royalBlue
-                              .withValues(alpha: 0.06),
+                              .withValues(alpha: 0.035),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -995,12 +1049,13 @@ class _HomeScreenState extends State<HomeScreen>
                           scrollDirection: Axis.horizontal,
                           padding: EdgeInsets.symmetric(
                               horizontal: context.padX),
-                          itemCount: homeDeals.length,
+                          itemCount: 3,
                           separatorBuilder: (context, _) =>
                               SizedBox(
                                   width: context.rs(12)),
                           itemBuilder: (_, i) =>
-                              _dealCard(homeDeals[i], hero: false),
+                              _dealCard(homeDeals[i],
+                                  hero: false),
                         ),
                       ),
                       SizedBox(height: context.rs(14)),
@@ -1039,15 +1094,12 @@ class _HomeScreenState extends State<HomeScreen>
                           scrollDirection: Axis.horizontal,
                           padding: EdgeInsets.symmetric(
                               horizontal: context.padX),
-                          itemCount: homeDeals.length,
+                          itemCount: 3,
                           separatorBuilder: (context, _) =>
                               SizedBox(
                                   width: context.rs(12)),
                           itemBuilder: (_, i) => _dealCard(
-                              homeDeals[
-                                  homeDeals.length -
-                                      1 -
-                                      i],
+                              homeDeals[3 + i],
                               hero: false),
                         ),
                       ),
@@ -1143,7 +1195,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     SizedBox(height: context.rs(10)),
                     SizedBox(
-                      height: context.rs(260),
+                      height: context.rs(120),
                       child: ListView.separated(
                         key: const ValueKey(
                             'recent_rail'),
@@ -1158,8 +1210,11 @@ class _HomeScreenState extends State<HomeScreen>
                             SizedBox(
                                 width:
                                     context.rs(12)),
-                        itemBuilder: (_, i) => _dealCard(
-                            homeDeals[i], hero: false),
+                        // No AddButton/Hero here: avoids duplicate
+                        // keys + hero tags with the rails above.
+                        itemBuilder: (_, i) =>
+                            _recentThumb(
+                                context, homeDeals[i]),
                       ),
                     ),
                     SizedBox(height: context.rs(16)),
