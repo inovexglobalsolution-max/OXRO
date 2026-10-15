@@ -58,6 +58,18 @@ class _HomeScreenState extends State<HomeScreen>
   late DateTime _dealEndsAt;
   bool _liveBlink = true;
 
+  // Blinkit-style rotating search hint (fashion catalogue).
+  int _searchWord = 0;
+  Timer? _searchTimer;
+  static const _searchWords = [
+    'shirts',
+    'shoes',
+    'watches',
+    'kurtas',
+    'sneakers',
+    'handbags',
+  ];
+
   // Today's Offers infinite feed.
   final _feed = <Product>[];
   int _feedPage = 0;
@@ -119,6 +131,14 @@ class _HomeScreenState extends State<HomeScreen>
           _liveBlink = !_liveBlink;
         });
       }
+    });
+    // Blinkit-style search hint rotation (1.5s, no delivery badge).
+    _searchTimer = Timer.periodic(
+        const Duration(milliseconds: 1500), (_) {
+      if (!mounted) return;
+      setState(() {
+        _searchWord = (_searchWord + 1) % _searchWords.length;
+      });
     });
     // First feed page after first paint (fast home start).
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -206,6 +226,7 @@ class _HomeScreenState extends State<HomeScreen>
     _catScroll.dispose();
     _bannerTimer?.cancel();
     _dealTimer?.cancel();
+    _searchTimer?.cancel();
     _catTimer?.cancel();
     _catResume?.cancel();
     _entry.dispose();
@@ -451,19 +472,40 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ],
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.search,
+                          const Icon(Icons.search,
                               size: 18, color: OxroColors.muted),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              'Search for products, brands…',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  color: OxroColors.muted),
+                            child: AnimatedSwitcher(
+                              key: const ValueKey(
+                                  'search_rotator'),
+                              duration: const Duration(
+                                  milliseconds: 300),
+                              transitionBuilder:
+                                  (child, anim) =>
+                                      SlideTransition(
+                                position: Tween<Offset>(
+                                  begin:
+                                      const Offset(0, 0.6),
+                                  end: Offset.zero,
+                                ).animate(anim),
+                                child: FadeTransition(
+                                    opacity: anim,
+                                    child: child),
+                              ),
+                              child: Text(
+                                'Search "${_searchWords[_searchWord]}"',
+                                key: ValueKey(
+                                    'search_word_$_searchWord'),
+                                maxLines: 1,
+                                overflow:
+                                    TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    color: OxroColors.muted),
+                              ),
                             ),
                           ),
                         ],
