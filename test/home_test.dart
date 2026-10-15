@@ -24,7 +24,7 @@ void main() {
     expect(find.byKey(const ValueKey('banner_cta_0')),
         findsOneWidget);
     expect(find.text('Shop by Category'), findsOneWidget);
-    expect(find.text('Deals of the Day'), findsOneWidget);
+    expect(find.text('Best Sellers'), findsOneWidget);
     expect(find.textContaining('Welcome to OXRO, Priya!'),
         findsOneWidget);
     expect(find.text('Nike Air Max 270'), findsOneWidget);

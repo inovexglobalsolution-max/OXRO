@@ -55,7 +55,6 @@ class _HomeScreenState extends State<HomeScreen>
   late final PageController _bannerCtrl;
   Timer? _bannerTimer;
   Timer? _dealTimer;
-  late DateTime _dealEndsAt;
   bool _liveBlink = true;
 
   // Blinkit-style rotating search hint (fashion catalogue).
@@ -111,9 +110,7 @@ class _HomeScreenState extends State<HomeScreen>
         curve: Curves.easeOutCubic,
       );
     });
-    _dealEndsAt = DateTime.now().add(
-      const Duration(hours: 5, minutes: 23, seconds: 11),
-    );
+    // LIVE badge blink (Blinkit-style, no countdown).
     _dealTimer = Timer.periodic(
         const Duration(seconds: 1), (_) {
       if (mounted) {
@@ -193,17 +190,6 @@ class _HomeScreenState extends State<HomeScreen>
       setState(() => _tab = i);
       _tabFade.forward().then((_) => _switching = false);
     });
-  }
-
-  String get _countdown {
-    final left = _dealEndsAt.difference(DateTime.now());
-    if (left.isNegative) return '00:00:00';
-    final h = left.inHours.toString().padLeft(2, '0');
-    final m =
-        (left.inMinutes % 60).toString().padLeft(2, '0');
-    final s =
-        (left.inSeconds % 60).toString().padLeft(2, '0');
-    return '$h:$m:$s';
   }
 
   void _soon(String what) {
@@ -929,7 +915,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
               SizedBox(height: context.rs(16)),
-              // Deals of the Day.
+              // Best Sellers rail (Blinkit pattern, no countdown).
               _in(
                 0.5,
                 Container(
@@ -944,7 +930,7 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Row(
                           children: [
                             Flexible(
-                              child: Text('Deals of the Day',
+                              child: Text('Best Sellers',
                                   maxLines: 1,
                                   overflow:
                                       TextOverflow.ellipsis,
@@ -958,35 +944,39 @@ class _HomeScreenState extends State<HomeScreen>
                             Container(
                               padding:
                                   const EdgeInsets.symmetric(
-                                      horizontal: 6,
+                                      horizontal: 8,
                                       vertical: 4),
                               decoration: BoxDecoration(
-                                color: OxroColors.red
-                                    .withValues(alpha: 0.1),
+                                color: OxroColors.green
+                                    .withValues(alpha: 0.12),
                                 borderRadius:
                                     BorderRadius.circular(8),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                      Icons.timer_outlined,
-                                      size: 13,
-                                      color: OxroColors.red),
-                                  const SizedBox(width: 3),
-                                  Text(_countdown,
-                                      style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight:
-                                              FontWeight.w800,
-                                          color: OxroColors.red)),
-                                ],
-                              ),
+                              child: const Text('TOP RATED',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight:
+                                          FontWeight.w800,
+                                      color:
+                                          OxroColors.green)),
                             ),
                             const Spacer(),
                             GestureDetector(
-                              onTap: () =>
-                                  _soon('All deals'),
+                              onTap: () => pushScreen(
+                                context,
+                                ProductListingScreen(
+                                  title:
+                                      "Today's Offers",
+                                  leafs: const [
+                                    'Electronics',
+                                    'Fashion',
+                                    'Home & Kitchen',
+                                    'Beauty'
+                                  ],
+                                  icon: Icons
+                                      .local_offer_outlined,
+                                ),
+                              ),
                               child: const Text('See All >',
                                   maxLines: 1,
                                   style: TextStyle(
@@ -1010,7 +1000,55 @@ class _HomeScreenState extends State<HomeScreen>
                               SizedBox(
                                   width: context.rs(12)),
                           itemBuilder: (_, i) =>
-                              _dealCard(homeDeals[i]),
+                              _dealCard(homeDeals[i], hero: false),
+                        ),
+                      ),
+                      SizedBox(height: context.rs(14)),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: context.padX),
+                        child: Row(
+                          children: [
+                            Text('New Arrivals',
+                                style: TextStyle(
+                                    fontSize:
+                                        context.font(15),
+                                    fontWeight:
+                                        FontWeight.w800,
+                                    color: OxroColors.dark)),
+                            const Spacer(),
+                            GestureDetector(
+                              key: const ValueKey(
+                                  'new_arrivals_see_all'),
+                              onTap: () => _soon(
+                                  'New arrivals'),
+                              child: const Text('See All >',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight:
+                                          FontWeight.w700,
+                                      color: OxroColors.blue)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: context.rs(10)),
+                      SizedBox(
+                        height: context.rs(260),
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: context.padX),
+                          itemCount: homeDeals.length,
+                          separatorBuilder: (context, _) =>
+                              SizedBox(
+                                  width: context.rs(12)),
+                          itemBuilder: (_, i) => _dealCard(
+                              homeDeals[
+                                  homeDeals.length -
+                                      1 -
+                                      i],
+                              hero: false),
                         ),
                       ),
                     ],
@@ -1069,6 +1107,65 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
         ),
+              // Recently Viewed rail (Blinkit Order-Again feel).
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: context.padX),
+                      child: Row(
+                        children: [
+                          Text('Recently Viewed',
+                              style: TextStyle(
+                                  fontSize:
+                                      context.font(15),
+                                  fontWeight:
+                                      FontWeight.w800,
+                                  color: OxroColors.dark)),
+                          const Spacer(),
+                          GestureDetector(
+                            key: const ValueKey(
+                                'recent_see_all'),
+                            onTap: () =>
+                                _soon('Recently viewed'),
+                            child: const Text('See All >',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight:
+                                        FontWeight.w700,
+                                    color: OxroColors.blue)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: context.rs(10)),
+                    SizedBox(
+                      height: context.rs(260),
+                      child: ListView.separated(
+                        key: const ValueKey(
+                            'recent_rail'),
+                        scrollDirection:
+                            Axis.horizontal,
+                        padding: EdgeInsets.symmetric(
+                            horizontal: context.padX),
+                        itemCount: homeDeals.length > 4
+                            ? 4
+                            : homeDeals.length,
+                        separatorBuilder: (context, _) =>
+                            SizedBox(
+                                width:
+                                    context.rs(12)),
+                        itemBuilder: (_, i) => _dealCard(
+                            homeDeals[i], hero: false),
+                      ),
+                    ),
+                    SizedBox(height: context.rs(16)),
+                  ],
+                ),
+              ),
               // Today's Offers — infinite product feed.
               // Scroll pannu panna products show agum.
               SliverToBoxAdapter(
@@ -1249,7 +1346,8 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _dealCard(Product p, {bool feedKey = false}) {
+  Widget _dealCard(Product p,
+      {bool feedKey = false, bool hero = true}) {
     return PressScale(
       key: feedKey ? ValueKey('home_feed_${p.id}') : null,
       onTap: () =>
@@ -1266,7 +1364,9 @@ class _HomeScreenState extends State<HomeScreen>
           children: [
             Stack(
               children: [
-                Hero(
+                HeroMode(
+                  enabled: hero,
+                  child: Hero(
                   tag: 'pdp_image_${p.id}',
                   child: Container(
                     height: context.rs(100),
@@ -1283,6 +1383,7 @@ class _HomeScreenState extends State<HomeScreen>
                     child: Icon(p.icon,
                         size: 56, color: OxroColors.muted),
                   ),
+                ),
                 ),
                 Positioned(
                   left: 8,
