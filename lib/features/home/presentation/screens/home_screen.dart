@@ -210,6 +210,56 @@ class _HomeScreenState extends State<HomeScreen>
     showOxroSnack(context, '$what — coming in the next screen');
   }
 
+  /// Blinkit-style mini promo card (static, no timer).
+  Widget _miniPromo(
+    BuildContext context, {
+    required String key,
+    required String title,
+    required String sub,
+    required IconData icon,
+    required List<Color> colors,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: PressScale(
+        key: ValueKey('mini_$key'),
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.all(context.rs(10)),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: colors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20, color: Colors.white),
+              const SizedBox(height: 6),
+              Text(title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white)),
+              Text(sub,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.white70)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Staggered entrance wrapper.
   Widget _in(double start, Widget child) {
     return AnimatedBuilder(
@@ -722,6 +772,74 @@ class _HomeScreenState extends State<HomeScreen>
                                 BorderRadius.circular(4),
                           ),
                         ),
+                      ),
+                    ),
+                    SizedBox(height: context.rs(10)),
+                    // Blinkit-style mini promo cards (fashion).
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: context.rs(6)),
+                      child: Row(
+                        children: [
+                          _miniPromo(
+                            context,
+                            key: 'mini_new',
+                            title: 'New In',
+                            sub: 'Fresh styles',
+                            icon: Icons
+                                .new_releases_outlined,
+                            colors: const [
+                              Color(0xFFFF6A00),
+                              Color(0xFFFFB25E),
+                            ],
+                            onTap: () => _switchTab(1),
+                          ),
+                          SizedBox(
+                              width: context.rs(8)),
+                          _miniPromo(
+                            context,
+                            key: 'mini_brands',
+                            title: 'Top Brands',
+                            sub: 'Nike • Puma',
+                            icon: Icons
+                                .verified_outlined,
+                            colors: const [
+                              Color(0xFF082B66),
+                              Color(0xFF27A9E1),
+                            ],
+                            onTap: () => _soon(
+                                'Top brands'),
+                          ),
+                          SizedBox(
+                              width: context.rs(8)),
+                          _miniPromo(
+                            context,
+                            key: 'mini_under999',
+                            title: 'Under ₹999',
+                            sub: 'Value picks',
+                            icon: Icons
+                                .local_offer_outlined,
+                            colors: const [
+                              Color(0xFF16A34A),
+                              Color(0xFF4ADE80),
+                            ],
+                            onTap: () => pushScreen(
+                              context,
+                              ProductListingScreen(
+                                title:
+                                    "Today's Offers",
+                                leafs: const [
+                                  'Electronics',
+                                  'Fashion',
+                                  'Home & Kitchen',
+                                  'Beauty'
+                                ],
+                                icon: Icons
+                                    .local_offer_outlined,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
