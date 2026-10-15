@@ -97,8 +97,12 @@ void main() {
         const MaterialApp(home: HomeScreen()));
     await _settle(tester);
 
-    // Scroll to the feed section.
-    await tester.drag(homeScroll, const Offset(0, -2200));
+    // Scroll to the feed section (grid made content taller).
+    await tester.dragUntilVisible(
+      find.text("Today's Offers"),
+      homeScroll,
+      const Offset(0, -500),
+    );
     for (var i = 0; i < 6; i++) {
       await tester.pump(const Duration(milliseconds: 300));
     }
@@ -199,20 +203,20 @@ void main() {
     await _dispose(tester);
   });
 
-  testWidgets('Category strip auto-scrolls forward', (tester) async {
+  testWidgets('Category grid is static Blinkit-style (no auto-scroll)',
+      (tester) async {
     await tester.pumpWidget(
         const MaterialApp(home: HomeScreen()));
     await _settle(tester);
 
-    final strip =
+    final grid =
         find.byKey(const ValueKey('home_cat_strip'));
-    expect(strip, findsOneWidget);
-    double offset() =>
-        tester.widget<ListView>(strip).controller!.offset;
-    final before = offset();
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(offset() > before, isTrue);
+    expect(grid, findsOneWidget);
+    expect(tester.widget<GridView>(grid).gridDelegate
+        is SliverGridDelegateWithFixedCrossAxisCount, isTrue);
+    // All 8 fashion categories visible without scrolling.
+    expect(find.text('Fashion'), findsOneWidget);
+    expect(find.text('Electro'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });

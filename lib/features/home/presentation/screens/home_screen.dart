@@ -77,12 +77,6 @@ class _HomeScreenState extends State<HomeScreen>
   bool _feedMore = false;
   late final ScrollController _homeScroll;
 
-  // Shop-by-Category auto-scroll loop (Myntra feel).
-  late final ScrollController _catScroll;
-  Timer? _catTimer;
-  Timer? _catResume;
-  bool _catHeld = false;
-
   late final AnimationController _entry;
   late final AnimationController _tabFade;
   late final AnimationController _ambient;
@@ -94,11 +88,7 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     _bannerCtrl = PageController(viewportFraction: 1.0);
     _homeScroll = ScrollController()..addListener(_onHomeScroll);
-    _catScroll = ScrollController();
-    _catTimer =
-        Timer.periodic(const Duration(seconds: 3), (_) {
-      _stepCategories();
-    });
+    // Blinkit pattern: static grid, no auto-scroll loop.
     _entry = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -181,54 +171,13 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  /// One auto-scroll step for the category strip.
-  /// Slides one card forward; rewinds smoothly at the end.
-  /// Skips while the user holds the strip or reduced-motion is on.
-  void _stepCategories() {
-    if (!mounted || _catHeld || !_catScroll.hasClients) return;
-    if (MediaQuery.of(context).disableAnimations) return;
-    final pos = _catScroll.position;
-    // Card width 112 + 12 gap (rs-scaled to match the strip).
-    final step = context.rs(112) + context.rs(12);
-    final next = pos.pixels + step;
-    if (next >= pos.maxScrollExtent - 4) {
-      _catScroll.animateTo(
-        0,
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeOutCubic,
-      );
-    } else {
-      _catScroll.animateTo(
-        next,
-        duration: const Duration(milliseconds: 450),
-        curve: Curves.easeOutCubic,
-      );
-    }
-  }
-
-  /// Pauses auto-scroll while the finger is down; resumes after 5s idle.
-  void _pauseCategories() {
-    _catHeld = true;
-    _catResume?.cancel();
-  }
-
-  void _resumeCategories() {
-    _catResume?.cancel();
-    _catResume = Timer(const Duration(seconds: 5), () {
-      _catHeld = false;
-    });
-  }
-
   @override
   void dispose() {
     _bannerCtrl.dispose();
     _homeScroll.dispose();
-    _catScroll.dispose();
     _bannerTimer?.cancel();
     _dealTimer?.cancel();
     _searchTimer?.cancel();
-    _catTimer?.cancel();
-    _catResume?.cancel();
     _entry.dispose();
     _tabFade.dispose();
     _ambient.dispose();
@@ -796,27 +745,25 @@ class _HomeScreenState extends State<HomeScreen>
                               color: OxroColors.dark)),
                     ),
                     SizedBox(height: context.rs(10)),
-                    SizedBox(
-                      height: context.rs(152),
-                      child: Listener(
-                        onPointerDown: (_) =>
-                            _pauseCategories(),
-                        onPointerUp: (_) =>
-                            _resumeCategories(),
-                        onPointerCancel: (_) =>
-                            _resumeCategories(),
-                        child: ListView.separated(
-                          key: const ValueKey(
-                              'home_cat_strip'),
-                          controller: _catScroll,
-                          scrollDirection: Axis.horizontal,
-                          padding: EdgeInsets.symmetric(
-                              horizontal: context.padX),
-                          itemCount:
-                              homeCategories.length,
-                        separatorBuilder: (context, _) =>
-                            SizedBox(width: context.rs(12)),
-                        itemBuilder: (_, i) {
+                    // Blinkit-style static 4-col grid (8 fashion).
+                    GridView.builder(
+                      key: const ValueKey(
+                          'home_cat_strip'),
+                      shrinkWrap: true,
+                      physics:
+                          const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: context.padX),
+                      gridDelegate:
+                          SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
+                        mainAxisSpacing: context.rs(12),
+                        crossAxisSpacing: context.rs(12),
+                        childAspectRatio: 0.54,
+                      ),
+                      itemCount:
+                          homeCategories.length,
+                      itemBuilder: (_, i) {
                           final n = homeCategories.length;
                           final start =
                               0.3 + (i / n) * 0.25;
@@ -860,8 +807,6 @@ class _HomeScreenState extends State<HomeScreen>
                           );
                         },
                         ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -1852,14 +1797,13 @@ class _HomeCatCard extends StatelessWidget {
     final c = homeCategories[index];
     final g = catGradient(index);
     final glow = g.last;
-    final w = context.rs(112);
+    // Blinkit grid: full cell width (was fixed 112 for strip).
     return RepaintBoundary(
       child: PressScale(
         key: ValueKey('home_cat_${c.short}'),
         scale: 0.94,
         onTap: onTap,
         child: Container(
-          width: w,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
