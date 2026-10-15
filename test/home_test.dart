@@ -221,6 +221,43 @@ void main() {
     await _dispose(tester);
   });
 
+  testWidgets('Mid-scroll inline ads appear in feed', (tester) async {
+    await tester.pumpWidget(
+        const MaterialApp(home: HomeScreen()));
+    await _settle(tester);
+
+    // Static banner before the feed.
+    await tester.dragUntilVisible(
+      find.byKey(const ValueKey('feed_ad_top')),
+      find.byKey(const ValueKey('home_scroll')),
+      const Offset(0, -500),
+    );
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('feed_ad_top')),
+        findsOneWidget);
+    expect(find.text('Festive Edit — Min 50% OFF'),
+        findsOneWidget);
+
+    // Tapping an ad opens its category, no crash.
+    await tester.tap(find.byKey(const ValueKey('feed_ad_top')));
+    await _settle(tester);
+    expect(find.text('Fashion & Clothing'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.arrow_back).first);
+    await _settle(tester);
+
+    // Repeating ad after the first 10 feed items.
+    await tester.dragUntilVisible(
+      find.byKey(const ValueKey('feed_ad_0')),
+      find.byKey(const ValueKey('home_scroll')),
+      const Offset(0, -500),
+    );
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('feed_ad_0')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
   testWidgets('Home 320 + 390 no overflow', (tester) async {
     for (final size in [const Size(320, 568), const Size(390, 844)]) {
       tester.view.physicalSize = size;

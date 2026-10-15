@@ -203,6 +203,55 @@ const homeBanners = [
 /// rest stay 1:1 with the 8 categories (Big Fashion kept at 1).
 const bannerCategoryIndex = [-1, 1, 0, 2, 3, 4, 5, 6, 7];
 
+/// Inline mid-scroll ads (Blinkit-style native promos, fashion catalogue).
+/// Shown as full-width strips: one static before the feed +
+/// one repeating after every 10 feed items. [target] is the
+/// homeCategories index to open on tap (-1 = Categories tab).
+class HomeInlineAd {
+  const HomeInlineAd({
+    required this.title,
+    required this.sub,
+    required this.cta,
+    required this.colors,
+    required this.icon,
+    required this.target,
+  });
+
+  final String title;
+  final String sub;
+  final String cta;
+  final List<Color> colors;
+  final IconData icon;
+  final int target;
+}
+
+const homeInlineAds = [
+  HomeInlineAd(
+    title: 'Festive Edit — Min 50% OFF',
+    sub: 'Kurtas • Sarees • Watches',
+    cta: 'Shop Now',
+    colors: [Color(0xFFFF6A00), Color(0xFFFFB25E)],
+    icon: Icons.celebration_outlined,
+    target: 1,
+  ),
+  HomeInlineAd(
+    title: 'Gadget Days — From ₹999',
+    sub: 'Earbuds • Watches • Audio',
+    cta: 'Explore',
+    colors: [Color(0xFF082B66), Color(0xFF27A9E1)],
+    icon: Icons.smartphone_outlined,
+    target: 0,
+  ),
+  HomeInlineAd(
+    title: 'Glow Up — Flat 40% OFF',
+    sub: 'Lakmé • Lipsticks • Skincare',
+    cta: 'Glow Now',
+    colors: [Color(0xFFE91E63), Color(0xFF9C27B0)],
+    icon: Icons.spa_outlined,
+    target: 3,
+  ),
+];
+
 /// Spec § Main categories (exact 8).
 const homeCategories = [
   HomeCategory(

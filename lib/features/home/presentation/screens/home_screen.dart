@@ -196,6 +196,102 @@ class _HomeScreenState extends State<HomeScreen>
     showOxroSnack(context, '$what — coming in the next screen');
   }
 
+  /// Opens an inline ad target (Blinkit-style native promo).
+  void _openInlineAd(int target) {
+    if (target < 0) {
+      _switchTab(1);
+      return;
+    }
+    pushScreen(
+      context,
+      SubCategoryScreen(category: homeCategories[target]),
+    );
+  }
+
+  /// Full-width inline ad strip (mid-scroll banner).
+  /// [slot] keeps keys unique across static + repeating placements.
+  Widget _inlineAdCard(BuildContext context,
+      {required String slot, required int adIndex}) {
+    final ad = homeInlineAds[adIndex % homeInlineAds.length];
+    return PressScale(
+      key: ValueKey('feed_ad_$slot'),
+      onTap: () => _openInlineAd(ad.target),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(context.rs(14)),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: ad.colors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: ad.colors.last.withValues(alpha: 0.30),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: context.rs(44),
+              height: context.rs(44),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.92),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(ad.icon,
+                  size: 22, color: ad.colors.last),
+            ),
+            SizedBox(width: context.rs(12)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(ad.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                  const SizedBox(height: 2),
+                  Text(ad.sub,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70)),
+                ],
+              ),
+            ),
+            SizedBox(width: context.rs(8)),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(ad.cta,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: ad.colors.last)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Recently-viewed thumbnail (no AddButton/Hero — rails own the keys).
   Widget _recentThumb(BuildContext context, Product p) {
     return PressScale(
@@ -1221,6 +1317,18 @@ class _HomeScreenState extends State<HomeScreen>
                   ],
                 ),
               ),
+              // Static mid-scroll banner before the feed.
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                      context.padX,
+                      0,
+                      context.padX,
+                      context.rs(14)),
+                  child: _inlineAdCard(context,
+                      slot: 'top', adIndex: 0),
+                ),
+              ),
               // Today's Offers — infinite product feed.
               // Scroll pannu panna products show agum.
               SliverToBoxAdapter(
@@ -1325,48 +1433,86 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               SliverToBoxAdapter(
                   child: SizedBox(height: context.rs(12))),
-              _feedFirst && _feed.isEmpty
-                  ? SliverPadding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: context.padX),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount:
-                              context.isTablet ? 3 : 2,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.58,
-                        ),
-                        delegate:
-                            SliverChildBuilderDelegate(
-                          (context, _) =>
-                              const _FeedSkeleton(),
-                          childCount: 6,
-                        ),
-                      ),
-                    )
-                  : SliverPadding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: context.padX),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount:
-                              context.isTablet ? 3 : 2,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.58,
-                        ),
-                        delegate:
-                            SliverChildBuilderDelegate(
-                          (ctx, i) => _dealCard(
-                              _feed[i],
-                              feedKey: true),
-                          childCount: _feed.length,
+              ...(_feedFirst && _feed.isEmpty
+                  ? [
+                      SliverPadding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: context.padX),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount:
+                                context.isTablet ? 3 : 2,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 0.58,
+                          ),
+                          delegate:
+                              SliverChildBuilderDelegate(
+                            (context, _) =>
+                                const _FeedSkeleton(),
+                            childCount: 6,
+                          ),
                         ),
                       ),
-                    ),
+                    ]
+                  : () {
+                      // Chunked feed: every 10 products → full-width ad.
+                      final chunks =
+                          (_feed.length / ProductRepo.pageSize)
+                              .ceil();
+                      return [
+                        for (var c = 0; c < chunks; c++)
+                          ...[
+                            SliverPadding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: context.padX),
+                              sliver: SliverGrid(
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount:
+                                      context.isTablet ? 3 : 2,
+                                  mainAxisSpacing: 8,
+                                  crossAxisSpacing: 12,
+                                  childAspectRatio: 0.58,
+                                ),
+                                delegate:
+                                    SliverChildBuilderDelegate(
+                                  (ctx, i) {
+                                    final idx = c *
+                                            ProductRepo
+                                                .pageSize +
+                                        i;
+                                    return _dealCard(
+                                        _feed[idx],
+                                        feedKey: true);
+                                  },
+                                  childCount: (c ==
+                                          chunks - 1)
+                                      ? _feed.length -
+                                          c *
+                                              ProductRepo
+                                                  .pageSize
+                                      : ProductRepo.pageSize,
+                                ),
+                              ),
+                            ),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: EdgeInsets.fromLTRB(
+                                    context.padX,
+                                    context.rs(12),
+                                    context.padX,
+                                    0),
+                                child: _inlineAdCard(context,
+                                    slot: '$c',
+                                    adIndex: (c + 1) %
+                                        homeInlineAds.length),
+                              ),
+                            ),
+                          ],
+                      ];
+                    }()),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.symmetric(
