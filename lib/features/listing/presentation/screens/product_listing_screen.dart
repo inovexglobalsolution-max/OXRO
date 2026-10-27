@@ -3,15 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
-import 'package:oxro/app/widgets/add_button.dart';
+import 'package:oxro/app/widgets/dish_card.dart';
 import 'package:oxro/app/widgets/floating_cart_bar.dart';
 import 'package:oxro/app/widgets/oxro_bottom_nav.dart';
-import 'package:oxro/app/widgets/press_scale.dart';
 import 'package:oxro/app/widgets/shimmer.dart';
 import 'package:oxro/features/bag/presentation/screens/bag_screen.dart';
 import 'package:oxro/features/detail/presentation/screens/product_detail_screen.dart';
 import 'package:oxro/features/search/presentation/screens/search_screen.dart';
-import 'package:oxro/features/wishlist/data/wishlist_store.dart';
 import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/listing/data/product_repo.dart';
 
@@ -35,12 +33,11 @@ class ProductListingScreen extends StatefulWidget {
   final IconData icon;
 
   @override
-  State<ProductListingScreen> createState() =>
-      _ProductListingScreenState();
+  State<ProductListingScreen> createState() => _ProductListingScreenState();
 }
 
-class _ProductListingScreenState
-    extends State<ProductListingScreen> {
+class _ProductListingScreenState extends State<ProductListingScreen>
+    with AutoHideNavState {
   static const _all = 'All';
 
   late String _selected;
@@ -63,14 +60,13 @@ class _ProductListingScreenState
   @override
   void dispose() {
     _scroll.dispose();
+    cancelNavTimer();
     super.dispose();
   }
 
   List<Product> get _pool => _selected == _all
-      ? ProductRepo.allMixed(
-          widget.title, widget.leafs, widget.icon)
-      : ProductRepo.allFor(widget.title, _selected,
-          icon: widget.icon);
+      ? ProductRepo.allMixed(widget.title, widget.leafs, widget.icon)
+      : ProductRepo.allFor(widget.title, _selected, icon: widget.icon);
 
   Future<void> _initialLoad() async {
     await Future.delayed(const Duration(milliseconds: 600));
@@ -83,22 +79,18 @@ class _ProductListingScreenState
   }
 
   List<Product> _pageOf(int page) {
-    final sorted =
-        sortProducts(filterProducts(_pool, _filters), _sort);
+    final sorted = sortProducts(filterProducts(_pool, _filters), _sort);
     final start = page * ProductRepo.pageSize;
     if (start >= sorted.length) return const [];
-    final end =
-        (start + ProductRepo.pageSize).clamp(0, sorted.length);
+    final end = (start + ProductRepo.pageSize).clamp(0, sorted.length);
     return sorted.sublist(start, end);
   }
 
   bool get _hasMore =>
       _shown.length <
-      sortProducts(filterProducts(_pool, _filters), _sort)
-          .length;
+      sortProducts(filterProducts(_pool, _filters), _sort).length;
 
-  List<Product> get _filtered =>
-      filterProducts(_pool, _filters);
+  List<Product> get _filtered => filterProducts(_pool, _filters);
 
   void _reload() {
     setState(() {
@@ -115,8 +107,7 @@ class _ProductListingScreenState
 
   void _onScroll() {
     if (_loadingMore || !_hasMore || _firstLoad) return;
-    if (_scroll.position.pixels >=
-        _scroll.position.maxScrollExtent - 400) {
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 400) {
       _loadMore();
     }
   }
@@ -151,22 +142,20 @@ class _ProductListingScreenState
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
-              padding: EdgeInsets.fromLTRB(
-                  20, 14, 20, 6),
+              padding: EdgeInsets.fromLTRB(20, 14, 20, 6),
               child: Row(
                 children: [
-                  Text('Sort By',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800)),
+                  Text(
+                    'Sort By',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
                 ],
               ),
             ),
@@ -191,9 +180,10 @@ class _ProductListingScreenState
                     RadioListTile<PlpSort>(
                       value: s,
                       activeColor: OxroColors.primary,
-                      title: Text(plpSortLabels[s]!,
-                          style: const TextStyle(
-                              fontSize: 14)),
+                      title: Text(
+                        plpSortLabels[s]!,
+                        style: const TextStyle(fontSize: 14),
+                      ),
                     ),
                 ],
               ),
@@ -209,38 +199,26 @@ class _ProductListingScreenState
   /// min discount. Temp state commits only on Apply; dismiss discards.
   void _openFilter() {
     final pool = _pool;
-    final brands = {
-      for (final p in pool) p.brand,
-    }.toList()
-      ..sort();
+    final brands = {for (final p in pool) p.brand}.toList()..sort();
     var temp = _filters;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => StatefulBuilder(
         builder: (context, setSheet) {
-          final n =
-              filterProducts(pool, temp).length;
-          void update(PlpFilters f) =>
-              setSheet(() => temp = f);
+          final n = filterProducts(pool, temp).length;
+          void update(PlpFilters f) => setSheet(() => temp = f);
           return SafeArea(
             child: Padding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context)
-                    .viewInsets
-                    .bottom,
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxHeight:
-                      MediaQuery.of(context)
-                              .size
-                              .height *
-                          0.85,
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -251,98 +229,83 @@ class _ProductListingScreenState
                       height: 4,
                       decoration: BoxDecoration(
                         color: OxroColors.border,
-                        borderRadius:
-                            BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                          20, 10, 20, 6),
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
                       child: Row(
                         children: [
-                          const Text('Filters',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight:
-                                      FontWeight.w800)),
+                          const Text(
+                            'Filters',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                           if (temp.isActive)
                             Container(
-                              margin:
-                                  const EdgeInsets.only(
-                                      left: 8),
-                              padding:
-                                  const EdgeInsets
-                                      .symmetric(
-                                          horizontal: 7,
-                                          vertical: 2),
+                              margin: const EdgeInsets.only(left: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: OxroColors.primary,
-                                borderRadius:
-                                    BorderRadius.circular(
-                                        10),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text('${temp.count}',
-                                  style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight:
-                                          FontWeight.w800,
-                                      color: Colors.white)),
+                              child: Text(
+                                '${temp.count}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           const Spacer(),
                           GestureDetector(
-                            onTap: () => update(
-                                const PlpFilters()),
-                            behavior:
-                                HitTestBehavior.opaque,
-                            child: const Text('Clear',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight:
-                                        FontWeight.w700,
-                                    color: OxroColors
-                                        .royalBlue)),
+                            onTap: () => update(const PlpFilters()),
+                            behavior: HitTestBehavior.opaque,
+                            child: const Text(
+                              'Clear',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: OxroColors.royalBlue,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
                     Flexible(
                       child: SingleChildScrollView(
-                        padding:
-                            const EdgeInsets.fromLTRB(
-                                20, 4, 20, 8),
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _filterLabel(
-                                'BRAND',
-                                temp.brands.isEmpty
-                                    ? null
-                                    : '${temp.brands.length}'),
+                              'BRAND',
+                              temp.brands.isEmpty
+                                  ? null
+                                  : '${temp.brands.length}',
+                            ),
                             const SizedBox(height: 8),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
                               children: [
                                 for (final b in brands)
-                                  _brandChip(
-                                    b,
-                                    temp.brands
-                                        .contains(b),
-                                    () {
-                                      final next = Set<
-                                              String>.of(
-                                          temp.brands);
-                                      if (next
-                                          .contains(b)) {
-                                        next.remove(b);
-                                      } else {
-                                        next.add(b);
-                                      }
-                                      update(temp.copyWith(
-                                          brands: next));
-                                    },
-                                  ),
+                                  _brandChip(b, temp.brands.contains(b), () {
+                                    final next = Set<String>.of(temp.brands);
+                                    if (next.contains(b)) {
+                                      next.remove(b);
+                                    } else {
+                                      next.add(b);
+                                    }
+                                    update(temp.copyWith(brands: next));
+                                  }),
                               ],
                             ),
                             const SizedBox(height: 18),
@@ -351,31 +314,22 @@ class _ProductListingScreenState
                               groupValue: temp.price,
                               onChanged: (v) {
                                 if (v != null) {
-                                  update(temp.copyWith(
-                                      price: v));
+                                  update(temp.copyWith(price: v));
                                 }
                               },
                               child: Column(
-                                mainAxisSize:
-                                    MainAxisSize.min,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  for (final pp
-                                      in PlpPrice.values)
-                                    RadioListTile<
-                                        PlpPrice>(
+                                  for (final pp in PlpPrice.values)
+                                    RadioListTile<PlpPrice>(
                                       value: pp,
-                                      activeColor: OxroColors
-                                          .primary,
+                                      activeColor: OxroColors.primary,
                                       dense: true,
-                                      contentPadding:
-                                          EdgeInsets.zero,
+                                      contentPadding: EdgeInsets.zero,
                                       title: Text(
-                                          plpPriceLabels[
-                                              pp]!,
-                                          style:
-                                              const TextStyle(
-                                                  fontSize:
-                                                      14)),
+                                        plpPriceLabels[pp]!,
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
                                     ),
                                 ],
                               ),
@@ -388,41 +342,23 @@ class _ProductListingScreenState
                               temp.minRating == 0
                                   ? 0
                                   : temp.minRating >= 4
-                                      ? 2
-                                      : 1,
+                                  ? 2
+                                  : 1,
                               (i) => update(
-                                  temp.copyWith(
-                                      minRating: [
-                                0,
-                                3,
-                                4
-                              ][i]
-                                          .toDouble())),
+                                temp.copyWith(
+                                  minRating: [0, 3, 4][i].toDouble(),
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 18),
                             _filterLabel('DISCOUNT', null),
                             const SizedBox(height: 8),
                             _segment(
-                              [
-                                'Any',
-                                '10%+',
-                                '30%+',
-                                '50%+'
-                              ],
-                              {
-                                0: 0,
-                                10: 1,
-                                30: 2,
-                                50: 3
-                              }[temp.minOff]!,
+                              ['Any', '10%+', '30%+', '50%+'],
+                              {0: 0, 10: 1, 30: 2, 50: 3}[temp.minOff]!,
                               (i) => update(
-                                  temp.copyWith(
-                                      minOff: [
-                                0,
-                                10,
-                                30,
-                                50
-                              ][i])),
+                                temp.copyWith(minOff: [0, 10, 30, 50][i]),
+                              ),
                             ),
                             const SizedBox(height: 8),
                           ],
@@ -431,8 +367,11 @@ class _ProductListingScreenState
                     ),
                     Padding(
                       padding: EdgeInsets.fromLTRB(
-                          20, 8, 20,
-                          12 + context.rs(4)),
+                        20,
+                        8,
+                        20,
+                        12 + context.rs(4),
+                      ),
                       child: GestureDetector(
                         key: const ValueKey('filter_apply'),
                         onTap: () {
@@ -440,20 +379,14 @@ class _ProductListingScreenState
                           _filters = temp;
                           _reload();
                         },
-                        behavior:
-                            HitTestBehavior.opaque,
+                        behavior: HitTestBehavior.opaque,
                         child: Container(
                           width: double.infinity,
                           alignment: Alignment.center,
-                          padding:
-                              const EdgeInsets.symmetric(
-                                  vertical: 13),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
                           decoration: BoxDecoration(
-                            gradient:
-                                OxroColors.gradient,
-                            borderRadius:
-                                BorderRadius.circular(
-                                    12),
+                            gradient: OxroColors.gradient,
+                            borderRadius: BorderRadius.circular(12),
                             boxShadow: const [
                               BoxShadow(
                                 color: Color(0x40051D47),
@@ -463,16 +396,15 @@ class _ProductListingScreenState
                             ],
                           ),
                           child: AnimatedSwitcher(
-                            duration: const Duration(
-                                milliseconds: 200),
+                            duration: const Duration(milliseconds: 200),
                             child: Text(
-                              'Apply ($n styles)',
+                              'Apply ($n dishes)',
                               key: ValueKey('apply_$n'),
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight:
-                                      FontWeight.w800,
-                                  fontSize: 14),
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ),
@@ -491,66 +423,63 @@ class _ProductListingScreenState
   Widget _filterLabel(String text, String? badge) {
     return Row(
       children: [
-        Text(text,
-            style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: OxroColors.muted,
-                letterSpacing: 1.1)),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: OxroColors.muted,
+            letterSpacing: 1.1,
+          ),
+        ),
         if (badge != null)
           Container(
             margin: const EdgeInsets.only(left: 6),
-            padding: const EdgeInsets.symmetric(
-                horizontal: 6, vertical: 1),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             decoration: BoxDecoration(
-              color: OxroColors.primary
-                  .withValues(alpha: 0.12),
+              color: OxroColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(badge,
-                style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: OxroColors.primary)),
+            child: Text(
+              badge,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: OxroColors.primary,
+              ),
+            ),
           ),
       ],
     );
   }
 
-  Widget _brandChip(
-      String label, bool sel, VoidCallback onTap) {
+  Widget _brandChip(String label, bool sel, VoidCallback onTap) {
     return GestureDetector(
       key: ValueKey('filter_brand_$label'),
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedScale(
         scale: sel ? 1.05 : 1.0,
-        duration:
-            const Duration(milliseconds: 180),
+        duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutBack,
         child: AnimatedContainer(
-          duration:
-              const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 8),
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: sel
-                ? OxroColors.primary
-                : Colors.white,
+            color: sel ? OxroColors.primary : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: sel
-                  ? OxroColors.primary
-                  : OxroColors.border,
+              color: sel ? OxroColors.primary : OxroColors.border,
             ),
           ),
-          child: Text(label,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: sel
-                      ? Colors.white
-                      : OxroColors.charcoal)),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: sel ? Colors.white : OxroColors.charcoal,
+            ),
+          ),
         ),
       ),
     );
@@ -565,36 +494,27 @@ class _ProductListingScreenState
               onTap: () => onPick(i),
               behavior: HitTestBehavior.opaque,
               child: AnimatedContainer(
-                duration: const Duration(
-                    milliseconds: 200),
+                duration: const Duration(milliseconds: 200),
                 alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(
-                    vertical: 9),
-                margin: EdgeInsets.only(
-                    right: i == options.length - 1
-                        ? 0
-                        : 8),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                margin: EdgeInsets.only(right: i == options.length - 1 ? 0 : 8),
                 decoration: BoxDecoration(
-                  color: sel == i
-                      ? OxroColors.primary
-                      : Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  color: sel == i ? OxroColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: sel == i
-                        ? OxroColors.primary
-                        : OxroColors.border,
+                    color: sel == i ? OxroColors.primary : OxroColors.border,
                   ),
                 ),
-                child: Text(options[i],
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: sel == i
-                            ? Colors.white
-                            : OxroColors.charcoal)),
+                child: Text(
+                  options[i],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: sel == i ? Colors.white : OxroColors.charcoal,
+                  ),
+                ),
               ),
             ),
           ),
@@ -604,11 +524,9 @@ class _ProductListingScreenState
 
   /// Floating bar opens the Bag (hidden from Bag/Checkout onwards).
   void _goBag() => pushScreen(
-        context,
-        BagScreen(
-            onShopNow: () =>
-                Navigator.of(context).maybePop()),
-      );
+    context,
+    BagScreen(onShopNow: () => Navigator.of(context).maybePop()),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -619,235 +537,247 @@ class _ProductListingScreenState
 
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: OxroBottomNav(
-        currentIndex: 1,
+      bottomNavigationBar: HideableOxroBottomNav(
+        visible: navVisible,
+        currentIndex: 0,
         onTap: (i) => handleShopNav(context, i),
       ),
       body: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            Column(
-          children: [
-            // Header.
-            Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: context.rs(8), vertical: 4),
-              child: Row(
+        child: NotificationListener<ScrollNotification>(
+          onNotification: handleNavScroll,
+          child: Stack(
+            children: [
+              Column(
                 children: [
-                  IconButton(
-                    onPressed: () =>
-                        Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_back,
-                        color: OxroColors.charcoal),
-                  ),
-                  Expanded(
-                    child: Text(widget.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: context.font(16),
-                            fontWeight: FontWeight.w800,
-                            color: OxroColors.charcoal)),
-                  ),
-                  IconButton(
-                    onPressed: () => pushScreen(
-                        context, const SearchScreen()),
-                    icon: const Icon(Icons.search,
-                        color: OxroColors.charcoal),
-                  ),
-                ],
-              ),
-            ),
-            // Leaf buttons row.
-            SizedBox(
-              height: 40,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(
-                    horizontal: context.padX),
-                itemCount: chips.length,
-                separatorBuilder: (context, _) =>
-                    const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  final c = chips[i];
-                  final sel = c == _selected;
-                  return GestureDetector(
-                    onTap: () => _selectLeaf(c),
-                    child: AnimatedContainer(
-                      duration: const Duration(
-                          milliseconds: 200),
-                      padding:
-                          const EdgeInsets.symmetric(
-                              horizontal: 16),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        gradient:
-                            sel ? OxroColors.gradient : null,
-                        color: sel ? null : Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(20),
-                        border: Border.all(
-                          color: sel
-                              ? Colors.transparent
-                              : OxroColors.border,
-                        ),
-                      ),
-                      child: Text(c,
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: sel
-                                  ? Colors.white
-                                  : OxroColors.charcoal)),
+                  // Header.
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.rs(8),
+                      vertical: 4,
                     ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(height: context.rs(8)),
-            // Sort + filter bar (flexible texts — safe at 320).
-            Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: context.padX),
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text('${_filtered.length} styles',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: context.font(12),
-                            color: OxroColors.muted,
-                            fontWeight: FontWeight.w600)),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _openSort,
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.sort_outlined,
-                            size: 17,
-                            color: OxroColors.charcoal),
-                        const SizedBox(width: 3),
-                        Flexible(
+                        IconButton(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: OxroColors.charcoal,
+                          ),
+                        ),
+                        Expanded(
                           child: Text(
-                              plpSortLabels[_sort]!,
-                              maxLines: 1,
-                              overflow:
-                                  TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight:
-                                      FontWeight.w700)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _openFilter,
-                    behavior: HitTestBehavior.opaque,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.tune_outlined,
-                            size: 17,
-                            color: OxroColors.charcoal),
-                        const SizedBox(width: 3),
-                        Flexible(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(
-                                milliseconds: 200),
-                            child: Text(
-                              _filters.isActive
-                                  ? 'Filter (${_filters.count})'
-                                  : 'Filter',
-                              key: ValueKey(
-                                  'filter_${_filters.count}_${_filters.isActive}'),
-                              maxLines: 1,
-                              overflow:
-                                  TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight:
-                                      FontWeight.w700,
-                                  color: _filters.isActive
-                                      ? OxroColors.primary
-                                      : OxroColors.charcoal),
+                            widget.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: context.font(16),
+                              fontWeight: FontWeight.w800,
+                              color: OxroColors.charcoal,
                             ),
                           ),
                         ),
+                        IconButton(
+                          onPressed: () =>
+                              pushScreen(context, const SearchScreen()),
+                          icon: const Icon(
+                            Icons.search,
+                            color: OxroColors.charcoal,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            SizedBox(height: context.rs(8)),
-            // Grid (infinite).
-            Expanded(
-              child: _firstLoad && _shown.isEmpty
-                  ? GridView.builder(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: context.padX),
-                      gridDelegate:
-                          SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: cols,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 0.56,
-                      ),
-                      itemCount: 6,
-                      itemBuilder: (context, _) =>
-                          const _SkeletonCard(),
-                    )
-                  : _shown.isEmpty && !_loadingMore
-                      ? _empty()
-                      : GridView.builder(
-                          controller: _scroll,
-                          padding: EdgeInsets.fromLTRB(
+                  // Leaf buttons row.
+                  SizedBox(
+                    height: 40,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.symmetric(horizontal: context.padX),
+                      itemCount: chips.length,
+                      separatorBuilder: (context, _) =>
+                          const SizedBox(width: 8),
+                      itemBuilder: (_, i) {
+                        final c = chips[i];
+                        final sel = c == _selected;
+                        return GestureDetector(
+                          onTap: () => _selectLeaf(c),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              gradient: sel ? OxroColors.gradient : null,
+                              color: sel ? null : Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: sel
+                                    ? Colors.transparent
+                                    : OxroColors.border,
+                              ),
+                            ),
+                            child: Text(
+                              c,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: sel ? Colors.white : OxroColors.charcoal,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(height: context.rs(8)),
+                  // Sort + filter bar (flexible texts — safe at 320).
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: context.padX),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            '${_filtered.length} dishes',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: context.font(12),
+                              color: OxroColors.muted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _openSort,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.sort_outlined,
+                                size: 17,
+                                color: OxroColors.charcoal,
+                              ),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                  plpSortLabels[_sort]!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _openFilter,
+                          behavior: HitTestBehavior.opaque,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.tune_outlined,
+                                size: 17,
+                                color: OxroColors.charcoal,
+                              ),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: Text(
+                                    _filters.isActive
+                                        ? 'Filter (${_filters.count})'
+                                        : 'Filter',
+                                    key: ValueKey(
+                                      'filter_${_filters.count}_${_filters.isActive}',
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: _filters.isActive
+                                          ? OxroColors.primary
+                                          : OxroColors.charcoal,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: context.rs(8)),
+                  // Grid (infinite).
+                  Expanded(
+                    child: _firstLoad && _shown.isEmpty
+                        ? GridView.builder(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: context.padX,
+                            ),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: cols,
+                                  mainAxisSpacing: 8,
+                                  crossAxisSpacing: 12,
+                                  childAspectRatio: 0.56,
+                                ),
+                            itemCount: 6,
+                            itemBuilder: (context, _) => const _SkeletonCard(),
+                          )
+                        : _shown.isEmpty && !_loadingMore
+                        ? _empty()
+                        : GridView.builder(
+                            controller: _scroll,
+                            padding: EdgeInsets.fromLTRB(
                               context.padX,
                               0,
                               context.padX,
-                              context.rs(88)),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: cols,
-                            mainAxisSpacing: 8,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 0.56,
+                              context.rs(88),
+                            ),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: cols,
+                                  mainAxisSpacing: 8,
+                                  crossAxisSpacing: 12,
+                                  childAspectRatio: 0.56,
+                                ),
+                            itemCount: itemCount,
+                            itemBuilder: (_, i) {
+                              if (i >= _shown.length) {
+                                return const _SkeletonCard();
+                              }
+                              return _ProductCard(
+                                product: _shown[i],
+                                onTap: () {
+                                  pushScreen(
+                                    context,
+                                    ProductDetailScreen(product: _shown[i]),
+                                  );
+                                },
+                              );
+                            },
                           ),
-                          itemCount: itemCount,
-                          itemBuilder: (_, i) {
-                            if (i >= _shown.length) {
-                              return const _SkeletonCard();
-                            }
-                            return _ProductCard(
-                              product: _shown[i],
-                              onTap: () {
-                                pushScreen(
-                                  context,
-                                  ProductDetailScreen(
-                                      product: _shown[i]),
-                                );
-                              },
-                            );
-                          },
-                        ),
-            ),
-          ],
-        ),
-            // Floating cart bar until Bag (hidden when empty).
-            // Home-match gap: same 10px above the nav as Home.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: FloatingCartBar(onTap: _goBag),
-            ),
-          ],
+                  ),
+                ],
+              ),
+              // Floating cart bar until Bag (hidden when empty).
+              // Home-match gap: same 10px above the nav as Home.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: FloatingCartBar(onTap: _goBag),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -858,13 +788,16 @@ class _ProductListingScreenState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.search_off_outlined,
-              size: 56, color: OxroColors.muted),
+          const Icon(
+            Icons.search_off_outlined,
+            size: 56,
+            color: OxroColors.muted,
+          ),
           const SizedBox(height: 12),
-          const Text('No styles found',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700)),
+          const Text(
+            'No dishes found',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () {
@@ -876,16 +809,18 @@ class _ProductListingScreenState
               }
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
                 gradient: OxroColors.gradient,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text('Reset',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700)),
+              child: const Text(
+                'Reset',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ],
@@ -895,219 +830,18 @@ class _ProductListingScreenState
 }
 
 class _ProductCard extends StatelessWidget {
-  const _ProductCard({
-    required this.product,
-    required this.onTap,
-  });
+  const _ProductCard({required this.product, required this.onTap});
 
   final Product product;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final p = product;
-    return PressScale(
-      key: ValueKey('plp_card_${p.id}'),
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: OxroColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                Hero(
-                  tag: 'pdp_image_${p.id}',
-                  child: Container(
-                    height: 100,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                          colors: p.colors,
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight),
-                      borderRadius:
-                          const BorderRadius.vertical(
-                              top: Radius.circular(14)),
-                    ),
-                    child: Icon(p.icon,
-                        size: 52, color: OxroColors.muted),
-                  ),
-                ),
-                Positioned(
-                  left: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 3),
-                    decoration: const BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.all(
-                          Radius.circular(6)),
-                    ),
-                    child: Text('${p.off}% OFF',
-                        style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white)),
-                  ),
-                ),
-                Positioned(
-                  right: 4,
-                  top: 4,
-                  child: ListenableBuilder(
-                    listenable: WishlistStore.instance,
-                    builder: (context, _) {
-                      final wished = WishlistStore
-                          .instance
-                          .contains(p.id);
-                      return GestureDetector(
-                        onTap: () => WishlistStore
-                            .instance
-                            .toggle(p),
-                        behavior:
-                            HitTestBehavior.opaque,
-                        child: TweenAnimationBuilder<
-                            double>(
-                          key: ValueKey(
-                              'plp_wish_${p.id}_$wished'),
-                          tween: Tween(
-                              begin: 0.5, end: 1.0),
-                          duration: const Duration(
-                              milliseconds: 220),
-                          curve: Curves.easeOutBack,
-                          builder: (context, v, _) =>
-                              Transform.scale(
-                            scale: v,
-                            child: Container(
-                              padding:
-                                  const EdgeInsets.all(
-                                      6),
-                              decoration:
-                                  const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                wished
-                                    ? Icons.favorite
-                                    : Icons
-                                        .favorite_outline,
-                                size: 15,
-                                color: wished
-                                    ? Colors.red
-                                    : OxroColors.muted,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(p.brand,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 10,
-                            color: OxroColors.muted,
-                            fontWeight: FontWeight.w600)),
-                    Text(p.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            height: 1.25)),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                              Product.inr(p.price),
-                              maxLines: 1,
-                              overflow:
-                                  TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight:
-                                      FontWeight.w800)),
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                              Product.inr(p.mrp),
-                              maxLines: 1,
-                              overflow:
-                                  TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 10.5,
-                                  color: OxroColors.muted,
-                                  decoration: TextDecoration
-                                      .lineThrough)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Container(
-                          padding:
-                              const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 1),
-                          decoration: BoxDecoration(
-                            color: Colors.green
-                                .withValues(alpha: 0.12),
-                            borderRadius:
-                                BorderRadius.circular(4),
-                          ),
-                          child: Text('${p.rating}★',
-                              style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight:
-                                      FontWeight.w800,
-                                  color: Colors.green)),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text('(${p.reviews})',
-                              maxLines: 1,
-                              overflow:
-                                  TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 10,
-                                  color: OxroColors.muted)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    SizedBox(
-                      width: double.infinity,
-                      child: AddButton(product: p),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => DishCard(
+    product: product,
+    onTap: onTap,
+    cardKeyPrefix: 'plp_card',
+    wishlistKeyPrefix: 'plp_wish',
+  );
 }
 
 class _SkeletonCard extends StatelessWidget {
@@ -1125,8 +859,7 @@ class _SkeletonCard extends StatelessWidget {
           const Expanded(
             flex: 5,
             child: ShimmerBox(
-              borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(14)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
             ),
           ),
           Expanded(
@@ -1134,23 +867,15 @@ class _SkeletonCard extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(8),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const ShimmerBox(
-                      height: 10, width: 70),
+                  const ShimmerBox(height: 10, width: 70),
                   const SizedBox(height: 6),
-                  const ShimmerBox(
-                      height: 12,
-                      width: double.infinity),
+                  const ShimmerBox(height: 12, width: double.infinity),
                   const Spacer(),
-                  const ShimmerBox(
-                      height: 12, width: 90),
+                  const ShimmerBox(height: 12, width: 90),
                   const SizedBox(height: 6),
-                  const ShimmerBox(
-                    height: 28,
-                    width: double.infinity,
-                  ),
+                  const ShimmerBox(height: 28, width: double.infinity),
                 ],
               ),
             ),

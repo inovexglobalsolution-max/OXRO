@@ -1,0 +1,106 @@
+{
+  "_comment": "Shared contract for OXRO pricing. Both the app and the future backend must produce these exact numbers for PricingConfig.initial.",
+  "configVersion": 1,
+  "delivery": [
+    { "name": "2 km", "roadMetres": 2000, "orderCount": 1, "tipPaise": 0, "expected": { "billableKm": 2.0, "basePayoutPaise": 2500, "distancePayPaise": 0, "totalPaise": 2500 } },
+    { "name": "3 km", "roadMetres": 3000, "orderCount": 1, "tipPaise": 0, "expected": { "billableKm": 3.0, "basePayoutPaise": 2500, "distancePayPaise": 0, "totalPaise": 2500 } },
+    { "name": "5 km", "roadMetres": 5000, "orderCount": 1, "tipPaise": 0, "expected": { "billableKm": 5.0, "basePayoutPaise": 2500, "distancePayPaise": 1400, "totalPaise": 3900 } },
+    { "name": "8 km", "roadMetres": 8000, "orderCount": 1, "tipPaise": 0, "expected": { "billableKm": 8.0, "basePayoutPaise": 2500, "distancePayPaise": 3500, "totalPaise": 6000 } },
+    { "name": "2.99 km rounds up to 3.0", "roadMetres": 2990, "orderCount": 1, "tipPaise": 0, "expected": { "billableKm": 3.0, "basePayoutPaise": 2500, "distancePayPaise": 0, "totalPaise": 2500 } },
+    { "name": "3.01 km rounds up to 3.1", "roadMetres": 3010, "orderCount": 1, "tipPaise": 0, "expected": { "billableKm": 3.1, "basePayoutPaise": 2500, "distancePayPaise": 70, "totalPaise": 2570 } },
+    { "name": "5.1 km", "roadMetres": 5100, "orderCount": 1, "tipPaise": 0, "expected": { "billableKm": 5.1, "basePayoutPaise": 2500, "distancePayPaise": 1470, "totalPaise": 3970 } },
+    { "name": "0 km", "roadMetres": 0, "orderCount": 1, "tipPaise": 0, "expected": { "billableKm": 0.0, "basePayoutPaise": 2500, "distancePayPaise": 0, "totalPaise": 2500 } },
+    { "name": "50 km", "roadMetres": 50000, "orderCount": 1, "tipPaise": 0, "expected": { "billableKm": 50.0, "basePayoutPaise": 2500, "distancePayPaise": 32900, "totalPaise": 35400 } },
+    { "name": "100 percent tip goes to rider", "roadMetres": 2000, "orderCount": 1, "tipPaise": 10000, "expected": { "billableKm": 2.0, "basePayoutPaise": 2500, "distancePayPaise": 0, "totalPaise": 12500 } }
+  ],
+  "orders": [
+    {
+      "name": "300 rupee order, 5 percent commission, 2 rupee fee",
+      "platformFeeOverridePaise": null,
+      "subOrders": [
+        { "restaurantId": "r1", "foodSubtotalPaise": 30000, "packagingPaise": 2000, "deliveryFeePaise": 3000, "restaurantDiscountPaise": 0, "oxroDiscountPaise": 0, "tipPaise": 1000 }
+      ],
+      "expected": {
+        "itemSubtotalPaise": 30000,
+        "packagingPaise": 2000,
+        "deliveryFeePaise": 3000,
+        "platformFeePaise": 200,
+        "smallCartFeePaise": 0,
+        "taxPaise": 1500,
+        "tipPaise": 1000,
+        "discountPaise": 0,
+        "grandTotalPaise": 37700,
+        "commissionPaise": 1500,
+        "commissionGstPaise": 270,
+        "tdsPaise": 300,
+        "sellerSettlementPaise": 27930
+      }
+    },
+    {
+      "name": "restaurant discount cuts commission, oxro discount does not, fee waived",
+      "platformFeeOverridePaise": 0,
+      "subOrders": [
+        { "restaurantId": "r1", "foodSubtotalPaise": 30000, "packagingPaise": 0, "deliveryFeePaise": 0, "restaurantDiscountPaise": 5000, "oxroDiscountPaise": 2000, "tipPaise": 0 }
+      ],
+      "expected": {
+        "itemSubtotalPaise": 30000,
+        "packagingPaise": 0,
+        "deliveryFeePaise": 0,
+        "platformFeePaise": 0,
+        "smallCartFeePaise": 0,
+        "taxPaise": 1500,
+        "tipPaise": 0,
+        "discountPaise": 7000,
+        "grandTotalPaise": 24500,
+        "commissionPaise": 1250,
+        "commissionGstPaise": 225,
+        "tdsPaise": 250,
+        "sellerSettlementPaise": 23275
+      }
+    },
+    {
+      "name": "1 rupee order rounds to whole paise",
+      "platformFeeOverridePaise": null,
+      "subOrders": [
+        { "restaurantId": "r1", "foodSubtotalPaise": 100, "packagingPaise": 0, "deliveryFeePaise": 0, "restaurantDiscountPaise": 0, "oxroDiscountPaise": 0, "tipPaise": 0 }
+      ],
+      "expected": {
+        "itemSubtotalPaise": 100,
+        "packagingPaise": 0,
+        "deliveryFeePaise": 0,
+        "platformFeePaise": 200,
+        "smallCartFeePaise": 2000,
+        "taxPaise": 5,
+        "tipPaise": 0,
+        "discountPaise": 0,
+        "grandTotalPaise": 2305,
+        "commissionPaise": 5,
+        "commissionGstPaise": 1,
+        "tdsPaise": 1,
+        "sellerSettlementPaise": 93
+      }
+    },
+    {
+      "name": "zero commission override still withholds TDS",
+      "platformFeeOverridePaise": null,
+      "subOrders": [
+        { "restaurantId": "r1", "foodSubtotalPaise": 29900, "packagingPaise": 0, "deliveryFeePaise": 0, "restaurantDiscountPaise": 0, "oxroDiscountPaise": 0, "tipPaise": 0, "commissionBpsOverride": 0 }
+      ],
+      "expected": {
+        "itemSubtotalPaise": 29900,
+        "packagingPaise": 0,
+        "deliveryFeePaise": 0,
+        "platformFeePaise": 200,
+        "smallCartFeePaise": 0,
+        "taxPaise": 1495,
+        "tipPaise": 0,
+        "discountPaise": 0,
+        "grandTotalPaise": 31595,
+        "commissionPaise": 0,
+        "commissionGstPaise": 0,
+        "tdsPaise": 299,
+        "sellerSettlementPaise": 29601
+      }
+    }
+  ]
+}

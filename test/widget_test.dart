@@ -11,7 +11,7 @@ void main() {
     await tester.pumpWidget(const MyApp());
 
     expect(find.text('OXRO'), findsOneWidget);
-    expect(find.text('Shop More  Live Better'), findsOneWidget);
+    expect(find.text('Eat More  Live Better'), findsOneWidget);
     expect(find.text('v1.0.0'), findsOneWidget);
 
     // Let splash boot (prefs load + brand delay) navigate.

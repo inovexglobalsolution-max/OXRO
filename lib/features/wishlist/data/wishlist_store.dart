@@ -14,7 +14,7 @@ class WishlistStore extends ChangeNotifier {
   /// Global instance (tests call [resetForTests] in setUp).
   static final WishlistStore instance = WishlistStore._();
 
-  static const _kCache = 'oxro_wishlist_v1';
+  static const _kCache = 'oxro_wishlist_v2';
 
   @visibleForTesting
   static void resetForTests() {

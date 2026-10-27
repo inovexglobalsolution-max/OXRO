@@ -35,7 +35,7 @@ Future<void> _goAccount(WidgetTester tester) async {
   AddressStore.resetForTests();
   await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
   await _settle(tester);
-  await tester.tap(find.text('Account'));
+  await tester.tap(find.byKey(const ValueKey('profile_btn')));
   await _settle(tester);
 }
 
@@ -44,24 +44,30 @@ void main() {
     await _goAccount(tester);
     final scroll = find.byKey(const ValueKey('profile_scroll'));
 
-    for (final k in ['profile_addresses', 'profile_help', 'profile_settings']) {
+    // NOTE: grouped sections are taller — check each text right
+    // after its own scroll so lazily-built rows are visible.
+    final rows = {
+      'profile_addresses': 'Addresses',
+      'profile_help': 'Help & Support',
+      'profile_settings': 'Settings',
+    };
+    for (final e in rows.entries) {
       await tester.dragUntilVisible(
-        find.byKey(ValueKey(k)),
+        find.byKey(ValueKey(e.key)),
         scroll,
         const Offset(0, -300),
       );
       await _settle(tester);
-      expect(find.byKey(ValueKey(k)), findsOneWidget);
+      expect(find.byKey(ValueKey(e.key)), findsOneWidget);
+      expect(find.text(e.value), findsOneWidget);
     }
-    expect(find.text('Addresses'), findsOneWidget);
-    expect(find.text('Help & Support'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
 
-  testWidgets('Addresses opens in manage mode (no checkout CTA)',
-      (tester) async {
+  testWidgets('Addresses opens in manage mode (no checkout CTA)', (
+    tester,
+  ) async {
     await _goAccount(tester);
 
     await tester.dragUntilVisible(
@@ -96,8 +102,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('help_scroll')), findsOneWidget);
     expect(find.byKey(const ValueKey('help_faq_0')), findsOneWidget);
-    expect(find.byKey(const ValueKey('help_track_order')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('help_track_order')), findsOneWidget);
 
     // Track order jumps back to Orders tab (OrdersScreen visible).
     await tester.tap(find.byKey(const ValueKey('help_track_order')));
@@ -115,7 +120,7 @@ void main() {
 
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await _settle(tester);
-    await tester.tap(find.text('Account'));
+    await tester.tap(find.byKey(const ValueKey('profile_btn')));
     await _settle(tester);
     await tester.dragUntilVisible(
       find.byKey(const ValueKey('profile_settings')),
@@ -129,24 +134,21 @@ void main() {
     expect(find.byKey(const ValueKey('settings_scroll')), findsOneWidget);
     expect(find.byKey(const ValueKey('settings_notifs')), findsOneWidget);
 
-    final scrollable =
-        find.byKey(const ValueKey('settings_scroll'));
-    for (var i = 0;
-        i < 4 &&
-            tester
-                .getCenter(
-                    find.byKey(const ValueKey('settings_clear')))
-                .dy >
-                540;
-        i++) {
+    final scrollable = find.byKey(const ValueKey('settings_scroll'));
+    for (
+      var i = 0;
+      i < 4 &&
+          tester.getCenter(find.byKey(const ValueKey('settings_clear'))).dy >
+              540;
+      i++
+    ) {
       await tester.drag(scrollable, const Offset(0, -400));
       await _settle(tester);
     }
     await tester.tap(find.byKey(const ValueKey('settings_clear')));
     await _settle(tester);
     // Yes/No sheet first — data stays until Yes.
-    expect(find.byKey(const ValueKey('clear_confirm_go')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('clear_confirm_go')), findsOneWidget);
     expect(CartStore.instance.count, 1);
     await tester.tap(find.byKey(const ValueKey('clear_confirm_go')));
     await _settle(tester);
@@ -155,6 +157,40 @@ void main() {
     expect(tester.takeException(), isNull);
     CartStore.resetForTests();
     WishlistStore.resetForTests();
+    await _dispose(tester);
+  });
+
+  testWidgets('seller + admin rows are hidden, footer + back', (tester) async {
+    await _goAccount(tester);
+    final scroll = find.byKey(const ValueKey('profile_scroll'));
+
+    // Seller/admin entry points are removed from the profile menu.
+    expect(find.byKey(const ValueKey('profile_sell')), findsNothing);
+    expect(find.byKey(const ValueKey('profile_seller_portal')), findsNothing);
+    expect(find.byKey(const ValueKey('profile_admin')), findsNothing);
+
+    await tester.dragUntilVisible(
+      find.byKey(const ValueKey('profile_logout')),
+      scroll,
+      const Offset(0, -300),
+    );
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('profile_logout')), findsOneWidget);
+    expect(find.text('Seller Hub'), findsNothing);
+    expect(find.text('Admin · Pricing'), findsNothing);
+    await tester.fling(scroll, const Offset(0, -1200), 2500);
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('profile_version')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Circular back button returns to the Delivery tab.
+    await tester.fling(scroll, const Offset(0, 1600), 2500);
+    await _settle(tester);
+    await tester.tap(find.byKey(const ValueKey('profile_back')));
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('profile_back')), findsNothing);
+    expect(find.byKey(const ValueKey('nav_delivery')), findsOneWidget);
+    expect(find.byKey(const ValueKey('oxro_bottom_nav')), findsOneWidget);
     await _dispose(tester);
   });
 
@@ -184,8 +220,7 @@ void main() {
       await _settle(tester);
       await tester.tap(find.byKey(const ValueKey('profile_settings')));
       await _settle(tester);
-      expect(tester.takeException(), isNull,
-          reason: 'settings at $size');
+      expect(tester.takeException(), isNull, reason: 'settings at $size');
       await _dispose(tester);
     }
   });

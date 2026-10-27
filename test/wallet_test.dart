@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:oxro/features/address/data/address_store.dart';
 import 'package:oxro/features/cart/data/cart_store.dart';
@@ -34,6 +35,7 @@ Future<void> _dispose(WidgetTester tester) async {
 
 void main() {
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     WalletStore.resetForTests();
     CartStore.resetForTests();
     PaymentStore.resetForTests();
@@ -58,6 +60,8 @@ void main() {
     await _settle(tester);
 
     expect(find.byKey(const ValueKey('wallet_scroll')), findsOneWidget);
+    expect(find.text('OXRO Wallet'), findsOneWidget);
+    expect(find.text('OXRO Balance'), findsOneWidget);
     expect(find.byKey(const ValueKey('wallet_empty')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('wallet_add_500')));
@@ -72,7 +76,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await _settle(tester);
 
-    await tester.tap(find.text('Account'));
+    await tester.tap(find.byKey(const ValueKey('profile_btn')));
     await _settle(tester);
     expect(find.byKey(const ValueKey('profile_wallet')), findsOneWidget);
     await tester.dragUntilVisible(
@@ -81,9 +85,11 @@ void main() {
       const Offset(0, -300),
     );
     await _settle(tester);
+    expect(find.text('OXRO Wallet'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('profile_wallet')));
     await _settle(tester);
     expect(find.byKey(const ValueKey('wallet_scroll')), findsOneWidget);
+    expect(find.text('OXRO Wallet'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });

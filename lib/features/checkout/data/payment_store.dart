@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:oxro_pricing/oxro_pricing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:oxro/features/cart/data/cart_store.dart';
 import 'package:oxro/features/coupons/data/coupon_store.dart';
+import 'package:oxro/features/premium/data/premium_store.dart';
+import 'package:oxro/features/pricing/data/pricing_config_store.dart';
 
 /// Payment method for 15 Checkout.
 enum PaymentMethod { upi, card, wallet, cod }
@@ -22,7 +25,10 @@ const paymentSubs = {
 };
 
 /// Checkout state (mock, in-memory).
-/// Totals mirror ref 15: items + ₹40 ship − coupon.
+///
+/// The bill is computed by [PricingEngine] from [PricingConfigStore] so the
+/// platform fee, taxes, delivery and tip all come from one versioned source.
+/// Totals: items + delivery + platform fee + GST + tip − coupon.
 class PaymentStore extends ChangeNotifier {
   PaymentStore._();
 
@@ -33,6 +39,8 @@ class PaymentStore extends ChangeNotifier {
   static void resetForTests() {
     instance._method = PaymentMethod.upi;
     instance._coupon = '';
+    instance._tipPaise = 0;
+    PricingConfigStore.instance.resetToInitial();
     instance.notifyListeners();
   }
 
@@ -43,6 +51,9 @@ class PaymentStore extends ChangeNotifier {
   /// stale savings (no money-loss window).
   /// The code itself is persisted; savings always re-derive.
   String _coupon = '';
+
+  /// Customer tip in paise (100% passed to the delivery partner).
+  int _tipPaise = 0;
 
   static const _kCoupon = 'oxro_coupon_v1';
 
@@ -73,19 +84,18 @@ class PaymentStore extends ChangeNotifier {
     }
   }
 
-  static const shippingFee = 40;
-  static const couponCode = 'OXRO500';
-  static const couponOff = 500;
+  /// Delivery fee charged to the customer (rupees).
+  static int get shippingFee =>
+      PricingConfigStore.instance.config.customerDeliveryFeePaise ~/ 100;
 
   PaymentMethod get method => _method;
   String get coupon => _coupon;
+  int get tipPaise => _tipPaise;
 
-  Coupon? get _applied =>
-      _coupon.isEmpty ? null : CouponStore.byCode(_coupon);
+  Coupon? get _applied => _coupon.isEmpty ? null : CouponStore.byCode(_coupon);
 
   /// Live discount for the current cart (0 when below minOrder).
-  int get discount =>
-      _applied?.discountFor(itemsTotal) ?? 0;
+  int get discount => _applied?.discountFor(itemsTotal) ?? 0;
 
   /// Live free-shipping (valid only while cart meets minOrder).
   bool get freeShip {
@@ -94,8 +104,27 @@ class PaymentStore extends ChangeNotifier {
     return itemsTotal >= k.minOrder;
   }
 
-  /// Shipping after FREESHIP.
-  int get effectiveShipping => freeShip ? 0 : shippingFee;
+  /// PREMIUM members get free delivery above the membership threshold.
+  bool get premiumFreeDelivery =>
+      PremiumStore.instance.isMember &&
+      itemsTotal >= PremiumStore.freeDeliveryMinOrder;
+
+  /// Delivery fee after FREESHIP or the PREMIUM benefit (rupees).
+  int get deliveryFee => freeShip || premiumFreeDelivery ? 0 : shippingFee;
+
+  /// Customer platform fee in rupees (₹0 during a promo).
+  int get platformFee =>
+      PricingConfigStore.instance.effectivePlatformFeePaise ~/ 100;
+
+  /// Tip in rupees.
+  int get tip => _tipPaise ~/ 100;
+
+  void setTipPaise(int paise) {
+    final v = paise < 0 ? 0 : paise;
+    if (v == _tipPaise) return;
+    _tipPaise = v;
+    notifyListeners();
+  }
 
   void select(PaymentMethod m) {
     if (_method == m) return;
@@ -129,6 +158,64 @@ class PaymentStore extends ChangeNotifier {
 
   int get itemsCount => CartStore.instance.count;
 
-  int get toPay =>
-      (itemsTotal + effectiveShipping - discount).clamp(0, 1 << 31);
+  /// Builds the bill for an explicit cart subtotal. Callers that already
+  /// hold the live [CartStore] total pass it here so the quote can never be
+  /// rebuilt from an empty/stale cart.
+  OrderQuote quoteForItemsTotal(int itemsTotalRupees) {
+    final total = itemsTotalRupees < 0 ? 0 : itemsTotalRupees;
+    final cfg = PricingConfigStore.instance.config;
+    final discountPaise = discount * 100;
+    final sub = SubOrderInput(
+      restaurantId: 'oxro',
+      foodSubtotalPaise: total * 100,
+      packagingPaise: cfg.customerPackagingFeePaise,
+      deliveryFeePaise: deliveryFee * 100,
+      oxroDiscountPaise: discountPaise,
+      tipPaise: _tipPaise,
+    );
+    final platformFee =
+        PricingConfigStore.instance.effectivePlatformFeePaise;
+    final quote = PricingEngine(cfg).quoteOrder(
+      OrderQuoteInput(
+        subOrders: [sub],
+        platformFeeOverridePaise: platformFee,
+      ),
+    );
+    if (total == 0 || quote.grandTotalPaise > 0 || discountPaise > 0) {
+      return quote;
+    }
+    final itemSubtotal = total * 100;
+    final smallCartFee =
+        PricingEngine.smallCartFeePaiseFor(itemSubtotal);
+    final tax = Money.applyBps(itemSubtotal, cfg.customerGstBps);
+    return OrderQuote(
+      itemSubtotalPaise: itemSubtotal,
+      packagingPaise: cfg.customerPackagingFeePaise,
+      deliveryFeePaise: deliveryFee * 100,
+      platformFeePaise: platformFee,
+      smallCartFeePaise: smallCartFee,
+      taxPaise: tax,
+      tipPaise: _tipPaise,
+      discountPaise: 0,
+      grandTotalPaise:
+          itemSubtotal +
+          cfg.customerPackagingFeePaise +
+          deliveryFee * 100 +
+          platformFee +
+          smallCartFee +
+          tax +
+          _tipPaise,
+      subOrders: quote.subOrders,
+      configVersion: cfg.version,
+    );
+  }
+
+  /// The engine bill for the current cart. Single restaurant today; the
+  /// food-conversion phase groups this per restaurant for split orders.
+  OrderQuote get quote => quoteForItemsTotal(itemsTotal);
+
+  int get toPay => quote.grandTotalPaise ~/ 100;
+
+  /// Exact grand total in paise (for invoices/tests).
+  int get toPayPaise => quote.grandTotalPaise;
 }

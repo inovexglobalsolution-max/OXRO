@@ -6,7 +6,6 @@ import 'package:oxro/features/account/data/profile_store.dart';
 import 'package:oxro/features/address/data/address_store.dart';
 import 'package:oxro/features/applock/data/applock_store.dart';
 import 'package:oxro/features/cart/data/cart_store.dart';
-import 'package:oxro/features/categories/data/category_tree.dart';
 import 'package:oxro/features/checkout/data/payment_store.dart';
 import 'package:oxro/features/checkout/presentation/screens/checkout_screen.dart';
 import 'package:oxro/features/home/data/home_data.dart';
@@ -80,8 +79,8 @@ void main() {
     CartStore.instance.decrement(_big.id); // 1000
     expect(PaymentStore.instance.discount, 0);
     expect(PaymentStore.instance.coupon, 'OXRO500'); // code kept
-    expect(PaymentStore.instance.toPay,
-        1000 + PaymentStore.shippingFee);
+    // 100000 + 4000 delivery + 200 platform + 5000 GST.
+    expect(PaymentStore.instance.toPayPaise, 109200);
   });
 
   test('1b. FREESHIP drops when cart falls below minimum', () {
@@ -90,7 +89,8 @@ void main() {
     expect(PaymentStore.instance.freeShip, isTrue);
     CartStore.instance.clear(); // 0
     expect(PaymentStore.instance.freeShip, isFalse);
-    expect(PaymentStore.instance.toPay, PaymentStore.shippingFee);
+    // Empty cart: delivery 4000 + platform 200.
+    expect(PaymentStore.instance.toPayPaise, 4200);
   });
 
   testWidgets('2. Empty bag blocks Place Order (no phantom order)',
@@ -111,23 +111,17 @@ void main() {
     await tester.pumpWidget(Container());
   });
 
-  test('3. Catalogue ids unique across every leaf', () {
+  test('3. Catalogue ids unique across every sub-category', () {
     final ids = <int>{};
     var total = 0;
-    for (final cat in categoryTree.keys) {
-      for (final tab in tabsFor(cat)) {
-        for (final g in tab.groups) {
-          for (final leaf in g.leafs) {
-            for (var i = 0;
-                i < ProductRepo.totalPerLeaf;
-                i++) {
-              ids.add(ProductRepo.productId(
-                  '$cat|${tab.name}|${g.name}',
-                  leaf.name,
-                  i));
-              total++;
-            }
-          }
+    for (final cat in foodCategories) {
+      for (final sub in subcategoriesFor(cat.label)) {
+        for (var i = 0;
+            i < ProductRepo.totalPerLeaf;
+            i++) {
+          ids.add(ProductRepo.productId(
+              cat.label, sub, i));
+          total++;
         }
       }
     }
@@ -201,13 +195,27 @@ void main() {
     expect(await ApplockStore.instance.verify('1357'), isTrue);
   });
 
-  testWidgets('9. Result replaced: no back-loop to Success',
+  testWidgets('9. Green tick auto-opens tracking, back returns to root',
       (tester) async {
     CartStore.instance.add(_big);
     AddressStore.instance.save(_addr);
     PaymentStore.instance.select(PaymentMethod.cod);
     await tester.pumpWidget(
-        const MaterialApp(home: CheckoutScreen()));
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              key: const ValueKey('open_checkout_test'),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CheckoutScreen()),
+              ),
+              child: const Text('Open checkout'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('open_checkout_test')));
     await _frames(tester);
 
     await tester.tap(find.byKey(
@@ -217,13 +225,21 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 2100));
     await _frames(tester, 5);
-    expect(find.text('Order Placed!'), findsOneWidget);
+    expect(find.byKey(const ValueKey('track_screen')), findsOneWidget);
+    expect(find.text('Order Placed!'), findsNothing);
+    expect(
+        find.byKey(const ValueKey('payment_success_tick')),
+        findsNothing);
 
-    // Checkout→Result→Success all replaced: Success is the only
-    // route, so back can never land on the auto-advancing Result.
+    // The app root is kept and the address/checkout/splash routes are
+    // gone: back returns to the root, never to the auto-advancing splash.
     final nav =
         tester.state<NavigatorState>(find.byType(Navigator));
-    expect(nav.canPop(), isFalse);
+    expect(nav.canPop(), isTrue);
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await _frames(tester);
+    expect(find.byKey(const ValueKey('open_checkout_test')), findsOneWidget);
+    expect(find.byKey(const ValueKey('track_screen')), findsNothing);
     expect(
         find.byKey(const ValueKey('payment_success_tick')),
         findsNothing);

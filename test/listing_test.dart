@@ -60,7 +60,7 @@ void main() {
     for (final chip in ['All', 'Shirts', 'T-Shirts', 'Jeans']) {
       expect(find.text(chip), findsOneWidget);
     }
-    expect(find.text('45 styles'), findsOneWidget);
+    expect(find.text('45 dishes'), findsOneWidget);
     expect(gridItems(tester), 10);
     // Built-card count is viewport + cache dependent (bottom nav
     // shrinks the test viewport) — delegate count above is the
@@ -75,12 +75,12 @@ void main() {
 
     await tester.tap(find.text('Jeans'));
     await _frames(tester);
-    expect(find.text('60 styles'), findsOneWidget);
+    expect(find.text('60 dishes'), findsOneWidget);
     expect(gridItems(tester), 10);
 
     await tester.tap(find.text('All'));
     await _frames(tester);
-    expect(find.text('45 styles'), findsOneWidget);
+    expect(find.text('45 dishes'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -185,7 +185,7 @@ void main() {
     await _settle(tester);
     await tester.tap(find.textContaining('Apply ('));
     await _frames(tester);
-    expect(find.text('45 styles'), findsOneWidget);
+    expect(find.text('45 dishes'), findsOneWidget);
     expect(find.text('Filter'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
@@ -273,18 +273,20 @@ void main() {
   });
 
   test('filterProducts brand/price/rating/off', () {
-    final pool = ProductRepo.allFor('ns', 'Shirts');
+    final pool = ProductRepo.allFor('ns', 'Masala Dosa');
     expect(
         filterProducts(pool, const PlpFilters()).length,
         pool.length);
 
-    final nike =
-        filterProducts(pool, const PlpFilters(brands: {'Nike'}));
-    expect(nike.every((p) => p.brand == 'Nike'), isTrue);
+    final kitchen = filterProducts(
+        pool, const PlpFilters(brands: {'Paradise Biryani'}));
+    expect(
+        kitchen.every((p) => p.brand == 'Paradise Biryani'),
+        isTrue);
 
     final cheap = filterProducts(
-        pool, const PlpFilters(price: PlpPrice.under1000));
-    expect(cheap.every((p) => p.price < 1000), isTrue);
+        pool, const PlpFilters(price: PlpPrice.under200));
+    expect(cheap.every((p) => p.price < 200), isTrue);
 
     final top = filterProducts(
         pool, const PlpFilters(minRating: 4));
@@ -295,16 +297,16 @@ void main() {
     expect(off.every((p) => p.off >= 50), isTrue);
 
     const combo = PlpFilters(
-        brands: {'Nike'},
-        price: PlpPrice.b1000to2999,
+        brands: {'Paradise Biryani'},
+        price: PlpPrice.b200to399,
         minRating: 3,
         minOff: 10);
     final hits = filterProducts(pool, combo);
     expect(
         hits.every((p) =>
-            p.brand == 'Nike' &&
-            p.price >= 1000 &&
-            p.price < 3000 &&
+            p.brand == 'Paradise Biryani' &&
+            p.price >= 200 &&
+            p.price < 400 &&
             p.rating >= 3 &&
             p.off >= 10),
         isTrue);

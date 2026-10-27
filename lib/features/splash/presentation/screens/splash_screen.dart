@@ -10,10 +10,14 @@ import 'package:oxro/features/applock/presentation/screens/pin_screen.dart';
 import 'package:oxro/features/auth/presentation/screens/login_screen.dart';
 import 'package:oxro/features/cart/data/cart_store.dart';
 import 'package:oxro/features/checkout/data/payment_store.dart';
+import 'package:oxro/features/help/data/support_store.dart';
+import 'package:oxro/features/home/data/food_preference_store.dart';
 import 'package:oxro/features/home/presentation/screens/home_screen.dart';
 import 'package:oxro/features/location/data/geo_store.dart';
+import 'package:oxro/features/pricing/data/pricing_config_store.dart';
 import 'package:oxro/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:oxro/features/orders/data/order_store.dart';
+import 'package:oxro/features/premium/data/premium_store.dart';
 import 'package:oxro/features/reviews/data/review_store.dart';
 import 'package:oxro/features/wallet/data/wallet_store.dart';
 import 'package:oxro/features/wishlist/data/wishlist_store.dart';
@@ -47,7 +51,11 @@ class _SplashScreenState extends State<SplashScreen> {
         WalletStore.instance.load(),
         WishlistStore.instance.load(),
         PaymentStore.instance.load(),
+        PremiumStore.instance.load(),
+        PricingConfigStore.instance.load(),
         GeoStore.instance.load(),
+        FoodPreferenceStore.instance.load(),
+        SupportStore.instance.load(),
         Future.delayed(const Duration(milliseconds: 1800)),
       ]);
     } catch (_) {
@@ -66,9 +74,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (ApplockStore.instance.enabled) {
       replaceScreen(
         context,
-        PinScreen(
-          onUnlock: () => replaceAllWith(context, dest),
-        ),
+        PinScreen(onUnlock: () => replaceAllWith(context, dest)),
       );
     } else {
       replaceScreen(context, dest);
@@ -92,8 +98,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 children: [
                   const Spacer(flex: 3),
                   ClipRRect(
-                    borderRadius:
-                        BorderRadius.circular(context.rs(28)),
+                    borderRadius: BorderRadius.circular(context.rs(28)),
                     child: Image.asset(
                       'assets/logo/oxro_logo.jpeg',
                       width: logoSize,
@@ -105,8 +110,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius:
-                              BorderRadius.circular(context.rs(28)),
+                          borderRadius: BorderRadius.circular(context.rs(28)),
                         ),
                         child: Text(
                           'O',
@@ -131,7 +135,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Shop More  Live Better',
+                    'Eat More  Live Better',
                     style: TextStyle(
                       fontSize: context.font(13),
                       fontWeight: FontWeight.w400,
@@ -144,8 +148,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     child: const LinearProgressIndicator(
                       minHeight: 4,
                       backgroundColor: Colors.white38,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       borderRadius: BorderRadius.all(Radius.circular(2)),
                     ),
                   ),
@@ -153,8 +156,9 @@ class _SplashScreenState extends State<SplashScreen> {
                   Text(
                     'v1.0.0',
                     style: TextStyle(
-                        fontSize: context.font(11),
-                        color: Colors.white70),
+                      fontSize: context.font(11),
+                      color: Colors.white70,
+                    ),
                   ),
                   SizedBox(height: context.rs(32)),
                 ],

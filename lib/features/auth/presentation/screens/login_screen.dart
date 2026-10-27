@@ -21,8 +21,9 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with TickerProviderStateMixin {
-  static final _emailRegex =
-      RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+  static final _emailRegex = RegExp(
+    r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
+  );
 
   bool _isSignup = false;
 
@@ -73,8 +74,7 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  bool get _validEmail =>
-      _emailRegex.hasMatch(_emailCtrl.text.trim());
+  bool get _validEmail => _emailRegex.hasMatch(_emailCtrl.text.trim());
 
   void _fail() => _shake.forward(from: 0);
 
@@ -84,20 +84,20 @@ class _LoginScreenState extends State<LoginScreen>
       _emailError = emailOk
           ? null
           : (_emailCtrl.text.trim().isEmpty
-              ? 'Enter your email address'
-              : 'Enter valid email address');
+                ? 'Enter your email address'
+                : 'Enter valid email address');
       if (_isSignup) {
         final name = _nameCtrl.text.trim();
         _nameError = RegExp(r'^[A-Za-z][A-Za-z ]{2,}$').hasMatch(name)
             ? null
             : (name.isEmpty
-                ? 'Enter your full name'
-                : 'Enter a valid name (min 3 letters)');
+                  ? 'Enter your full name'
+                  : 'Enter a valid name (min 3 letters)');
         final ref = _referralCtrl.text.trim();
         _referralError =
             ref.isEmpty || RegExp(r'^[A-Za-z0-9]{6,}$').hasMatch(ref)
-                ? null
-                : 'Enter valid referral code (min 6 chars)';
+            ? null
+            : 'Enter valid referral code (min 6 chars)';
       } else {
         _nameError = null;
         _referralError = null;
@@ -121,11 +121,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  InputDecoration _dec({
-    required String hint,
-    Widget? prefix,
-    String? error,
-  }) {
+  InputDecoration _dec({required String hint, Widget? prefix, String? error}) {
     return InputDecoration(
       hintText: hint,
       hintStyle: const TextStyle(color: OxroColors.muted),
@@ -134,8 +130,7 @@ class _LoginScreenState extends State<LoginScreen>
       counterText: '',
       filled: true,
       fillColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: OxroColors.border),
@@ -146,8 +141,7 @@ class _LoginScreenState extends State<LoginScreen>
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-            color: OxroColors.primary, width: 1.5),
+        borderSide: const BorderSide(color: OxroColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -155,8 +149,7 @@ class _LoginScreenState extends State<LoginScreen>
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-            const BorderSide(color: Colors.red, width: 1.5),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
     );
   }
@@ -189,29 +182,25 @@ class _LoginScreenState extends State<LoginScreen>
                   return Stack(
                     children: [
                       Positioned(
-                        top: -70 +
-                            14 * math.sin(t * math.pi * 2),
+                        top: -70 + 14 * math.sin(t * math.pi * 2),
                         right: -60,
                         child: Container(
                           width: 230,
                           height: 230,
                           decoration: BoxDecoration(
-                            color: OxroColors.primary
-                                .withValues(alpha: 0.10),
+                            color: OxroColors.primary.withValues(alpha: 0.10),
                             shape: BoxShape.circle,
                           ),
                         ),
                       ),
                       Positioned(
-                        top: 150 +
-                            12 * math.cos(t * math.pi * 2),
+                        top: 150 + 12 * math.cos(t * math.pi * 2),
                         left: -80,
                         child: Container(
                           width: 190,
                           height: 190,
                           decoration: BoxDecoration(
-                            color: OxroColors.blue
-                                .withValues(alpha: 0.08),
+                            color: OxroColors.blue.withValues(alpha: 0.08),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -223,8 +212,7 @@ class _LoginScreenState extends State<LoginScreen>
                           width: 240,
                           height: 240,
                           decoration: BoxDecoration(
-                            color: OxroColors.primary
-                                .withValues(alpha: 0.08),
+                            color: OxroColors.primary.withValues(alpha: 0.08),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -237,415 +225,426 @@ class _LoginScreenState extends State<LoginScreen>
             SafeArea(
               child: Center(
                 child: ConstrainedBox(
-            constraints:
-                BoxConstraints(maxWidth: context.maxContentW),
-            child: FadeTransition(
-              opacity: _fade,
-              child: SlideTransition(
-                position: _slide,
-                child: Column(
-                  children: [
-                    // Top: back button only (brand lives in big logo).
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: context.rs(8), vertical: 4),
-                      child: Row(
+                  constraints: BoxConstraints(maxWidth: context.maxContentW),
+                  child: FadeTransition(
+                    opacity: _fade,
+                    child: SlideTransition(
+                      position: _slide,
+                      child: Column(
                         children: [
-                          IconButton(
-                            onPressed: () =>
-                                Navigator.of(context)
-                                    .maybePop(),
-                            icon: const Icon(
-                                Icons.arrow_back),
+                          // Top: back button only (brand lives in big logo).
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: context.rs(8),
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              children: [
+                                GestureDetector(
+                                  key: const ValueKey('login_back'),
+                                  onTap: () => Navigator.of(context).maybePop(),
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: OxroColors.border,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: OxroColors.primary.withValues(
+                                            alpha: 0.10,
+                                          ),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.arrow_back_rounded,
+                                      size: 20,
+                                      color: OxroColors.dark,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Middle block — vertically centered.
+                          // Scrolls on short screens instead of overflowing.
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (ctx, viewport) => SingleChildScrollView(
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: viewport.maxHeight,
+                                  ),
+                                  child: IntrinsicHeight(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        // Big centered logo above Welcome.
+                                        Center(
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    context.rs(18),
+                                                  ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: OxroColors.primary
+                                                      .withValues(alpha: 0.25),
+                                                  blurRadius: 20,
+                                                  offset: const Offset(0, 8),
+                                                ),
+                                              ],
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    context.rs(18),
+                                                  ),
+                                              child: Image.asset(
+                                                'assets/logo/oxro_logo.jpeg',
+                                                width: (context.w * 0.16).clamp(
+                                                  48.0,
+                                                  72.0,
+                                                ),
+                                                height: (context.w * 0.16)
+                                                    .clamp(48.0, 72.0),
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (
+                                                      ctx,
+                                                      err,
+                                                      stack,
+                                                    ) => Container(
+                                                      width: (context.w * 0.16)
+                                                          .clamp(48.0, 72.0),
+                                                      height: (context.w * 0.16)
+                                                          .clamp(48.0, 72.0),
+                                                      color: OxroColors.primary,
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: Text(
+                                                        'O',
+                                                        style: TextStyle(
+                                                          fontSize: context
+                                                              .font(32),
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(height: context.rs(10)),
+                                        Center(
+                                          child: AnimatedSwitcher(
+                                            duration: const Duration(
+                                              milliseconds: 250,
+                                            ),
+                                            child: Text(
+                                              title,
+                                              key: ValueKey(title),
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: context.font(22),
+                                                fontWeight: FontWeight.w800,
+                                                color: OxroColors.dark,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(height: context.rs(4)),
+                                        Center(
+                                          child: Text(
+                                            sub,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontSize: context.font(13),
+                                              color: OxroColors.muted,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(height: context.rs(14)),
+                                        // Segmented Login | Sign Up.
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: context.padX,
+                                          ),
+                                          child: Container(
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF1F1F4),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Stack(
+                                              children: [
+                                                AnimatedAlign(
+                                                  alignment: _isSignup
+                                                      ? Alignment.centerRight
+                                                      : Alignment.centerLeft,
+                                                  duration: const Duration(
+                                                    milliseconds: 250,
+                                                  ),
+                                                  curve: Curves.easeOutCubic,
+                                                  child: FractionallySizedBox(
+                                                    widthFactor: 0.5,
+                                                    child: Container(
+                                                      margin:
+                                                          const EdgeInsets.all(
+                                                            4,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        gradient:
+                                                            OxroColors.gradient,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              9,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: GestureDetector(
+                                                        behavior:
+                                                            HitTestBehavior
+                                                                .opaque,
+                                                        onTap: () => setState(
+                                                          () =>
+                                                              _isSignup = false,
+                                                        ),
+                                                        child: Center(
+                                                          child: Text(
+                                                            'Login',
+                                                            style: TextStyle(
+                                                              fontSize: context
+                                                                  .font(14),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: _isSignup
+                                                                  ? OxroColors
+                                                                        .muted
+                                                                  : Colors
+                                                                        .white,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Expanded(
+                                                      child: GestureDetector(
+                                                        behavior:
+                                                            HitTestBehavior
+                                                                .opaque,
+                                                        onTap: () => setState(
+                                                          () =>
+                                                              _isSignup = true,
+                                                        ),
+                                                        child: Center(
+                                                          child: Text(
+                                                            'Sign Up',
+                                                            style: TextStyle(
+                                                              fontSize: context
+                                                                  .font(14),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: _isSignup
+                                                                  ? Colors.white
+                                                                  : OxroColors
+                                                                        .muted,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(height: context.rs(14)),
+                                        // Form with shake.
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: context.padX,
+                                          ),
+                                          child: AnimatedBuilder(
+                                            animation: _shake,
+                                            builder: (context, child) {
+                                              final dx = _shake.value == 0
+                                                  ? 0.0
+                                                  : 8 *
+                                                        math.sin(
+                                                          _shake.value *
+                                                              math.pi *
+                                                              3,
+                                                        );
+                                              return Transform.translate(
+                                                offset: Offset(dx, 0),
+                                                child: child,
+                                              );
+                                            },
+                                            child: AnimatedSwitcher(
+                                              duration: const Duration(
+                                                milliseconds: 250,
+                                              ),
+                                              child: _isSignup
+                                                  ? _signupForm(
+                                                      key: const ValueKey('su'),
+                                                    )
+                                                  : _loginForm(
+                                                      key: const ValueKey('li'),
+                                                    ),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(height: context.rs(14)),
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: context.padX,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const Expanded(child: Divider()),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                    ),
+                                                child: Text(
+                                                  'or continue with',
+                                                  style: TextStyle(
+                                                    fontSize: context.font(12),
+                                                    color: OxroColors.muted,
+                                                  ),
+                                                ),
+                                              ),
+                                              const Expanded(child: Divider()),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(height: context.rs(12)),
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: context.padX,
+                                          ),
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              showOxroSnack(
+                                                context,
+                                                'Google sign-in coming soon — use OTP for now',
+                                              );
+                                            },
+                                            child: Container(
+                                              height: 50,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: OxroColors.border,
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Container(
+                                                    width: 22,
+                                                    height: 22,
+                                                    alignment: Alignment.center,
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                          color: Color(
+                                                            0xFF4285F4,
+                                                          ),
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                    child: const Text(
+                                                      'G',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  Flexible(
+                                                    child: Text(
+                                                      'Continue with Google',
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontSize: context.font(
+                                                          14,
+                                                        ),
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Terms pinned at bottom.
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              context.padX,
+                              context.rs(8),
+                              context.padX,
+                              context.rs(14),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'By continuing, you agree to our Terms & Privacy Policy',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: context.font(11),
+                                  color: OxroColors.muted,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    // Middle block — vertically centered.
-                    // Scrolls on short screens instead of overflowing.
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (ctx, viewport) =>
-                            SingleChildScrollView(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minHeight: viewport.maxHeight,
-                            ),
-                            child: IntrinsicHeight(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.stretch,
-                                children: [
-                                  // Big centered logo above Welcome.
-                                  Center(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius:
-                                            BorderRadius.circular(
-                                                context.rs(18)),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: OxroColors
-                                                .primary
-                                                .withValues(
-                                                    alpha: 0.25),
-                                            blurRadius: 20,
-                                            offset: const Offset(
-                                                0, 8),
-                                          ),
-                                        ],
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius:
-                                            BorderRadius.circular(
-                                                context.rs(18)),
-                                        child: Image.asset(
-                                          'assets/logo/oxro_logo.jpeg',
-                                          width: (context.w * 0.16)
-                                              .clamp(48.0, 72.0),
-                                          height: (context.w * 0.16)
-                                              .clamp(48.0, 72.0),
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (ctx, err,
-                                                  stack) =>
-                                              Container(
-                                            width: (context.w *
-                                                    0.16)
-                                                .clamp(48.0, 72.0),
-                                            height: (context.w *
-                                                    0.16)
-                                                .clamp(48.0, 72.0),
-                                            color:
-                                                OxroColors.primary,
-                                            alignment:
-                                                Alignment.center,
-                                            child: Text('O',
-                                                style: TextStyle(
-                                                    fontSize: context
-                                                        .font(32),
-                                                    fontWeight:
-                                                        FontWeight
-                                                            .w800,
-                                                    color:
-                                                        Colors.white)),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: context.rs(10)),
-                                  Center(
-                                    child: AnimatedSwitcher(
-                                      duration: const Duration(
-                                          milliseconds: 250),
-                                      child: Text(
-                                        title,
-                                        key: ValueKey(title),
-                                        textAlign:
-                                            TextAlign.center,
-                                        style: TextStyle(
-                                            fontSize:
-                                                context.font(22),
-                                            fontWeight:
-                                                FontWeight.w800,
-                                            color: OxroColors.dark),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: context.rs(4)),
-                                  Center(
-                                    child: Text(sub,
-                                        textAlign:
-                                            TextAlign.center,
-                                        style: TextStyle(
-                                            fontSize:
-                                                context.font(13),
-                                            color:
-                                                OxroColors.muted)),
-                                  ),
-                                  SizedBox(height: context.rs(14)),
-                                  // Segmented Login | Sign Up.
-                                  Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(
-                                            horizontal:
-                                                context.padX),
-                                    child: Container(
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: const Color(
-                                            0xFFF1F1F4),
-                                        borderRadius:
-                                            BorderRadius.circular(
-                                                12),
-                                      ),
-                                      child: Stack(
-                                        children: [
-                                          AnimatedAlign(
-                                            alignment: _isSignup
-                                                ? Alignment
-                                                    .centerRight
-                                                : Alignment
-                                                    .centerLeft,
-                                            duration:
-                                                const Duration(
-                                                    milliseconds:
-                                                        250),
-                                            curve: Curves
-                                                .easeOutCubic,
-                                            child:
-                                                FractionallySizedBox(
-                                              widthFactor: 0.5,
-                                              child: Container(
-                                                margin:
-                                                    const EdgeInsets
-                                                        .all(4),
-                                                decoration:
-                                                    BoxDecoration(
-                                                  gradient: OxroColors
-                                                      .gradient,
-                                                  borderRadius:
-                                                      BorderRadius
-                                                          .circular(
-                                                              9),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child:
-                                                    GestureDetector(
-                                                  behavior:
-                                                      HitTestBehavior
-                                                          .opaque,
-                                                  onTap: () =>
-                                                      setState(() =>
-                                                          _isSignup =
-                                                              false),
-                                                  child: Center(
-                                                    child: Text(
-                                                        'Login',
-                                                        style: TextStyle(
-                                                            fontSize: context.font(
-                                                                14),
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w700,
-                                                            color: _isSignup
-                                                                ? OxroColors.muted
-                                                                : Colors
-                                                                    .white)),
-                                                  ),
-                                                ),
-                                              ),
-                                              Expanded(
-                                                child:
-                                                    GestureDetector(
-                                                  behavior:
-                                                      HitTestBehavior
-                                                          .opaque,
-                                                  onTap: () =>
-                                                      setState(() =>
-                                                          _isSignup =
-                                                              true),
-                                                  child: Center(
-                                                    child: Text(
-                                                        'Sign Up',
-                                                        style: TextStyle(
-                                                            fontSize: context.font(
-                                                                14),
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w700,
-                                                            color: _isSignup
-                                                                ? Colors
-                                                                    .white
-                                                                : OxroColors.muted)),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: context.rs(14)),
-                                  // Form with shake.
-                                  Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(
-                                            horizontal:
-                                                context.padX),
-                                    child: AnimatedBuilder(
-                                      animation: _shake,
-                                      builder:
-                                          (context, child) {
-                                        final dx =
-                                            _shake.value == 0
-                                                ? 0.0
-                                                : 8 *
-                                                    math.sin(_shake
-                                                            .value *
-                                                        math.pi *
-                                                        3);
-                                        return Transform
-                                            .translate(
-                                          offset:
-                                              Offset(dx, 0),
-                                          child: child,
-                                        );
-                                      },
-                                      child: AnimatedSwitcher(
-                                        duration:
-                                            const Duration(
-                                                milliseconds:
-                                                    250),
-                                        child: _isSignup
-                                            ? _signupForm(
-                                                key: const ValueKey(
-                                                    'su'))
-                                            : _loginForm(
-                                                key: const ValueKey(
-                                                    'li')),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: context.rs(14)),
-                                  Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(
-                                            horizontal:
-                                                context.padX),
-                                    child: Row(
-                                      children: [
-                                        const Expanded(
-                                            child: Divider()),
-                                        Padding(
-                                          padding:
-                                              const EdgeInsets
-                                                  .symmetric(
-                                                  horizontal:
-                                                      12),
-                                          child: Text(
-                                              'or continue with',
-                                              style: TextStyle(
-                                                  fontSize: context
-                                                      .font(12),
-                                                  color: OxroColors
-                                                      .muted)),
-                                        ),
-                                        const Expanded(
-                                            child: Divider()),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(height: context.rs(12)),
-                                  Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(
-                                            horizontal:
-                                                context.padX),
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        showOxroSnack(
-                                            context,
-                                            'Google sign-in coming soon — use OTP for now');
-                                      },
-                                      child: Container(
-                                        height: 50,
-                                        alignment:
-                                            Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(
-                                                  12),
-                                          border: Border.all(
-                                              color:
-                                                  OxroColors.border),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize:
-                                              MainAxisSize.min,
-                                          children: [
-                                            Container(
-                                              width: 22,
-                                              height: 22,
-                                              alignment: Alignment
-                                                  .center,
-                                              decoration:
-                                                  const BoxDecoration(
-                                                color: Color(
-                                                    0xFF4285F4),
-                                                shape: BoxShape
-                                                    .circle,
-                                              ),
-                                              child: const Text(
-                                                  'G',
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          13,
-                                                      fontWeight:
-                                                          FontWeight
-                                                              .w800,
-                                                      color: Colors
-                                                          .white)),
-                                            ),
-                                            const SizedBox(
-                                                width: 10),
-                                            Flexible(
-                                              child: Text(
-                                                'Continue with Google',
-                                                maxLines: 1,
-                                                overflow:
-                                                    TextOverflow
-                                                        .ellipsis,
-                                                style: TextStyle(
-                                                    fontSize: context
-                                                        .font(14),
-                                                    fontWeight:
-                                                        FontWeight
-                                                            .w600),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Terms pinned at bottom.
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(context.padX,
-                          context.rs(8), context.padX, context.rs(14)),
-                      child: Center(
-                        child: Text(
-                          'By continuing, you agree to our Terms & Privacy Policy',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: context.font(11),
-                              color: OxroColors.muted),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-      ),
           ],
         ),
       ),
@@ -664,8 +663,7 @@ class _LoginScreenState extends State<LoginScreen>
           decoration: _dec(
             hint: 'Enter email address',
             error: _emailError,
-            prefix: const Icon(Icons.mail_outline,
-                color: OxroColors.muted),
+            prefix: const Icon(Icons.mail_outline, color: OxroColors.muted),
           ),
         ),
         SizedBox(height: context.rs(12)),
@@ -687,8 +685,7 @@ class _LoginScreenState extends State<LoginScreen>
           decoration: _dec(
             hint: 'Full Name',
             error: _nameError,
-            prefix: const Icon(Icons.person_outline,
-                color: OxroColors.muted),
+            prefix: const Icon(Icons.person_outline, color: OxroColors.muted),
           ),
         ),
         SizedBox(height: context.rs(10)),
@@ -699,8 +696,7 @@ class _LoginScreenState extends State<LoginScreen>
           decoration: _dec(
             hint: 'Enter email address',
             error: _emailError,
-            prefix: const Icon(Icons.mail_outline,
-                color: OxroColors.muted),
+            prefix: const Icon(Icons.mail_outline, color: OxroColors.muted),
           ),
         ),
         SizedBox(height: context.rs(10)),
@@ -711,8 +707,10 @@ class _LoginScreenState extends State<LoginScreen>
           decoration: _dec(
             hint: 'Referral code (optional)',
             error: _referralError,
-            prefix: const Icon(Icons.card_giftcard_outlined,
-                color: OxroColors.muted),
+            prefix: const Icon(
+              Icons.card_giftcard_outlined,
+              color: OxroColors.muted,
+            ),
           ),
         ),
         SizedBox(height: context.rs(12)),

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,13 +14,21 @@ class ProfileStore extends ChangeNotifier {
   static const _kEmail = 'oxro_email';
   static const _kPhone = 'oxro_phone';
   static const _kSeenOnboarding = 'oxro_seen_onboarding';
+  static const _kWelcomeShown = 'oxro_welcome_shown';
+  static const _kAvatar = 'oxro_avatar';
+
+  /// Picked photos are downscaled before storage; this cap protects
+  /// SharedPreferences from accidentally holding a full-resolution image.
+  static const maxAvatarBytes = 2 * 1024 * 1024;
 
   @visibleForTesting
   static void resetForTests() {
     instance._name = null;
     instance._email = null;
     instance._phone = null;
+    instance._avatarBytes = null;
     instance._seenOnboarding = false;
+    instance._welcomeShown = false;
     instance._loaded = false;
     instance.notifyListeners();
   }
@@ -26,14 +36,19 @@ class ProfileStore extends ChangeNotifier {
   String? _name;
   String? _email;
   String? _phone;
+  Uint8List? _avatarBytes;
   bool _seenOnboarding = false;
   bool _loaded = false;
+  bool _welcomeShown = false;
 
   String? get name => _name;
   String? get email => _email;
   String? get phone => _phone;
+  Uint8List? get avatarBytes => _avatarBytes;
+  bool get hasAvatar => _avatarBytes != null && _avatarBytes!.isNotEmpty;
   bool get seenOnboarding => _seenOnboarding;
   bool get loaded => _loaded;
+  bool get welcomeShown => _welcomeShown;
 
   /// Logged in via email OTP or phone OTP (either identity counts).
   bool get isLoggedIn =>
@@ -74,7 +89,52 @@ class ProfileStore extends ChangeNotifier {
     _email = p.getString(_kEmail);
     _phone = p.getString(_kPhone);
     _seenOnboarding = p.getBool(_kSeenOnboarding) ?? false;
+    _welcomeShown = p.getBool(_kWelcomeShown) ?? false;
+    _avatarBytes = _decodeAvatar(p.getString(_kAvatar));
     _loaded = true;
+    notifyListeners();
+  }
+
+  static Uint8List? _decodeAvatar(String? encoded) {
+    if (encoded == null || encoded.isEmpty) return null;
+    try {
+      final bytes = base64Decode(encoded);
+      return bytes.isEmpty ? null : bytes;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// Saves a picked profile photo. Returns an error message or null.
+  Future<String?> setAvatar(Uint8List bytes) async {
+    if (bytes.isEmpty) return 'Could not read that photo';
+    if (bytes.length > maxAvatarBytes) {
+      return 'Photo is too large (max 2 MB)';
+    }
+    final p = await SharedPreferences.getInstance();
+    _avatarBytes = bytes;
+    await p.setString(_kAvatar, base64Encode(bytes));
+    notifyListeners();
+    return null;
+  }
+
+  /// Removes the profile photo (falls back to the initial/icon avatar).
+  Future<void> clearAvatar() async {
+    if (_avatarBytes == null) return;
+    final p = await SharedPreferences.getInstance();
+    _avatarBytes = null;
+    await p.remove(_kAvatar);
+    notifyListeners();
+  }
+
+  /// Marks the welcome popup as shown (saves persistence).
+  /// Flag flips before the async write so a Home rebuild cannot
+  /// queue a second popup while prefs are loading.
+  Future<void> markWelcomeShown() async {
+    if (_welcomeShown) return;
+    _welcomeShown = true;
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(_kWelcomeShown, true);
     notifyListeners();
   }
 
@@ -168,9 +228,11 @@ class ProfileStore extends ChangeNotifier {
     _name = null;
     _email = null;
     _phone = null;
+    _avatarBytes = null;
     await p.remove(_kName);
     await p.remove(_kEmail);
     await p.remove(_kPhone);
+    await p.remove(_kAvatar);
     notifyListeners();
   }
 }

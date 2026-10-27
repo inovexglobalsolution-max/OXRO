@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'package:oxro/app/data/food_media.dart';
 import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
+import 'package:oxro/app/widgets/food_image.dart';
 import 'package:oxro/features/categories/data/category_style.dart';
 import 'package:oxro/features/categories/presentation/screens/sub_category_screen.dart';
 import 'package:oxro/features/search/presentation/screens/search_screen.dart';
@@ -17,7 +19,7 @@ class CategoriesScreen extends StatefulWidget {
   final VoidCallback? onBack;
 
   /// Category tap (08 listing wires later).
-  final void Function(HomeCategory c)? onOpen;
+  final void Function(FoodCategory c)? onOpen;
 
   @override
   State<CategoriesScreen> createState() => _CategoriesScreenState();
@@ -56,39 +58,43 @@ class _CategoriesScreenState extends State<CategoriesScreen>
               backgroundColor: Colors.white,
               elevation: 0,
               leading: IconButton(
-                onPressed: widget.onBack ??
-                    () => Navigator.of(context).maybePop(),
-                icon: const Icon(Icons.arrow_back,
-                    color: OxroColors.charcoal),
+                onPressed:
+                    widget.onBack ?? () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back, color: OxroColors.charcoal),
               ),
               title: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Flexible(
-                    child: Text('All Categories',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: OxroColors.charcoal)),
+                    child: Text(
+                      'All Categories',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: OxroColors.charcoal,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       gradient: OxroColors.gradient,
-                      borderRadius:
-                          BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                        '${homeCategories.length}',
-                        style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white)),
+                      '${homeCategories.length}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -96,32 +102,28 @@ class _CategoriesScreenState extends State<CategoriesScreen>
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: IconButton(
-                    onPressed: () => pushScreen(
-                        context, const SearchScreen()),
+                    onPressed: () => pushScreen(context, const SearchScreen()),
                     style: IconButton.styleFrom(
                       backgroundColor: OxroColors.pageBg,
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        side: const BorderSide(
-                            color: OxroColors.border),
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: OxroColors.border),
                       ),
                     ),
-                    icon: const Icon(Icons.search,
-                        color: OxroColors.charcoal),
+                    icon: const Icon(Icons.search, color: OxroColors.charcoal),
                   ),
                 ),
               ],
             ),
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
-                  context.padX,
-                  context.rs(6),
-                  context.padX,
-                  context.rs(20)),
+                context.padX,
+                context.rs(6),
+                context.padX,
+                context.rs(20),
+              ),
               sliver: SliverGrid(
-                gridDelegate:
-                    SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
                   mainAxisSpacing: context.rs(12),
                   crossAxisSpacing: context.rs(12),
@@ -138,11 +140,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
                         if (widget.onOpen != null) {
                           widget.onOpen!(cat);
                         } else {
-                          pushScreen(
-                            context,
-                            SubCategoryScreen(
-                                category: cat),
-                          );
+                          pushScreen(context, SubCategoryScreen(category: cat));
                         }
                       },
                     ),
@@ -183,15 +181,10 @@ class _CategoriesScreenState extends State<CategoriesScreen>
   }
 }
 
-
-
 class _CatCard extends StatefulWidget {
-  const _CatCard(
-      {required this.cat,
-      required this.index,
-      required this.onTap});
+  const _CatCard({required this.cat, required this.index, required this.onTap});
 
-  final HomeCategory cat;
+  final FoodCategory cat;
   final int index;
   final VoidCallback onTap;
 
@@ -234,122 +227,118 @@ class _CatCardState extends State<_CatCard>
       child: ScaleTransition(
         scale: _press,
         child: Container(
-          padding: EdgeInsets.all(context.rs(14)),
           decoration: BoxDecoration(
-            color: Colors.white,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: OxroColors.border),
             boxShadow: [
               BoxShadow(
-                color: glow.withValues(alpha: 0.16),
+                color: glow.withValues(alpha: 0.20),
                 blurRadius: 14,
                 offset: const Offset(0, 6),
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              // Tint wash blob (top-right).
-              Positioned(
-                right: -24,
-                top: -24,
-                child: Container(
-                  width: 84,
-                  height: 84,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                FoodImage(
+                  imageUrl: FoodMedia.forCategory(widget.cat.label),
+                  colors: g,
+                  icon: widget.cat.icon,
+                  radius: 18,
+                ),
+                const DecoratedBox(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: g),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(
-                          alpha: 0.82),
-                      shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x0D051D47),
+                        Color(0x00051D47),
+                        Color(0xD9051D47),
+                      ],
+                      stops: [0, 0.42, 1],
                     ),
                   ),
                 ),
-              ),
-              Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Row(
+                Positioned(
+                  left: 10,
+                  top: 10,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.94),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(widget.cat.icon, size: 18, color: glow),
+                  ),
+                ),
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.94),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.chevron_right,
+                      size: 17,
+                      color: OxroColors.charcoal,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 11,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Hero(
-                        tag: 'cat_${widget.cat.label}',
-                        child: Container(
-                          width: context.rs(48),
-                          height: context.rs(48),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                                colors: g),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: glow.withValues(
-                                    alpha: 0.35),
-                                blurRadius: 10,
-                                offset:
-                                    const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Icon(widget.cat.icon,
-                              size: 24,
-                              color: Colors.white),
+                      Text(
+                        widget.cat.label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: context.font(14.5),
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          height: 1.2,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(height: 4),
                       Container(
-                        width: 28,
-                        height: 28,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: OxroColors.pageBg,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: OxroColors.border),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
                         ),
-                        child: const Icon(
-                            Icons.chevron_right,
-                            size: 17,
-                            color: OxroColors.muted),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.90),
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        child: Text(
+                          widget.cat.items,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: context.font(11),
+                            fontWeight: FontWeight.w700,
+                            color: glow,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  Text(widget.cat.label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: context.font(14),
-                          fontWeight: FontWeight.w800,
-                          color: OxroColors.charcoal,
-                          height: 1.25)),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: glow.withValues(
-                          alpha: 0.10),
-                      borderRadius:
-                          BorderRadius.circular(7),
-                    ),
-                    child: Text(widget.cat.items,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize:
-                                context.font(11.5),
-                            fontWeight: FontWeight.w700,
-                            color: glow)),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -44,7 +44,15 @@ void main() {
 
     expect(find.byKey(const ValueKey('pdp_name')), findsOneWidget);
     expect(find.byKey(const ValueKey('pdp_price')), findsOneWidget);
-    expect(find.byKey(ValueKey('add_${_p.id}')), findsOneWidget);
+    // Jacket needs a size: chips + SELECT SIZE gate + guide.
+    expect(find.byKey(const ValueKey('size_chip_M')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('size_guide_btn')),
+        findsOneWidget);
+    expect(
+        find.byKey(
+            ValueKey('pdp_add_${_p.id}_none')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('pdp_buy')), findsOneWidget);
     expect(find.textContaining('Free delivery'), findsWidgets);
     expect(tester.takeException(), isNull);
@@ -56,39 +64,80 @@ void main() {
         const MaterialApp(home: ProductDetailScreen(product: _p)));
     await _settle(tester);
 
-    await tester.tap(find.byKey(ValueKey('add_${_p.id}')));
+    // Must-select gate: SELECT SIZE shows until a chip is picked.
+    expect(
+        find.byKey(ValueKey('pdp_add_${_p.id}_none')),
+        findsOneWidget);
+    expect(
+        find.byKey(
+            ValueKey('pdp_stepper_${_p.id}_M')),
+        findsNothing);
+    // Pick M → size-bound ADD appears → tap → stepper.
+    await tester.dragUntilVisible(
+      find.byKey(const ValueKey('size_chip_M')),
+      find.byKey(const ValueKey('pdp_scroll')),
+      const Offset(0, -300),
+    );
     await _settle(tester);
-    expect(find.byKey(ValueKey('stepper_${_p.id}')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('size_chip_M')));
+    await _settle(tester);
+    expect(
+        find.byKey(ValueKey('pdp_add_${_p.id}_M')),
+        findsOneWidget);
+    await tester.tap(
+        find.byKey(ValueKey('pdp_add_${_p.id}_M')));
+    await _settle(tester);
+    expect(
+        find.byKey(
+            ValueKey('pdp_stepper_${_p.id}_M')),
+        findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
 
-  testWidgets('Home card tap opens PDP', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+  testWidgets('PDP size guide opens chart', (tester) async {
+    await tester.pumpWidget(
+        const MaterialApp(home: ProductDetailScreen(product: _p)));
     await _settle(tester);
 
     await tester.dragUntilVisible(
-      find.text("Today's Offers"),
+      find.byKey(const ValueKey('size_guide_btn')),
+      find.byKey(const ValueKey('pdp_scroll')),
+      const Offset(0, -300),
+    );
+    await _settle(tester);
+    await tester.tap(
+        find.byKey(const ValueKey('size_guide_btn')));
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('size_guide_table')),
+        findsOneWidget);
+    expect(find.text('Chest'), findsOneWidget);
+    await tester.tap(
+        find.byKey(const ValueKey('size_guide_close')));
+    await _settle(tester);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
+  testWidgets('Home dish opens restaurant menu', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    await _settle(tester);
+
+    final dish = homeDeals.first;
+    final card = find.byKey(ValueKey('rail_dish_${dish.id}'));
+    await tester.dragUntilVisible(
+      card,
       find.byKey(const ValueKey('home_scroll')),
       const Offset(0, -500),
     );
-    for (var i = 0; i < 6; i++) {
-      await tester.pump(const Duration(milliseconds: 300));
-    }
-    final card = find
-        .byWidgetPredicate((w) =>
-            w.key is ValueKey &&
-            (w.key as ValueKey).value is String &&
-            ((w.key as ValueKey).value as String)
-                .startsWith('home_feed_'))
-        .first;
+    await _settle(tester);
     await tester.ensureVisible(card);
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(card);
     await _settle(tester);
 
-    expect(find.byKey(const ValueKey('pdp_name')), findsOneWidget);
-    expect(find.byKey(const ValueKey('pdp_scroll')), findsOneWidget);
+    expect(find.byKey(const ValueKey('restaurant_screen')),
+        findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });

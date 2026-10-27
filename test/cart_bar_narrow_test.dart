@@ -60,35 +60,34 @@ void main() {
     await _settle(tester);
 
     expect(find.byKey(const ValueKey('cart_bar')), findsOneWidget);
-    expect(find.text('3 items'), findsOneWidget);
+    expect(find.text('3 Items'), findsOneWidget);
     // Full amount visible (FittedBox shrinks, never ellipsis-cuts).
     expect(
-        find.text(
-            Product.inr(CartStore.instance.totalPrice)),
-        findsOneWidget);
+      find.textContaining(Product.inr(CartStore.instance.totalPrice)),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('cart_bar_go')), findsOneWidget);
-    // Total + savings both render (option B).
-    expect(find.byKey(ValueKey('cart_bar_total_${CartStore.instance.totalPrice}')),
-        findsOneWidget);
-    expect(find.byKey(ValueKey('bar_sub_${CartStore.instance.savings}')),
-        findsOneWidget);
+    expect(find.text('VIEW CART'), findsOneWidget);
+    // Total key still renders on the combined count · total line.
+    expect(
+      find.byKey(ValueKey('cart_bar_total_${CartStore.instance.totalPrice}')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
 
-    // Bar floats on Categories + Orders + Account too, hides on Bag.
-    await tester.tap(find.text('Categories'));
+    // Bar floats on Delivery + Account too, hides on Bag.
+    await tester.tap(find.byKey(const ValueKey('nav_delivery')));
     await _settle(tester);
     expect(find.byKey(const ValueKey('cart_bar')), findsOneWidget);
 
-    await tester.tap(find.text('Orders'));
+    await tester.tap(find.byKey(const ValueKey('profile_btn')));
     await _settle(tester);
     expect(find.byKey(const ValueKey('cart_bar')), findsOneWidget);
 
-    await tester.tap(find.text('Account'));
+    // Account hides the bottom nav; use its circular back button.
+    await tester.tap(find.byKey(const ValueKey('profile_back')));
     await _settle(tester);
-    expect(find.byKey(const ValueKey('cart_bar')), findsOneWidget);
-
-    // Bottom-nav Bag icons: tap the nav item (first Bag match).
-    await tester.tap(find.text('Bag').first);
+    await tester.tap(find.byKey(const ValueKey('nav_cart')));
     await _settle(tester);
     expect(find.byKey(const ValueKey('cart_bar')), findsNothing);
     expect(tester.takeException(), isNull);

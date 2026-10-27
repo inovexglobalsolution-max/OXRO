@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/features/cart/data/cart_store.dart';
+import 'package:oxro/features/cart/presentation/quick_add.dart';
+import 'package:oxro/features/detail/data/product_sizes.dart';
 import 'package:oxro/features/home/data/home_data.dart';
 
 /// Reusable Add-to-Cart bar: "ADD" → stepper (− qty +).
@@ -28,28 +30,34 @@ class AddButton extends StatelessWidget {
             builder: (context, v, _) => Transform.scale(
               scale: v,
               child: GestureDetector(
-            key: ValueKey('add_${product.id}'),
-            onTap: () => CartStore.instance.add(product),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              width: double.infinity,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(vertical: 7),
-              decoration: BoxDecoration(
-                color: OxroColors.primary,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: const [
-                  BoxShadow(
-                      color: Color(0x22051D47), blurRadius: 6),
-                ],
-              ),
-              child: const Text('ADD',
-                  style: TextStyle(
+                key: ValueKey('add_${product.id}'),
+                onTap: () => quickAddProduct(
+                  context,
+                  product,
+                  size: defaultSizeFor(product),
+                ),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  decoration: BoxDecoration(
+                    color: OxroColors.primary,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x22051D47), blurRadius: 6),
+                    ],
+                  ),
+                  child: const Text(
+                    'ADD',
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white)),
-            ),
-          ),
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
             ),
           );
         }
@@ -61,63 +69,72 @@ class AddButton extends StatelessWidget {
           builder: (context, v, _) => Transform.scale(
             scale: v,
             child: Container(
-          key: ValueKey('stepper_${product.id}'),
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: OxroColors.primary,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: const [
-              BoxShadow(
-                  color: Color(0x22051D47), blurRadius: 6),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                key: ValueKey('dec_${product.id}'),
-                onTap: () =>
-                    CartStore.instance.decrement(product.id),
-                behavior: HitTestBehavior.opaque,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 5),
-                  child: Text('−',
-                      style: TextStyle(
+              key: ValueKey('stepper_${product.id}'),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: OxroColors.primary,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x22051D47), blurRadius: 6),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    key: ValueKey('dec_${product.id}'),
+                    onTap: () => CartStore.instance.decrement(product.id),
+                    behavior: HitTestBehavior.opaque,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      child: Text(
+                        '−',
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white)),
-                ),
-              ),
-              Text('$qty',
-                  style: const TextStyle(
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '$qty',
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white)),
-              GestureDetector(
-                key: ValueKey('inc_${product.id}'),
-                onTap: () =>
-                    CartStore.instance.increment(product.id),
-                behavior: HitTestBehavior.opaque,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 5),
-                  child: Text('+',
-                      style: TextStyle(
+                      color: Colors.white,
+                    ),
+                  ),
+                  GestureDetector(
+                    key: ValueKey('inc_${product.id}'),
+                    onTap: () => CartStore.instance.increment(product.id),
+                    behavior: HitTestBehavior.opaque,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      child: Text(
+                        '+',
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white)),
-                ),
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
             ),
           ),
         );
-        },
-      );
+      },
+    );
   }
 }
 
@@ -145,26 +162,27 @@ class BagBadge extends StatelessWidget {
             decoration: BoxDecoration(
               color: OxroColors.royalBlue,
               shape: BoxShape.circle,
-              border: Border.all(
-                  color: Colors.white, width: 1.5),
+              border: Border.all(color: Colors.white, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: OxroColors.royalBlue
-                      .withValues(alpha: 0.35),
+                  color: OxroColors.royalBlue.withValues(alpha: 0.35),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: Text(n > 9 ? '9+' : '$n',
-                key: const ValueKey('bag_badge_count'),
-                maxLines: 1,
-                overflow: TextOverflow.clip,
-                style: const TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    height: 1.0)),
+            child: Text(
+              n > 9 ? '9+' : '$n',
+              key: const ValueKey('bag_badge_count'),
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              style: const TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                height: 1.0,
+              ),
+            ),
           ),
         );
       },

@@ -39,13 +39,20 @@ void main() {
     expect(NotifStore.instance.restoreLast(), isFalse);
   });
 
-  testWidgets('Bell badge opens inbox', (tester) async {
+  testWidgets('Account menu opens inbox', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await _settle(tester);
 
-    expect(find.byKey(const ValueKey('notif_bell')), findsOneWidget);
-    expect(find.byKey(const ValueKey('notif_badge')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('notif_bell')));
+    // Bell removed from header — entry now lives in Account tab.
+    expect(find.byKey(const ValueKey('notif_bell')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('profile_btn')));
+    await _settle(tester);
+    final notifFinder =
+        find.byKey(const ValueKey('profile_notifications'));
+    expect(notifFinder, findsOneWidget);
+    await tester.scrollUntilVisible(notifFinder, 300);
+    await _settle(tester);
+    await tester.tap(notifFinder, warnIfMissed: false);
     await _settle(tester);
     expect(find.byKey(const ValueKey('notif_scroll')), findsOneWidget);
     expect(find.byKey(const ValueKey('notif_row_n1')), findsOneWidget);

@@ -1,7 +1,21 @@
 import 'package:flutter/material.dart';
 
-/// Mock catalogue for 06 Home (Fashion + Electronics).
+import 'package:oxro/app/data/food_media.dart';
+import 'package:oxro/features/categories/data/food_taxonomy.dart';
+import 'package:oxro/features/detail/data/dish_options.dart';
+
+export 'package:oxro/features/categories/data/food_taxonomy.dart'
+    show
+        FoodCategory,
+        foodCategories,
+        foodSubcategories,
+        subcategoriesFor,
+        foodCategoryFor;
+
+/// Mock catalogue for 06 Home (food delivery).
 /// Real Supabase catalogue replaces this later.
+
+enum BannerStyle { premium, sale, standard }
 
 class HomeBanner {
   const HomeBanner({
@@ -10,7 +24,9 @@ class HomeBanner {
     required this.cta,
     required this.colors,
     required this.icon,
-    this.image,
+    this.imageUrl,
+    this.tag,
+    this.style = BannerStyle.standard,
   });
 
   final String title;
@@ -19,27 +35,17 @@ class HomeBanner {
   final List<Color> colors;
   final IconData icon;
 
-  /// Bundled art (null = code-rendered gradient + icon fallback).
-  final String? image;
-}
+  /// Bundled food photo (load failure = gradient + icon fallback).
+  final String? imageUrl;
 
-class HomeCategory {
-  const HomeCategory({
-    required this.label,
-    required this.short,
-    required this.icon,
-    required this.items,
-  });
+  /// Short offer sticker rendered as a seal on the hero (e.g. '30% OFF').
+  final String? tag;
 
-  /// Full spec name (listing title).
-  final String label;
-
-  /// Compact circle text.
-  final String short;
-  final IconData icon;
-
-  /// Mock catalogue size (backend replaces later).
-  final String items;
+  /// Hero art treatment. [BannerStyle.premium] is the burgundy-cream FREE
+  /// DELIVERY membership slide, [BannerStyle.sale] is the looping starburst
+  /// offer promo, and
+  /// [BannerStyle.standard] is the per-palette catalogue hero.
+  final BannerStyle style;
 }
 
 class Product {
@@ -53,6 +59,13 @@ class Product {
     required this.reviews,
     required this.icon,
     required this.colors,
+    this.restaurantId,
+    this.restaurantName,
+    this.veg = false,
+    this.egg = false,
+    this.description = '',
+    this.options = const [],
+    this.imageUrl,
   });
 
   final int id;
@@ -65,29 +78,67 @@ class Product {
   final IconData icon;
   final List<Color> colors;
 
-  int get off =>
-      mrp <= 0 ? 0 : ((1 - price / mrp) * 100).round();
+  /// Food fields (null/false/empty for legacy catalogue items).
+  /// [brand] doubles as the kitchen name for dishes.
+  final String? restaurantId;
+  final String? restaurantName;
+  final bool veg;
+  final bool egg;
+  final String description;
+  final List<DishOptionGroup> options;
+
+  /// Bundled food photo; null = gradient/icon fallback.
+  final String? imageUrl;
+
+  int get off => mrp <= 0 ? 0 : ((1 - price / mrp) * 100).round();
+
+  /// Kitchen shown on dish cards (falls back to [brand]).
+  String get kitchen => restaurantName ?? brand;
+
+  /// Copy with a customised unit price (add-ons / size deltas).
+  Product priced(int newPrice, {int? newMrp}) => Product(
+    id: id,
+    name: name,
+    brand: brand,
+    price: newPrice,
+    mrp: newMrp ?? mrp,
+    rating: rating,
+    reviews: reviews,
+    icon: icon,
+    colors: colors,
+    restaurantId: restaurantId,
+    restaurantName: restaurantName,
+    veg: veg,
+    egg: egg,
+    description: description,
+    imageUrl: imageUrl,
+  );
 
   /// JSON snapshot for on-device caches (cart/wishlist/orders).
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'brand': brand,
-        'price': price,
-        'mrp': mrp,
-        'rating': rating,
-        'reviews': reviews,
-        'icon': icon.codePoint,
-        'colors': [for (final c in colors) c.toARGB32()],
-      };
+    'id': id,
+    'name': name,
+    'brand': brand,
+    'price': price,
+    'mrp': mrp,
+    'rating': rating,
+    'reviews': reviews,
+    'icon': icon.codePoint,
+    'colors': [for (final c in colors) c.toARGB32()],
+    'restaurantId': restaurantId,
+    'restaurantName': restaurantName,
+    'veg': veg,
+    'egg': egg,
+    'description': description,
+    'imageUrl': imageUrl,
+  };
 
   static Product fromJson(Map<String, dynamic> m) {
     final codePoint = (m['icon'] as num?)?.toInt() ?? 0xe000;
     final rawColors = m['colors'];
     final colorList = [
-      for (final v in (rawColors is List
-          ? rawColors
-          : const [0xFFFFFFFF, 0xFF000000]))
+      for (final v
+          in (rawColors is List ? rawColors : const [0xFFFFFFFF, 0xFF000000]))
         if (v is num) Color(v.toInt()),
     ];
     // ignore: non_const_argument_for_const_parameter
@@ -104,6 +155,12 @@ class Product {
       colors: colorList.isEmpty
           ? const [Color(0xFFFFFFFF), Color(0xFF000000)]
           : colorList,
+      restaurantId: m['restaurantId'] as String?,
+      restaurantName: m['restaurantName'] as String?,
+      veg: (m['veg'] as bool?) ?? false,
+      egg: (m['egg'] as bool?) ?? false,
+      description: (m['description'] as String?) ?? '',
+      imageUrl: m['imageUrl'] as String?,
     );
   }
 
@@ -123,85 +180,104 @@ class Product {
   }
 }
 
-const homeBanners = [
+final homeBanners = [
   HomeBanner(
-    title: 'OXRO Mega Store',
-    sub: 'Everything in one app',
-    cta: 'Start Shopping',
-    colors: [Color(0xFF082B66), Color(0xFF0A8CFF)],
-    icon: Icons.shopping_bag_outlined,
-    image: 'assets/banners/all_in_one.png',
+    title: 'ITEMS AT 50% OFF',
+    sub: 'On your favourites this week',
+    cta: 'Order now',
+    colors: [const Color(0xFFE23744), const Color(0xFFB3121C)],
+    icon: Icons.bolt_rounded,
+    imageUrl: FoodMedia.heroBiryani,
+    tag: '50% OFF',
+    style: BannerStyle.sale,
   ),
   HomeBanner(
-    title: 'Big Fashion Sale',
-    sub: 'Up to 70% OFF',
-    cta: 'Shop Now',
-    colors: [Color(0xFFFF8A00), Color(0xFFFF4D00)],
-    icon: Icons.checkroom_outlined,
-    image: 'assets/banners/fashion.png',
+    title: 'FREE DELIVERY',
+    sub: 'above ₹199',
+    cta: 'Join PREMIUM for 3 months at ₹1',
+    colors: [const Color(0xFFFFF7EC), const Color(0xFF4A0E24)],
+    icon: Icons.workspace_premium_rounded,
+    imageUrl: FoodMedia.heroThali,
+    style: BannerStyle.premium,
   ),
   HomeBanner(
-    title: 'Electronics Fest',
-    sub: 'From ₹999 + No-Cost EMI',
-    cta: 'Explore',
-    colors: [Color(0xFF0A8CFF), Color(0xFF004E92)],
-    icon: Icons.smartphone_outlined,
-    image: 'assets/banners/electronics.png',
+    title: 'Biryani Fest',
+    sub: 'Flat 30% OFF on Dum Biryani',
+    cta: 'Order Biryani',
+    colors: [const Color(0xFFFF8A00), const Color(0xFFFF4D00)],
+    icon: Icons.rice_bowl_outlined,
+    imageUrl: FoodMedia.heroBiryani,
+    tag: '30% OFF',
   ),
   HomeBanner(
-    title: 'Home Makeover',
-    sub: 'From ₹499 + Free Delivery',
-    cta: 'Refresh',
-    colors: [Color(0xFF0E9F6E), Color(0xFF03543F)],
-    icon: Icons.kitchen_outlined,
-    image: 'assets/banners/home_kitchen.png',
+    title: 'Pizza Party',
+    sub: 'Buy 1 Get 1 Free',
+    cta: 'Grab Deal',
+    colors: [const Color(0xFF0A8CFF), const Color(0xFF004E92)],
+    icon: Icons.local_pizza_outlined,
+    imageUrl: FoodMedia.heroPizza,
+    tag: 'BOGO FREE',
   ),
   HomeBanner(
-    title: 'Beauty Picks',
-    sub: 'Flat 40% OFF top brands',
-    cta: 'Glow Now',
-    colors: [Color(0xFFE91E63), Color(0xFF9C27B0)],
-    icon: Icons.spa_outlined,
-    image: 'assets/banners/beauty.png',
+    title: 'South Indian Breakfast',
+    sub: 'From ₹99 + Free Filter Coffee',
+    cta: 'Wake Up',
+    colors: [const Color(0xFF0E9F6E), const Color(0xFF03543F)],
+    icon: Icons.breakfast_dining_outlined,
+    imageUrl: FoodMedia.heroSouthIndian,
+    tag: 'FROM ₹99',
   ),
   HomeBanner(
-    title: 'Sport On',
-    sub: 'Min 50% OFF + Extra 10%',
-    cta: 'Train Now',
-    colors: [Color(0xFF65A30D), Color(0xFF1A2E05)],
-    icon: Icons.fitness_center_outlined,
-    image: 'assets/banners/sports.png',
+    title: 'Sweet Cravings',
+    sub: 'Desserts & Ice Cream 40% OFF',
+    cta: 'Treat Me',
+    colors: [const Color(0xFFE91E63), const Color(0xFF9C27B0)],
+    icon: Icons.icecream_outlined,
+    imageUrl: FoodMedia.heroDessert,
+    tag: '40% OFF',
   ),
   HomeBanner(
-    title: 'Study & Office',
-    sub: 'From ₹99 + Bulk Deals',
-    cta: 'Stock Up',
-    colors: [Color(0xFFD97706), Color(0xFF78350F)],
-    icon: Icons.menu_book_outlined,
-    image: 'assets/banners/books_office.png',
+    title: 'Healthy Bowls',
+    sub: 'Salads & Grills under 400 kcal',
+    cta: 'Eat Clean',
+    colors: [const Color(0xFF65A30D), const Color(0xFF1A2E05)],
+    icon: Icons.eco_outlined,
+    imageUrl: FoodMedia.heroHealthy,
+    tag: '400 KCAL',
   ),
   HomeBanner(
-    title: 'Auto Gear',
-    sub: 'Up to 60% OFF accessories',
-    cta: 'Upgrade',
-    colors: [Color(0xFF475569), Color(0xFF0F172A)],
-    icon: Icons.directions_car_outlined,
-    image: 'assets/banners/auto.png',
+    title: 'Chai & Snacks',
+    sub: 'Evening combos from ₹49',
+    cta: 'Sip Now',
+    colors: [const Color(0xFFD97706), const Color(0xFF78350F)],
+    icon: Icons.coffee_outlined,
+    imageUrl: FoodMedia.coffee,
+    tag: 'FROM ₹49',
   ),
   HomeBanner(
-    title: 'Kids & Pets',
-    sub: 'Flat 30% OFF toys',
-    cta: 'Play Now',
-    colors: [Color(0xFF8B5CF6), Color(0xFF4C1D95)],
-    icon: Icons.pets_outlined,
-    image: 'assets/banners/toys_kids_pets.png',
+    title: 'BBQ & Grills',
+    sub: 'Tandoori & Kebabs 25% OFF',
+    cta: 'Fire Up',
+    colors: [const Color(0xFF475569), const Color(0xFF0F172A)],
+    icon: Icons.outdoor_grill_outlined,
+    imageUrl: FoodMedia.heroBbq,
+    tag: '25% OFF',
+  ),
+  HomeBanner(
+    title: 'Street Food Corner',
+    sub: 'Chaat & Rolls from ₹39',
+    cta: 'Dig In',
+    colors: [const Color(0xFF8B5CF6), const Color(0xFF4C1D95)],
+    icon: Icons.storefront_outlined,
+    imageUrl: FoodMedia.streetFood,
+    tag: 'FROM ₹39',
   ),
 ];
 
 /// Banner i opens this homeCategories index.
-/// Index 0 (All-in-One) opens the Categories tab (-1 sentinel);
-/// rest stay 1:1 with the 8 categories (Big Fashion kept at 1).
-const bannerCategoryIndex = [-1, 1, 0, 2, 3, 4, 5, 6, 7];
+/// Index 0-1 are promo heroes (Categories tab, -1 sentinel); the rest are
+/// 1:1 with the food categories below (Biryani at 0, Pizza at 4, …).
+const bannerCategoryIndex = [-1, -1, 0, 4, 2, 18, 24, 23, 27, 16];
 
 /// Inline mid-scroll ads (Blinkit-style native promos, fashion catalogue).
 /// Shown as full-width strips: one static before the feed +
@@ -227,140 +303,135 @@ class HomeInlineAd {
 
 const homeInlineAds = [
   HomeInlineAd(
-    title: 'Festive Edit — Min 50% OFF',
-    sub: 'Kurtas • Sarees • Watches',
-    cta: 'Shop Now',
+    title: 'Weekend Biryani Fest — 30% OFF',
+    sub: 'Dum • Hyderabadi • Lucknowi',
+    cta: 'Order Now',
     colors: [Color(0xFFFF6A00), Color(0xFFFFB25E)],
-    icon: Icons.celebration_outlined,
-    target: 1,
-  ),
-  HomeInlineAd(
-    title: 'Gadget Days — From ₹999',
-    sub: 'Earbuds • Watches • Audio',
-    cta: 'Explore',
-    colors: [Color(0xFF082B66), Color(0xFF27A9E1)],
-    icon: Icons.smartphone_outlined,
+    icon: Icons.rice_bowl_outlined,
     target: 0,
   ),
   HomeInlineAd(
-    title: 'Glow Up — Flat 40% OFF',
-    sub: 'Lakmé • Lipsticks • Skincare',
-    cta: 'Glow Now',
+    title: 'Pizza Party — Buy 1 Get 1',
+    sub: 'Margherita • Farmhouse • Peppy',
+    cta: 'Grab Deal',
+    colors: [Color(0xFF082B66), Color(0xFF27A9E1)],
+    icon: Icons.local_pizza_outlined,
+    target: 4,
+  ),
+  HomeInlineAd(
+    title: 'Sweet Tooth — Flat 40% OFF',
+    sub: 'Cakes • Ice Cream • Halwa',
+    cta: 'Treat Me',
     colors: [Color(0xFFE91E63), Color(0xFF9C27B0)],
-    icon: Icons.spa_outlined,
-    target: 3,
+    icon: Icons.cake_outlined,
+    target: 18,
   ),
 ];
 
-/// Spec § Main categories (exact 8).
-const homeCategories = [
-  HomeCategory(
-      label: 'Electronics',
-      short: 'Electro',
-      icon: Icons.devices_outlined,
-      items: '2.1k items'),
-  HomeCategory(
-      label: 'Fashion & Clothing',
-      short: 'Fashion',
-      icon: Icons.checkroom_outlined,
-      items: '5.4k items'),
-  HomeCategory(
-      label: 'Home & Kitchen',
-      short: 'Home',
-      icon: Icons.kitchen_outlined,
-      items: '3.2k items'),
-  HomeCategory(
-      label: 'Beauty & Personal Care',
-      short: 'Beauty',
-      icon: Icons.spa_outlined,
-      items: '1.8k items'),
-  HomeCategory(
-      label: 'Sports & Fitness',
-      short: 'Sports',
-      icon: Icons.fitness_center_outlined,
-      items: '960 items'),
-  HomeCategory(
-      label: 'Books, Stationery & Office',
-      short: 'Books',
-      icon: Icons.menu_book_outlined,
-      items: '1.2k items'),
-  HomeCategory(
-      label: 'Automotive & Accessories',
-      short: 'Auto',
-      icon: Icons.directions_car_outlined,
-      items: '740 items'),
-  HomeCategory(
-      label: 'Toys, Kids & Pet Supplies',
-      short: 'Toys',
-      icon: Icons.pets_outlined,
-      items: '1.5k items'),
-];
+/// Flat 2-level food taxonomy: 30 categories (see [foodCategories]).
+const homeCategories = foodCategories;
 
 const homeDeals = [
   Product(
     id: 1,
-    name: 'Nike Air Max 270',
-    brand: 'Nike',
-    price: 6099,
-    mrp: 8999,
-    rating: 4.3,
+    name: 'Hyderabadi Chicken Biryani',
+    brand: 'Paradise Biryani',
+    restaurantName: 'Paradise Biryani',
+    price: 289,
+    mrp: 349,
+    rating: 4.5,
     reviews: 12400,
-    icon: Icons.directions_run_outlined,
+    veg: false,
+    description:
+        'Long-grain basmati layered with spicy chicken, '
+        'saffron and fried onions. Served with raita and salan.',
+    icon: Icons.rice_bowl_outlined,
     colors: [Color(0xFFFFE3CB), Color(0xFFFFC79B)],
+    imageUrl: FoodMedia.biryaniAlt,
   ),
   Product(
     id: 2,
-    name: 'Casual Shirt Slim-Fit',
-    brand: 'OXRO Select',
-    price: 1399,
-    mrp: 1999,
-    rating: 4.1,
-    reviews: 3200,
-    icon: Icons.person_outline,
+    name: 'Paneer Butter Masala',
+    brand: 'Sangeetha Veg',
+    restaurantName: 'Sangeetha Veg',
+    price: 249,
+    mrp: 299,
+    rating: 4.3,
+    reviews: 8200,
+    veg: true,
+    description:
+        'Soft paneer cubes simmered in a creamy tomato '
+        'and cashew gravy. Best with butter naan.',
+    icon: Icons.dinner_dining_outlined,
     colors: [Color(0xFFD8EBFF), Color(0xFFA9CDFB)],
+    imageUrl: FoodMedia.northIndian,
   ),
   Product(
     id: 3,
-    name: 'Wireless Earbuds Pro',
-    brand: 'SonicX',
-    price: 2499,
-    mrp: 4999,
-    rating: 4.5,
+    name: 'Farmhouse Pizza',
+    brand: 'Domino’s',
+    restaurantName: 'Domino’s',
+    price: 319,
+    mrp: 399,
+    rating: 4.4,
     reviews: 21800,
-    icon: Icons.headphones_outlined,
+    veg: true,
+    description:
+        'Onion, capsicum, tomato and mushroom over '
+        '100% mozzarella on a hand-tossed base.',
+    icon: Icons.local_pizza_outlined,
     colors: [Color(0xFFE6E6FA), Color(0xFFC4B5FD)],
+    imageUrl: FoodMedia.pizza,
   ),
   Product(
     id: 4,
-    name: 'Travel Backpack 32L',
-    brand: 'TrekGo',
-    price: 1599,
-    mrp: 2999,
-    rating: 4.2,
-    reviews: 5100,
-    icon: Icons.backpack_outlined,
+    name: 'Masala Dosa',
+    brand: 'Saravana Bhavan',
+    restaurantName: 'Saravana Bhavan',
+    price: 129,
+    mrp: 159,
+    rating: 4.6,
+    reviews: 15100,
+    veg: true,
+    description:
+        'Crispy rice crêpe with spiced potato filling, '
+        'coconut chutney and sambar.',
+    icon: Icons.breakfast_dining_outlined,
     colors: [Color(0xFFD9F2E6), Color(0xFFA7DFC3)],
+    imageUrl: FoodMedia.dosa,
   ),
   Product(
     id: 5,
-    name: 'Smart Watch Fit 2',
-    brand: 'PulseFit',
-    price: 3999,
-    mrp: 7999,
-    rating: 4.4,
-    reviews: 15700,
-    icon: Icons.watch_outlined,
+    name: 'Chicken Cheese Burger',
+    brand: 'Burger King',
+    restaurantName: 'Burger King',
+    price: 199,
+    mrp: 249,
+    rating: 4.2,
+    reviews: 9700,
+    veg: false,
+    description:
+        'Crispy chicken patty, cheese slice, lettuce and '
+        'smoky mayo in a toasted sesame bun.',
+    icon: Icons.lunch_dining_outlined,
     colors: [Color(0xFFFFE8EE), Color(0xFFFFC2D4)],
+    imageUrl: FoodMedia.burger,
   ),
   Product(
     id: 6,
-    name: 'Men Polo T-Shirt',
-    brand: 'OXRO Select',
-    price: 1289,
-    mrp: 1899,
-    rating: 4.0,
-    reviews: 1800,
-    icon: Icons.dry_cleaning_outlined,
+    name: 'Death by Chocolate Sundae',
+    brand: 'Cream Stone',
+    restaurantName: 'Cream Stone',
+    price: 179,
+    mrp: 219,
+    rating: 4.7,
+    reviews: 6800,
+    veg: true,
+    description:
+        'Warm brownie, chocolate ice cream, fudge and '
+        'roasted nuts layered in a tall glass.',
+    icon: Icons.icecream_outlined,
     colors: [Color(0xFFFFF3D6), Color(0xFFFFDFA3)],
+    imageUrl: FoodMedia.dessertBrownie,
   ),
 ];

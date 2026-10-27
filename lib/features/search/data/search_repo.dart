@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:oxro/features/categories/data/category_tree.dart';
 import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/listing/data/product_repo.dart';
 
@@ -74,8 +73,7 @@ class SearchRepo {
   static void pushRecent(String q) {
     final query = q.trim();
     if (query.isEmpty) return;
-    recents.removeWhere(
-        (r) => r.toLowerCase() == query.toLowerCase());
+    recents.removeWhere((r) => r.toLowerCase() == query.toLowerCase());
     recents.insert(0, query);
     if (recents.length > maxRecents) {
       recents.removeRange(maxRecents, recents.length);
@@ -95,47 +93,85 @@ class SearchRepo {
     _persistRecents();
   }
 
-  /// Fixed trending queries mixing brands + categories.
+  /// Fixed trending queries mixing kitchens + dishes.
   static const trendingQueries = [
-    'Nike',
-    'Saree',
-    'Earbuds',
-    'Watch',
-    'Kurti',
-    'Sofa',
+    'Biryani',
+    'Dosa',
+    'Pizza',
+    'Momos',
+    'Chicken',
+    'Cake',
   ];
 
   static List<_Entry>? _pool;
+  static List<Product>? _dishPool;
+  static List<String>? _dishNames;
 
-  /// Bounded pool: first 3 products of every leaf + home deals.
+  static List<Product> get _dishes {
+    final cached = _dishPool;
+    if (cached != null) return cached;
+    final seen = <String>{};
+    final out = <Product>[];
+    for (final entry in _entries()) {
+      if (seen.add(entry.product.name.trim().toLowerCase())) {
+        out.add(entry.product);
+      }
+    }
+    _dishPool = out;
+    return out;
+  }
+
+  /// Every unique dish name in the catalogue, curated starters first.
+  static List<String> get dishNames {
+    final cached = _dishNames;
+    if (cached != null) return cached;
+    final names = [for (final p in _dishes) p.name];
+    _dishNames = names;
+    return names;
+  }
+
+  /// Lightweight dish suggestions for the search dropdown.
+  /// Empty query returns popular catalogue dishes.
+  static List<Product> dishSuggestions(String query, {int limit = 8}) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return _dishes.take(limit).toList();
+    final starts = <Product>[];
+    final contains = <Product>[];
+    final seen = <String>{};
+    for (final product in _dishes) {
+      final name = product.name.toLowerCase();
+      if (!name.contains(q) && !product.brand.toLowerCase().contains(q)) {
+        continue;
+      }
+      if (!seen.add(name)) continue;
+      if (name.startsWith(q)) {
+        starts.add(product);
+      } else {
+        contains.add(product);
+      }
+    }
+    return [...starts, ...contains].take(limit).toList();
+  }
+
+  /// Bounded pool: first 3 dishes of every sub-category + home deals.
   static List<_Entry> _entries() {
     final cached = _pool;
     if (cached != null) return cached;
     final out = <_Entry>[];
     final seen = <int>{};
-    void add(Product p, String leaf, String group, String tab,
-        String category) {
+    void add(Product p, String leaf, String category) {
       if (!seen.add(p.id)) return;
-      final hay =
-          '${p.name} ${p.brand} $leaf $group $tab $category'
-              .toLowerCase();
+      final hay = '${p.name} ${p.brand} $leaf $category'.toLowerCase();
       out.add(_Entry(product: p, haystack: hay, nameMatch: false));
     }
 
     for (final deal in homeDeals) {
-      add(deal, deal.name, '', '', '');
+      add(deal, deal.name, '');
     }
-    for (final category in categoryTree.keys) {
-      for (final tab in tabsFor(category)) {
-        for (final group in tab.groups) {
-          for (final leaf in group.leafs) {
-            for (final p in ProductRepo.allFor(
-                    'search', leaf.name)
-                .take(3)) {
-              add(p, leaf.name, group.name, tab.name,
-                  category);
-            }
-          }
+    for (final category in foodSubcategories.keys) {
+      for (final sub in subcategoriesFor(category)) {
+        for (final p in ProductRepo.allFor('search', sub).take(3)) {
+          add(p, sub, category);
         }
       }
     }
@@ -145,20 +181,21 @@ class SearchRepo {
 
   /// Case-insensitive substring search, capped at 60 hits.
   /// Name matches rank first, then popularity (reviews).
-  static List<Product> searchProducts(String query,
-      {int limit = 60}) {
+  static List<Product> searchProducts(String query, {int limit = 60}) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return const [];
     final hits = <_Entry>[];
     for (final e in _entries()) {
       if (!e.haystack.contains(q)) continue;
-      hits.add(_Entry(
-        product: e.product,
-        haystack: e.haystack,
-        nameMatch:
-            e.product.name.toLowerCase().contains(q) ||
-                e.product.brand.toLowerCase().contains(q),
-      ));
+      hits.add(
+        _Entry(
+          product: e.product,
+          haystack: e.haystack,
+          nameMatch:
+              e.product.name.toLowerCase().contains(q) ||
+              e.product.brand.toLowerCase().contains(q),
+        ),
+      );
     }
     hits.sort((a, b) {
       if (a.nameMatch != b.nameMatch) {

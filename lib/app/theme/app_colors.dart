@@ -28,9 +28,49 @@ class OxroColors {
   static const dark = charcoal;
   static const bgWarm = Color(0xFFFFF7F1);
 
+  // Home reference palette (teal header, maroon promo, gold ornament).
+  static const teal = Color(0xFF1FA0B3);
+  static const tealDeep = Color(0xFF0D879C);
+  static const tealInk = Color(0xFF075F70);
+  static const maroon = Color(0xFF7A1238);
+  static const maroonDeep = Color(0xFF59051C);
+  static const gold = Color(0xFFD9A84E);
+  static const goldSoft = Color(0xFFF1D79A);
+  static const cream = Color(0xFFFFF8EE);
+  static const homeBg = Color(0xFFF7F7F7);
+  static const coral = Color(0xFFFF5A5F);
+
+  // OXRO PREMIUM — burgundy + cream membership palette.
+  static const premiumDeep = Color(0xFF2A0714);
+  static const premiumBurgundy = Color(0xFF4A0E24);
+  static const premiumWine = Color(0xFF6B1535);
+  static const premiumCream = Color(0xFFFFF7EC);
+  static const premiumCreamDeep = Color(0xFFF1E3D2);
+  static const premiumInk = Color(0xFF3B0A1D);
+  static const premiumMuted = Color(0xFF7A5A64);
+  static const premiumRose = Color(0xFFC65C7A);
+  static const premiumChampagne = Color(0xFFE6C79C);
+
   // Supportive.
   static const red = Color(0xFFFF3D36);
   static const green = Color(0xFF16A34A);
+
+  // Food semantics.
+  static const ratingGreen = Color(0xFF16A34A);
+  static const ratingAmber = Color(0xFFDB7C38);
+  static const ratingRed = Color(0xFFE84A4A);
+  static const vegGreen = Color(0xFF16A34A);
+  static const nonVegRed = Color(0xFFE84A4A);
+  static const eggAmber = Color(0xFFCB6602);
+  static const surface = pageBg;
+  static const divider = border;
+  static const textPrimary = charcoal;
+  static const textSecondary = muted;
+  static const offerGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [Color(0xFFFF6A00), Color(0xFFFF8A3D)],
+  );
 
   static const gradient = LinearGradient(
     begin: Alignment.topCenter,

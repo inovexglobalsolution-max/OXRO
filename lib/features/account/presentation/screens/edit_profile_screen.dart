@@ -6,6 +6,8 @@ import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/app/widgets/press_scale.dart';
 import 'package:oxro/features/account/data/profile_store.dart';
+import 'package:oxro/features/account/presentation/widgets/avatar_source_sheet.dart';
+import 'package:oxro/features/account/presentation/widgets/profile_avatar.dart';
 
 /// Edit profile — name + phone (email is login identity, read-only).
 /// Fully static: no entrance slide/fade, no avatar breathing —
@@ -37,6 +39,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _changeAvatar() async {
+    FocusScope.of(context).unfocus();
+    await showAvatarSourceSheet(
+      context,
+      hasPhoto: ProfileStore.instance.hasAvatar,
+    );
   }
 
   Future<void> _save() async {
@@ -196,22 +206,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   ),
                                 ],
                               ),
-                              child: Container(
-                                width: 72,
-                                height: 72,
-                                alignment: Alignment.center,
-                                decoration:
-                                    const BoxDecoration(
-                                  gradient:
-                                      OxroColors.gradient,
-                                  shape: BoxShape.circle,
+                              child: GestureDetector(
+                                key: const ValueKey('edit_avatar'),
+                                onTap: _changeAvatar,
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  width: 72,
+                                  height: 72,
+                                  decoration:
+                                      const BoxDecoration(
+                                    gradient:
+                                        OxroColors.gradient,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: ProfileAvatar(
+                                    size: 72,
+                                    backgroundColor:
+                                        Colors.transparent,
+                                    fallback: Center(
+                                      child: Text(initial,
+                                          style: const TextStyle(
+                                              fontSize: 28,
+                                              fontWeight:
+                                                  FontWeight.w800,
+                                              color: Colors.white)),
+                                    ),
+                                    showCameraBadge: true,
+                                  ),
                                 ),
-                                child: Text(initial,
-                                    style: const TextStyle(
-                                        fontSize: 28,
-                                        fontWeight:
-                                            FontWeight.w800,
-                                        color: Colors.white)),
                               ),
                             ),
                           ],

@@ -55,14 +55,16 @@ class WalletStore extends ChangeNotifier {
       for (final e in (m['txs'] is List ? m['txs'] as List : const [])) {
         final t = e as Map<String, dynamic>;
         final date = t['date'];
-        _txs.add(WalletTx(
-          id: (t['id'] as String?) ?? '',
-          label: (t['label'] as String?) ?? '',
-          amount: (t['amount'] as num?)?.toInt() ?? 0,
-          date: date is String
-              ? DateTime.tryParse(date) ?? DateTime.now()
-              : DateTime.now(),
-        ));
+        _txs.add(
+          WalletTx(
+            id: (t['id'] as String?) ?? '',
+            label: (t['label'] as String?) ?? '',
+            amount: (t['amount'] as num?)?.toInt() ?? 0,
+            date: date is String
+                ? DateTime.tryParse(date) ?? DateTime.now()
+                : DateTime.now(),
+          ),
+        );
       }
       notifyListeners();
     } catch (_) {
@@ -74,19 +76,20 @@ class WalletStore extends ChangeNotifier {
     try {
       final p = await SharedPreferences.getInstance();
       await p.setString(
-          _kCache,
-          jsonEncode({
-            'balance': _balance,
-            'txs': [
-              for (final t in _txs.take(50))
-                {
-                  'id': t.id,
-                  'label': t.label,
-                  'amount': t.amount,
-                  'date': t.date.toIso8601String(),
-                },
-            ],
-          }));
+        _kCache,
+        jsonEncode({
+          'balance': _balance,
+          'txs': [
+            for (final t in _txs.take(50))
+              {
+                'id': t.id,
+                'label': t.label,
+                'amount': t.amount,
+                'date': t.date.toIso8601String(),
+              },
+          ],
+        }),
+      );
     } catch (_) {
       // Best-effort cache only.
     }
@@ -129,5 +132,13 @@ class WalletStore extends ChangeNotifier {
     );
     _changed();
     return true;
+  }
+
+  /// Pays an exact paise bill. Wallet balances are whole rupees, so the
+  /// debit is rounded up to avoid undercharging a fraction of a rupee.
+  bool deductPaise(int paise, {String label = 'Order payment'}) {
+    if (paise <= 0) return false;
+    final rupees = (paise + 99) ~/ 100;
+    return deduct(rupees, label: label);
   }
 }

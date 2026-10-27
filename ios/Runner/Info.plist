@@ -28,6 +28,14 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>OXRO uses your location to detect your delivery city.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>OXRO uses the camera to take your profile photo.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>OXRO uses the microphone for voice search.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>OXRO uses your photo library to set your profile photo.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>OXRO uses speech recognition for voice search.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

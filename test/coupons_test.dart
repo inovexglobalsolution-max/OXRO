@@ -73,11 +73,12 @@ void main() {
     CartStore.instance.add(_p); // 1000
     expect(PaymentStore.instance.applyCoupon('FREESHIP'), isTrue);
     expect(PaymentStore.instance.freeShip, isTrue);
-    expect(PaymentStore.instance.toPay, 1000);
+    // 100000 + 0 delivery + 200 platform + 5000 GST.
+    expect(PaymentStore.instance.toPayPaise, 105200);
     PaymentStore.instance.clearCoupon();
     expect(PaymentStore.instance.freeShip, isFalse);
-    expect(PaymentStore.instance.toPay,
-        1000 + PaymentStore.shippingFee);
+    // 100000 + 4000 delivery + 200 platform + 5000 GST.
+    expect(PaymentStore.instance.toPayPaise, 109200);
   });
 
   testWidgets('Coupons screen applies + pops', (tester) async {

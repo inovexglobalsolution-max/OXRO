@@ -88,7 +88,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('cart_bar_go')));
     await _settle(tester);
-    expect(find.text('Shopping Bag'), findsOneWidget);
+    expect(find.text('My Cart'), findsOneWidget);
     // Bag has its own totals — no floating bar on top.
     expect(find.byKey(const ValueKey('cart_bar')), findsNothing);
     expect(tester.takeException(), isNull);

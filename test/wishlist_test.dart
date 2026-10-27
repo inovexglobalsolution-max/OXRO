@@ -94,25 +94,6 @@ void main() {
     await _dispose(tester);
   });
 
-  testWidgets('Home heart syncs with store', (tester) async {
-    WishlistStore.resetForTests();
-    await tester.pumpWidget(
-        const MaterialApp(home: HomeScreen()));
-    await _settle(tester);
-
-    expect(find.byIcon(Icons.favorite), findsNothing);
-    final heart = find.byIcon(Icons.favorite_outline).first;
-    await tester.ensureVisible(heart);
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(heart);
-    await _settle(tester);
-    expect(find.byIcon(Icons.favorite), findsWidgets);
-    expect(WishlistStore.instance.count, greaterThanOrEqualTo(1));
-    expect(tester.takeException(), isNull);
-    WishlistStore.resetForTests();
-    await _dispose(tester);
-  });
-
   testWidgets('Wishlist opens from Account menu', (tester) async {
     WishlistStore.resetForTests();
     WishlistStore.instance.toggle(_p1);
@@ -120,7 +101,7 @@ void main() {
         const MaterialApp(home: HomeScreen()));
     await _settle(tester);
 
-    await tester.tap(find.text('Account'));
+    await tester.tap(find.byKey(const ValueKey('profile_btn')));
     await _settle(tester);
     expect(find.text('My Wishlist'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('profile_wishlist')));

@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Why checkout cannot use the current address yet.
+enum AddressIssue { none, missing, doorMissing, incomplete }
+
 /// Delivery address model (14 multi-address: Home/Office/Other).
 class Address {
   const Address({
@@ -104,22 +107,23 @@ class AddressStore extends ChangeNotifier {
     try {
       final p = await SharedPreferences.getInstance();
       await p.setString(
-          _kCache,
-          jsonEncode({
-            'defaultId': _defaultId,
-            'items': [
-              for (final a in _items.values)
-                {
-                  'id': a.id,
-                  'label': a.label,
-                  'name': a.name,
-                  'phone': a.phone,
-                  'line': a.line,
-                  'city': a.city,
-                  'pin': a.pin,
-                },
-            ],
-          }));
+        _kCache,
+        jsonEncode({
+          'defaultId': _defaultId,
+          'items': [
+            for (final a in _items.values)
+              {
+                'id': a.id,
+                'label': a.label,
+                'name': a.name,
+                'phone': a.phone,
+                'line': a.line,
+                'city': a.city,
+                'pin': a.pin,
+              },
+          ],
+        }),
+      );
     } catch (_) {
       // Best-effort cache only.
     }
@@ -185,8 +189,7 @@ class AddressStore extends ChangeNotifier {
     return _items[id];
   }
 
-  Address? get _firstOrNull =>
-      _items.isEmpty ? null : _items.values.first;
+  Address? get _firstOrNull => _items.isEmpty ? null : _items.values.first;
 
   /// Effective address drives validity AND display together —
   /// previously hasValid checked only [_default] while displayLine
@@ -197,10 +200,21 @@ class AddressStore extends ChangeNotifier {
     return a != null && isValidAddress(a);
   }
 
+  /// Address is present but the flat / door line (or another field)
+  /// is missing. Drives the checkout popup copy.
+  AddressIssue get issue {
+    final a = address;
+    if (a == null) return AddressIssue.missing;
+    if (isValidAddress(a)) return AddressIssue.none;
+    if (validateLine(a.line) != null && validateCity(a.city) == null) {
+      return AddressIssue.doorMissing;
+    }
+    return AddressIssue.incomplete;
+  }
+
   bool get hasAny => _items.isNotEmpty;
 
-  List<Address> get items =>
-      List.unmodifiable(_items.values);
+  List<Address> get items => List.unmodifiable(_items.values);
 
   String? get defaultId => _defaultId;
 
@@ -214,9 +228,7 @@ class AddressStore extends ChangeNotifier {
   /// Adds a new address (id auto) and selects it when first/valid.
   String add(Address a) {
     final id = a.id.isEmpty
-        ? DateTime.now()
-            .millisecondsSinceEpoch
-            .toString()
+        ? DateTime.now().millisecondsSinceEpoch.toString()
         : a.id;
     _items[id] = a.copyWith(id: id);
     _defaultId ??= id;
