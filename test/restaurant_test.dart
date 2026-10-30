@@ -341,7 +341,7 @@ void main() {
     );
     await _settle(tester);
 
-    expect(find.byKey(const ValueKey('bag_food_prefs')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bag_food_prefs')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('bag_note')));
     await _settle(tester);
     await tester.enterText(
@@ -354,17 +354,6 @@ void main() {
     expect(CartStore.instance.instructions, 'Less spicy, please');
     expect(find.byKey(const ValueKey('bag_note_value')), findsOneWidget);
     expect(find.text('Less spicy, please'), findsOneWidget);
-
-    await tester.dragUntilVisible(
-      find.byKey(const ValueKey('bag_cutlery')),
-      scroll,
-      const Offset(0, -180),
-    );
-    await _settle(tester);
-    await tester.tap(find.byKey(const ValueKey('bag_cutlery')));
-    await _settle(tester);
-    expect(CartStore.instance.cutleryOptIn, isTrue);
-    expect(find.text('Cutlery will be included'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });

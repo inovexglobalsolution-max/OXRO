@@ -502,7 +502,6 @@ class BagScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          reveal(_FoodPreferencesCard(store: store)),
           const SizedBox(height: 12),
         ],
         if (restaurant != null) ...[
@@ -892,66 +891,6 @@ class _BagAction extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _FoodPreferencesCard extends StatelessWidget {
-  const _FoodPreferencesCard({required this.store});
-
-  final CartStore store;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: const ValueKey('bag_food_prefs'),
-      padding: const EdgeInsets.fromLTRB(12, 4, 6, 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: OxroColors.border),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.restaurant_outlined,
-            size: 19,
-            color: OxroColors.primary,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Opt in for cutlery',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: OxroColors.charcoal,
-                  ),
-                ),
-                Text(
-                  store.cutleryOptIn
-                      ? 'Cutlery will be included'
-                      : 'No cutlery needed',
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    color: OxroColors.muted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            key: const ValueKey('bag_cutlery'),
-            value: store.cutleryOptIn,
-            onChanged: store.setCutlery,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ],
       ),
     );
   }
