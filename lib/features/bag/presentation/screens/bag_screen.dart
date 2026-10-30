@@ -4,7 +4,6 @@ import 'package:oxro_pricing/oxro_pricing.dart';
 import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
-import 'package:oxro/app/data/delivery_time_service.dart';
 import 'package:oxro/app/widgets/food_image.dart';
 import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/app/widgets/press_scale.dart';
@@ -20,7 +19,7 @@ import 'package:oxro/features/checkout/data/payment_store.dart';
 import 'package:oxro/features/coupons/presentation/screens/coupons_screen.dart';
 import 'package:oxro/features/help/presentation/screens/help_screen.dart';
 import 'package:oxro/features/home/data/home_data.dart';
-import 'package:oxro/features/home/presentation/widgets/schedule_sheet.dart';
+
 import 'package:oxro/features/premium/data/premium_store.dart';
 import 'package:oxro/features/premium/presentation/screens/premium_screen.dart';
 import 'package:oxro/features/pricing/data/pricing_config_store.dart';
@@ -393,10 +392,6 @@ class BagScreen extends StatelessWidget {
     final store = CartStore.instance;
     final payment = PaymentStore.instance;
     final restaurant = RestaurantRepo.byId(store.restaurantId ?? '');
-    final schedule = DeliveryTimeService().estimateForCart(
-      lines: lines,
-      restaurant: restaurant,
-    );
     var section = 0;
     Widget reveal(Widget child) => BagReveal(index: section++, child: child);
     return ListView(
@@ -545,9 +540,9 @@ class BagScreen extends StatelessWidget {
                 )
               : const SizedBox(width: double.infinity),
         ),
-        if (schedule != null) ...[
+        if (CartStore.instance.lines.isNotEmpty) ...[
           const SizedBox(height: 10),
-          BagScheduleCard(estimate: schedule),
+          BagScheduleCard(schedule: CartStore.instance.bagSchedule),
           const SizedBox(height: 10),
         ],
         BagBillCard(store: store, quote: quote, lines: lines),
@@ -1221,10 +1216,6 @@ class _BagLineCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (p.restaurantId != null) ...[
-                    const SizedBox(height: 6),
-                    _LineScheduleChip(line: line),
-                  ],
                   if (line.size != null) ...[
                     const SizedBox(height: 4),
                     Container(
@@ -1416,102 +1407,6 @@ class _BagLineCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Per-line delivery time control for food items.
-class _LineScheduleChip extends StatelessWidget {
-  const _LineScheduleChip({required this.line});
-
-  final CartLine line;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = line.product;
-    final sfx = line.size == null ? '' : '_${line.size}';
-    final schedule = line.schedule;
-    final selected = schedule != null;
-    final radius = BorderRadius.circular(8);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        color: selected ? const Color(0xFFFFF1E6) : OxroColors.pageBg,
-        borderRadius: radius,
-        border: Border.all(
-          color: selected
-              ? OxroColors.primary.withValues(alpha: 0.45)
-              : OxroColors.border,
-        ),
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          key: ValueKey('bag_schedule_${p.id}$sfx'),
-          onTap: () => _pick(context),
-          borderRadius: radius,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 6, 6, 6),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.schedule_rounded,
-                  size: 14,
-                  color: selected ? OxroColors.primary : OxroColors.muted,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    schedule?.chipLabel ?? 'Schedule time',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      color: selected ? OxroColors.dark : OxroColors.muted,
-                    ),
-                  ),
-                ),
-                if (selected)
-                  GestureDetector(
-                    key: ValueKey('bag_schedule_clear_${p.id}$sfx'),
-                    onTap: () => CartStore.instance.setSchedule(
-                      p.id,
-                      size: line.size,
-                      schedule: null,
-                    ),
-                    behavior: HitTestBehavior.opaque,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-                      child: Icon(
-                        Icons.close_rounded,
-                        size: 13,
-                        color: OxroColors.muted,
-                      ),
-                    ),
-                  )
-                else
-                  const Icon(
-                    Icons.expand_more_rounded,
-                    size: 15,
-                    color: OxroColors.muted,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pick(BuildContext context) async {
-    final picked = await showScheduleSheet(context, initial: line.schedule);
-    if (picked == null) return;
-    CartStore.instance.setSchedule(
-      line.product.id,
-      size: line.size,
-      schedule: picked,
     );
   }
 }

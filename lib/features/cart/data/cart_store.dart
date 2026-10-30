@@ -37,18 +37,21 @@ class CartStore extends ChangeNotifier {
   static const _kCache = 'oxro_cart_v2';
   static const _kNote = 'oxro_bag_note_v1';
   static const _kCutlery = 'oxro_bag_cutlery_v1';
+  static const _kBagSchedule = 'oxro_bag_schedule_v1';
 
   @visibleForTesting
   static void resetForTests() {
     instance._lines.clear();
     instance._instructions = '';
     instance._cutleryOptIn = false;
+    instance._bagSchedule = null;
     instance.notifyListeners();
   }
 
   final Map<String, CartLine> _lines = {};
   String _instructions = '';
   bool _cutleryOptIn = false;
+  DeliverySchedule? _bagSchedule;
 
   static String _key(int id, String? size) =>
       size == null || size.isEmpty ? '$id' : '${id}__$size';
@@ -91,6 +94,11 @@ class CartStore extends ChangeNotifier {
       }
       _instructions = p.getString(_kNote) ?? '';
       _cutleryOptIn = p.getBool(_kCutlery) ?? false;
+      final bsRaw = p.getString(_kBagSchedule);
+      if (bsRaw != null) {
+        final bsMap = jsonDecode(bsRaw) as Map?;
+        if (bsMap != null) _bagSchedule = DeliverySchedule.tryFromJson(bsMap);
+      }
       notifyListeners();
     } catch (_) {
       // Best-effort cache only.
@@ -114,6 +122,9 @@ class CartStore extends ChangeNotifier {
       );
       await p.setString(_kNote, _instructions);
       await p.setBool(_kCutlery, _cutleryOptIn);
+      if (_bagSchedule != null) {
+        await p.setString(_kBagSchedule, jsonEncode(_bagSchedule!.toJson()));
+      }
     } catch (_) {
       // Best-effort cache only.
     }
@@ -190,6 +201,7 @@ class CartStore extends ChangeNotifier {
     _lines.clear();
     _instructions = '';
     _cutleryOptIn = false;
+    _bagSchedule = null;
     _changed();
   }
 
@@ -198,6 +210,9 @@ class CartStore extends ChangeNotifier {
 
   /// Whether the customer wants cutlery included.
   bool get cutleryOptIn => _cutleryOptIn;
+
+  /// Whole-bag delivery slot for the complete meal (null = not scheduled).
+  DeliverySchedule? get bagSchedule => _bagSchedule;
 
   void setInstructions(String value) {
     final next = value.trim();
@@ -222,6 +237,13 @@ class CartStore extends ChangeNotifier {
     final line = _pick(id, size);
     if (line == null || line.schedule == schedule) return;
     line.schedule = schedule;
+    _changed();
+  }
+
+  /// Sets or clears the delivery slot for the whole meal (all bag lines).
+  void setBagSchedule(DeliverySchedule? schedule) {
+    if (_bagSchedule == schedule) return;
+    _bagSchedule = schedule;
     _changed();
   }
 

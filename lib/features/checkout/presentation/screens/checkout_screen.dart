@@ -18,7 +18,7 @@ import 'package:oxro/features/checkout/data/payment_gateway.dart';
 import 'package:oxro/features/checkout/data/payment_store.dart';
 import 'package:oxro/features/coupons/presentation/screens/coupons_screen.dart';
 import 'package:oxro/features/home/data/home_data.dart';
-import 'package:oxro/features/home/presentation/widgets/schedule_sheet.dart';
+import 'package:oxro/features/bag/presentation/widgets/bag_schedule_card.dart';
 import 'package:oxro/features/orders/data/order_pricing.dart';
 import 'package:oxro/features/orders/data/order_store.dart';
 import 'package:oxro/features/orders/presentation/screens/tracking_screen.dart';
@@ -274,10 +274,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                       final pay = PaymentStore.instance;
                       final addr = AddressStore.instance;
                       final quote = pay.quote;
-                      final scheduled = [
-                        for (final line in CartStore.instance.lines)
-                          if (line.schedule != null) line,
-                      ];
                       return Center(
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
@@ -296,9 +292,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                 _in(0.15, _summaryCard(pay, quote)),
                                 SizedBox(height: context.rs(12)),
                                 _in(0.3, _addressCard(addr)),
-                                if (scheduled.isNotEmpty) ...[
+                                if (CartStore.instance.lines.isNotEmpty) ...[
                                   SizedBox(height: context.rs(12)),
-                                  _in(0.38, _scheduleCard(scheduled)),
+                                  BagScheduleCard(
+                                    schedule: CartStore.instance.bagSchedule,
+                                  ),
                                 ],
                                 SizedBox(height: context.rs(12)),
                                 _in(0.45, _paymentSection(pay)),
@@ -807,174 +805,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ],
         ),
       ),
-    );
-  }
-
-  Widget _scheduleCard(List<CartLine> lines) {
-    return _surfaceCard(
-      key: const ValueKey('checkout_schedules'),
-      padding: EdgeInsets.fromLTRB(
-        context.rs(14),
-        context.rs(12),
-        context.rs(10),
-        context.rs(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: context.rs(30),
-                height: context.rs(30),
-                decoration: const BoxDecoration(
-                  color: _ckTint,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.event_available_rounded,
-                  size: 16,
-                  color: _ckAccentDeep,
-                ),
-              ),
-              SizedBox(width: context.rs(9)),
-              const Expanded(
-                child: Text(
-                  'Scheduled items',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.1,
-                    color: _ckInk,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: context.rs(2)),
-          for (var i = 0; i < lines.length; i++) ...[
-            if (i > 0)
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: _ckLine.withValues(alpha: 0.65),
-              ),
-            _scheduleRow(lines[i]),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _scheduleRow(CartLine line) {
-    final p = line.product;
-    final sfx = line.size == null ? '' : '_${line.size}';
-    final schedule = line.schedule!;
-    return Material(
-      type: MaterialType.transparency,
-      child: InkWell(
-        key: ValueKey('checkout_schedule_${p.id}$sfx'),
-        onTap: () => _editSchedule(line),
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: context.rs(7)),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.schedule_rounded,
-                size: 15,
-                color: _ckAccentDeep,
-              ),
-              SizedBox(width: context.rs(8)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            p.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
-                              color: _ckInk,
-                            ),
-                          ),
-                        ),
-                        if (line.qty > 1) ...[
-                          const SizedBox(width: 6),
-                          Text(
-                            '×${line.qty}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: _ckMuted,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (line.size != null)
-                      Text(
-                        '${p.restaurantId == null ? 'Size' : 'Choice'}: ${line.size}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 9.8,
-                          fontWeight: FontWeight.w600,
-                          color: _ckMuted,
-                        ),
-                      ),
-                    Text(
-                      schedule.chipLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 10.3,
-                        fontWeight: FontWeight.w800,
-                        color: _ckAccentDeep,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: context.rs(4)),
-              GestureDetector(
-                key: ValueKey('checkout_schedule_clear_${p.id}$sfx'),
-                onTap: () => CartStore.instance.setSchedule(
-                  p.id,
-                  size: line.size,
-                  schedule: null,
-                ),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: EdgeInsets.all(context.rs(4)),
-                  child: const Icon(
-                    Icons.close_rounded,
-                    size: 15,
-                    color: _ckMuted,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _editSchedule(CartLine line) async {
-    final picked = await showScheduleSheet(context, initial: line.schedule);
-    if (picked == null || !mounted) return;
-    CartStore.instance.setSchedule(
-      line.product.id,
-      size: line.size,
-      schedule: picked,
     );
   }
 
