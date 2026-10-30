@@ -4,6 +4,7 @@ import 'package:oxro_pricing/oxro_pricing.dart';
 import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
+import 'package:oxro/app/data/delivery_time_service.dart';
 import 'package:oxro/app/widgets/food_image.dart';
 import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/app/widgets/press_scale.dart';
@@ -13,6 +14,7 @@ import 'package:oxro/features/address/presentation/screens/address_selection_scr
 import 'package:oxro/features/address/presentation/widgets/address_required_dialog.dart';
 import 'package:oxro/features/bag/presentation/widgets/bag_bill_card.dart';
 import 'package:oxro/features/bag/presentation/widgets/bag_reference_sections.dart';
+import 'package:oxro/features/bag/presentation/widgets/bag_schedule_card.dart';
 import 'package:oxro/features/cart/data/cart_store.dart';
 import 'package:oxro/features/checkout/data/payment_store.dart';
 import 'package:oxro/features/coupons/presentation/screens/coupons_screen.dart';
@@ -391,6 +393,10 @@ class BagScreen extends StatelessWidget {
     final store = CartStore.instance;
     final payment = PaymentStore.instance;
     final restaurant = RestaurantRepo.byId(store.restaurantId ?? '');
+    final schedule = DeliveryTimeService().estimateForCart(
+      lines: lines,
+      restaurant: restaurant,
+    );
     var section = 0;
     Widget reveal(Widget child) => BagReveal(index: section++, child: child);
     return ListView(
@@ -539,6 +545,11 @@ class BagScreen extends StatelessWidget {
                 )
               : const SizedBox(width: double.infinity),
         ),
+        if (schedule != null) ...[
+          const SizedBox(height: 10),
+          BagScheduleCard(estimate: schedule),
+          const SizedBox(height: 10),
+        ],
         BagBillCard(store: store, quote: quote, lines: lines),
         const SizedBox(height: 10),
         reveal(const BagCancellationNote()),
@@ -914,36 +925,25 @@ class _FoodPreferencesCard extends StatelessWidget {
             color: OxroColors.primary,
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Opt in for cutlery',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: OxroColors.charcoal,
-                  ),
-                ),
-                Text(
-                  store.cutleryOptIn
-                      ? 'Cutlery will be included'
-                      : 'No cutlery needed',
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    color: OxroColors.muted,
-                  ),
-                ),
-              ],
+          const Expanded(
+            child: Text(
+              'Kitchen note',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: OxroColors.charcoal,
+              ),
             ),
           ),
-          Switch(
-            key: const ValueKey('bag_cutlery'),
-            value: store.cutleryOptIn,
-            onChanged: store.setCutlery,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          TextButton(
+            onPressed: () {},
+            child: const Text(
+              'Add',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: OxroColors.primary,
+              ),
+            ),
           ),
         ],
       ),
