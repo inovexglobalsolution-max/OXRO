@@ -302,7 +302,6 @@ void main() {
       final bestOffers = find.byKey(const ValueKey('home_best_offers'));
       final under250 = find.byKey(const ValueKey('home_under250'));
       final firstCuisine = find.byKey(const ValueKey('food_cuisine_0'));
-      final lastCuisine = find.byKey(ValueKey('food_cuisine_${visible - 1}'));
       expect(
         tester.getCenter(bestOffers).dx,
         lessThan(tester.getCenter(firstCuisine).dx),

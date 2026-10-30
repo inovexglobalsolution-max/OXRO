@@ -11,7 +11,7 @@ import 'package:oxro/features/wallet/data/wallet_store.dart';
 
 const _creditGreen = Color(0xFF2E7D4F);
 
-/// OXRO Wallet — balance + mock top-up + ledger.
+/// OXRO Money — balance + mock top-up + ledger.
 /// All mock / in-memory; backend ledger replaces later.
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -38,6 +38,7 @@ class _WalletScreenState extends State<WalletScreen>
       vsync: this,
       duration: const Duration(seconds: 6),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showWalletNote());
   }
 
   @override
@@ -61,6 +62,14 @@ class _WalletScreenState extends State<WalletScreen>
     _ambient.dispose();
     _amtCtrl.dispose();
     super.dispose();
+  }
+
+  void _showWalletNote() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _WalletNoteDialog(),
+    );
   }
 
   void _add(int amount) {
@@ -156,6 +165,13 @@ class _WalletScreenState extends State<WalletScreen>
                                 dy: 10,
                                 child: _txTile(context, txs[i]),
                               ),
+                          _Reveal(
+                            controller: _intro,
+                            start: 0.85,
+                            end: 1.0,
+                            dy: 10,
+                            child: const _WalletNote(),
+                          ),
                         ],
                       );
                     },
@@ -193,8 +209,7 @@ class _WalletScreenState extends State<WalletScreen>
                   color: Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color:
-                        OxroColors.premiumChampagne.withValues(alpha: 0.55),
+                    color: OxroColors.premiumChampagne.withValues(alpha: 0.55),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -217,7 +232,7 @@ class _WalletScreenState extends State<WalletScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'OXRO Wallet',
+                    'OXRO Money',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -251,10 +266,7 @@ class _WalletScreenState extends State<WalletScreen>
               ),
             ),
             SizedBox(width: context.rs(8)),
-            _ActivePill(
-              controller: _ambient,
-              reduce: _reduceMotion == true,
-            ),
+            _ActivePill(controller: _ambient, reduce: _reduceMotion == true),
           ],
         ),
       ),
@@ -355,8 +367,9 @@ class _WalletScreenState extends State<WalletScreen>
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: OxroColors.premiumChampagne
-                                      .withValues(alpha: 0.28),
+                                  color: OxroColors.premiumChampagne.withValues(
+                                    alpha: 0.28,
+                                  ),
                                   blurRadius: 10,
                                   spreadRadius: 1,
                                 ),
@@ -391,8 +404,7 @@ class _WalletScreenState extends State<WalletScreen>
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: context.font(9.5),
-                                    color:
-                                        Colors.white.withValues(alpha: 0.55),
+                                    color: Colors.white.withValues(alpha: 0.55),
                                   ),
                                 ),
                               ],
@@ -468,8 +480,9 @@ class _WalletScreenState extends State<WalletScreen>
                           Icon(
                             Icons.shield_outlined,
                             size: context.rs(13),
-                            color: OxroColors.premiumChampagne
-                                .withValues(alpha: 0.8),
+                            color: OxroColors.premiumChampagne.withValues(
+                              alpha: 0.8,
+                            ),
                           ),
                           SizedBox(width: context.rs(4)),
                           Text(
@@ -524,8 +537,7 @@ class _WalletScreenState extends State<WalletScreen>
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color:
-                        OxroColors.premiumChampagne.withValues(alpha: 0.8),
+                    color: OxroColors.premiumChampagne.withValues(alpha: 0.8),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -592,8 +604,7 @@ class _WalletScreenState extends State<WalletScreen>
                 size: context.rs(16),
                 color: OxroColors.premiumBurgundy,
               ),
-              prefixIconConstraints:
-                  BoxConstraints(minWidth: context.rs(38)),
+              prefixIconConstraints: BoxConstraints(minWidth: context.rs(38)),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: context.rs(12),
                 vertical: context.rs(13),
@@ -617,10 +628,7 @@ class _WalletScreenState extends State<WalletScreen>
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  OxroColors.premiumBurgundy,
-                  OxroColors.premiumWine,
-                ],
+                colors: [OxroColors.premiumBurgundy, OxroColors.premiumWine],
               ),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
@@ -1094,6 +1102,77 @@ class _DemoChip extends StatelessWidget {
   }
 }
 
+class _WalletNote extends StatelessWidget {
+  const _WalletNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(bottom: context.rs(16)),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.rs(16),
+        vertical: context.rs(18),
+      ),
+      decoration: BoxDecoration(
+        color: OxroColors.premiumCreamDeep,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: OxroColors.premiumChampagne.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                size: 18,
+                color: OxroColors.premiumBurgundy,
+              ),
+              SizedBox(width: context.rs(6)),
+              Text(
+                'Note',
+                style: TextStyle(
+                  fontSize: context.font(13),
+                  fontWeight: FontWeight.w800,
+                  color: OxroColors.premiumBurgundy,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: context.rs(6)),
+          Text(
+            'Money added has an expiry of 1 year',
+            style: TextStyle(
+              fontSize: context.font(11.5),
+              color: OxroColors.premiumInk,
+            ),
+          ),
+          SizedBox(height: context.rs(4)),
+          Text(
+            'Balance can not be transferred to a bank account as per RBI guidelines',
+            style: TextStyle(
+              fontSize: context.font(11.5),
+              color: OxroColors.premiumMuted,
+            ),
+          ),
+          SizedBox(height: context.rs(4)),
+          Text(
+            'Oxro Money can be used exclusively on Oxro.',
+            style: TextStyle(
+              fontSize: context.font(11.5),
+              color: OxroColors.premiumMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _WalletSheenPainter extends CustomPainter {
   const _WalletSheenPainter(this.t, {required this.reduce});
 
@@ -1131,5 +1210,134 @@ class _WalletSheenPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _WalletSheenPainter oldDelegate) {
     return oldDelegate.t != t || oldDelegate.reduce != reduce;
+  }
+}
+
+class _WalletNoteDialog extends StatelessWidget {
+  const _WalletNoteDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      backgroundColor: OxroColors.premiumDeep,
+      elevation: 24,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        OxroColors.premiumChampagne,
+                        OxroColors.goldSoft,
+                      ],
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    size: 18,
+                    color: OxroColors.premiumDeep,
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'OXRO Money Note',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 14),
+            Container(
+              height: 1,
+              color: OxroColors.premiumChampagne.withValues(alpha: 0.2),
+            ),
+            SizedBox(height: 14),
+            Text(
+              '• Money added has an expiry of 1 year',
+              style: TextStyle(
+                fontSize: 13.5,
+                color: Colors.white.withValues(alpha: 0.9),
+                height: 1.5,
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              '• Balance can not be transferred to a bank account as per RBI guidelines',
+              style: TextStyle(
+                fontSize: 13.5,
+                color: Colors.white.withValues(alpha: 0.9),
+                height: 1.5,
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              '• Oxro Money can be used exclusively on Oxro.',
+              style: TextStyle(
+                fontSize: 13.5,
+                color: Colors.white.withValues(alpha: 0.9),
+                height: 1.5,
+              ),
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).maybePop();
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: OxroColors.premiumChampagne,
+                  ),
+                  child: Text(
+                    'No',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                SizedBox(width: 16),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: OxroColors.premiumChampagne,
+                    foregroundColor: OxroColors.premiumDeep,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  ),
+                  child: Text(
+                    'Agree',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

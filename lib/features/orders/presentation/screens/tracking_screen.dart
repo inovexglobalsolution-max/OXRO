@@ -130,11 +130,6 @@ class _TrackingScreenState extends State<TrackingScreen>
     if ((_collapse.value - t).abs() > 0.01) _collapse.value = t;
   }
 
-  String get _shortId {
-    final digits = widget.orderId.replaceAll(RegExp(r'\D'), '');
-    return digits.isEmpty ? widget.orderId : digits;
-  }
-
   static int _doneCount(OrderStatus status) {
     return switch (status) {
       OrderStatus.processing => 1,
@@ -484,7 +479,7 @@ class _TrackingScreenState extends State<TrackingScreen>
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        'Order #$_shortId',
+                                        'Your food is being prepared',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(

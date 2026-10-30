@@ -76,6 +76,9 @@ flutter:
     - assets/videos/promo_premium.mp4
     - assets/videos/promo_biryani.mp4
     - assets/videos/promo_pizza.mp4
+    - assets/videos/gimbap.mp4
+    - assets/videos/restaurant_3d.mov
+    - assets/videos/corn_dog.mp4
 
   # To add assets to your application, add an assets section, like this:
   # assets:

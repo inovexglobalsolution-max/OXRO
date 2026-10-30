@@ -830,35 +830,8 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    GestureDetector(
-                      key: const ValueKey('food_mic'),
+                    _MicButton(
                       onTap: () => pushScreen(context, const SearchScreen()),
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: OxroColors.coral,
-                            width: 1.2,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x1A075F70),
-                              blurRadius: 14,
-                              offset: Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.mic_none_rounded,
-                          size: 23,
-                          color: OxroColors.coral,
-                        ),
-                      ),
                     ),
                     const SizedBox(width: 6),
                     _VegToggle(
@@ -1186,6 +1159,84 @@ class _FoodHomeTabState extends State<FoodHomeTab>
   }
 }
 
+class _MicButton extends StatefulWidget {
+  const _MicButton({required this.onTap});
+  final VoidCallback onTap;
+  @override
+  State<_MicButton> createState() => _MicButtonState();
+}
+
+class _MicButtonState extends State<_MicButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, _) {
+        final glow = 0.2 + 0.8 * _pulse.value;
+        return GestureDetector(
+          key: const ValueKey('food_mic'),
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            width: 50,
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: OxroColors.coral,
+                width: 1.2 + 0.8 * glow,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(
+                    0x1A075F70,
+                  ).withAlpha((0.15 + 0.45 * glow * 255).round().clamp(0, 255)),
+                  blurRadius: 10 + 12 * glow,
+                  spreadRadius: 0.5 + 2.5 * glow,
+                  offset: const Offset(0, 5),
+                ),
+                BoxShadow(
+                  color: OxroColors.coral.withAlpha(
+                    (0.2 + 0.5 * glow * 255).round().clamp(0, 255),
+                  ),
+                  blurRadius: 6 + 10 * glow,
+                  spreadRadius: 0.5 + 2.0 * glow,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.mic_none_rounded,
+              size: 23,
+              color: OxroColors.coral.withAlpha(((0.6 + 0.4 * glow) * 255).round()),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _Under250Tile extends StatelessWidget {
   const _Under250Tile({required this.onTap});
 
@@ -1202,11 +1253,11 @@ class _Under250Tile extends StatelessWidget {
         height: 80,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFFE8C4), Color(0xFFFFA740)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFE8C4), Color(0xFFFFA740)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           border: Border.all(
             color: const Color(0xFFE08000).withValues(alpha: 0.35),
           ),
@@ -1245,32 +1296,32 @@ class _Under250Tile extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFF7A18), Color(0xFFB32D00)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF7A18), Color(0xFFB32D00)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFFFF5A1F,
+                            ).withValues(alpha: 0.4),
+                            blurRadius: 6,
+                            spreadRadius: 0.5,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFFFF5A1F,
-                              ).withValues(alpha: 0.4),
-                              blurRadius: 6,
-                              spreadRadius: 0.5,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.currency_rupee_rounded,
-                          size: 17,
-                          color: Colors.black,
-                        ),
+                        ],
                       ),
+                      child: const Icon(
+                        Icons.currency_rupee_rounded,
+                        size: 12,
+                        color: Colors.black,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     const FittedBox(
                       fit: BoxFit.scaleDown,
@@ -1496,10 +1547,10 @@ class _BestOffersTileState extends State<_BestOffersTile>
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Color(0xFF2A1B36), Color(0xFF14101B)],
+                        colors: [Color(0xFFFFE8C4), Color(0xFFFFA740)],
                       ),
                       border: Border.all(
-                        color: Color(0xFFFF7A18).withValues(alpha: 0.25),
+                        color: const Color(0xFFE08000).withValues(alpha: 0.35),
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -1545,7 +1596,7 @@ class _BestOffersTileState extends State<_BestOffersTile>
                         child: const Icon(
                           Icons.local_offer_rounded,
                           size: 14,
-                          color: Colors.white,
+                          color: Colors.black,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1558,7 +1609,7 @@ class _BestOffersTileState extends State<_BestOffersTile>
                           height: 1.05,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
-                          color: Colors.white,
+                          color: Colors.black,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -1573,13 +1624,13 @@ class _BestOffersTileState extends State<_BestOffersTile>
                                 fontSize: 8,
                                 height: 1,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFFFFC46B),
+                                color: Colors.black,
                               ),
                             ),
                             const Icon(
                               Icons.chevron_right_rounded,
                               size: 11,
-                              color: Color(0xFFFFB35C),
+                              color: Colors.black,
                             ),
                           ],
                         ),

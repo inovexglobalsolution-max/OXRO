@@ -19,7 +19,7 @@ class WalletTx {
   final DateTime date;
 }
 
-/// OXRO Wallet (mock, in-memory).
+/// OXRO Money (mock, in-memory).
 /// Backend ledger replaces this later.
 class WalletStore extends ChangeNotifier {
   WalletStore._();

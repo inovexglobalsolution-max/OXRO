@@ -17,6 +17,7 @@ import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/home/data/food_preference_store.dart';
 import 'package:oxro/features/restaurants/data/restaurant.dart';
 import 'package:oxro/features/restaurants/data/restaurant_repo.dart';
+import 'package:oxro/features/restaurants/presentation/screens/restaurant_detail_screen.dart';
 
 class RestaurantScreen extends StatefulWidget {
   const RestaurantScreen({super.key, required this.restaurantId});
@@ -456,59 +457,9 @@ class _RestaurantScreenState extends State<RestaurantScreen> {
   }
 
   void _openInfo(Restaurant r) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                r.name,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                  color: OxroColors.charcoal,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${r.cuisineLabel}  ·  ${r.locality}',
-                style: const TextStyle(fontSize: 12, color: OxroColors.muted),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  RatingChip(rating: r.rating),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${r.ratingCount ~/ 100 / 10}K ratings',
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: OxroColors.muted,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${r.etaLabel}  ·  ${Product.inr(r.costForTwo)} for two',
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: OxroColors.charcoal,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => RestaurantDetailScreen(restaurant: r)),
     );
   }
 

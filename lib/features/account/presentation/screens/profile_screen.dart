@@ -16,7 +16,6 @@ import 'package:oxro/features/cart/data/cart_store.dart';
 import 'package:oxro/features/coupons/presentation/screens/coupons_screen.dart';
 import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/orders/data/order_store.dart';
-import 'package:oxro/features/rider/presentation/screens/rider_offers_screen.dart';
 import 'package:oxro/features/wallet/data/wallet_store.dart';
 import 'package:oxro/features/wishlist/data/wishlist_store.dart';
 import 'package:oxro/features/notifications/data/notification_store.dart';
@@ -302,7 +301,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     key: const ValueKey('profile_wallet'),
                     icon: Icons.account_balance_wallet_outlined,
                     gradient: OxroColors.gradient,
-                    label: 'OXRO Wallet',
+                    label: 'OXRO Money',
                     sub: bal <= 0 ? 'Add money, pay faster' : Product.inr(bal),
                     trailing: bal <= 0
                         ? _countPill('+ Add', OxroColors.primary)
@@ -357,16 +356,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 sub: 'Know OXRO better',
                 gradient: _gradSettings,
                 onTap: widget.onSettings,
-              ),
-              _menuRow(
-                context,
-                index: 8,
-                key: const ValueKey('profile_rider_portal'),
-                icon: Icons.delivery_dining_outlined,
-                gradient: _gradTeal,
-                label: 'Rider Hub',
-                sub: 'Delivery offers & earnings',
-                onTap: () => pushScreen(context, const RiderOffersScreen()),
               ),
               _menuRow(
                 context,

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
+import 'package:oxro/app/widgets/video_banner.dart';
 import 'package:oxro/app/widgets/oxro_button.dart';
 import 'package:oxro/features/account/data/profile_store.dart';
 import 'package:oxro/features/location/presentation/screens/location_screen.dart';
@@ -98,7 +99,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 children: [
                   Padding(
                     padding: EdgeInsets.symmetric(
-                        horizontal: context.padX, vertical: 6),
+                      horizontal: context.padX,
+                      vertical: 6,
+                    ),
                     child: Row(
                       children: [
                         ClipRRect(
@@ -113,29 +116,35 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               height: context.rs(28),
                               color: OxroColors.primary,
                               alignment: Alignment.center,
-                              child: const Text('O',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800)),
+                              child: const Text(
+                                'O',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text('OXRO',
-                            style: TextStyle(
-                                fontSize: context.font(16),
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.2)),
+                        Text(
+                          'OXRO',
+                          style: TextStyle(
+                            fontSize: context.font(16),
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                         const Spacer(),
                         TextButton(
-                            onPressed: _goNext,
-                            child: const Text('Skip >')),
+                          onPressed: _goNext,
+                          child: const Text('Skip >'),
+                        ),
                       ],
                     ),
                   ),
                   Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: context.padX + 4),
+                    padding: EdgeInsets.symmetric(horizontal: context.padX + 4),
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: AnimatedSwitcher(
@@ -144,19 +153,24 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           key: ValueKey(_index),
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(page.title,
-                                style: TextStyle(
-                                    fontSize: context.font(
-                                        isLandscape ? 22 : 26),
-                                    fontWeight: FontWeight.w800,
-                                    color: OxroColors.dark,
-                                    height: 1.15)),
+                            Text(
+                              page.title,
+                              style: TextStyle(
+                                fontSize: context.font(isLandscape ? 22 : 26),
+                                fontWeight: FontWeight.w800,
+                                color: OxroColors.dark,
+                                height: 1.15,
+                              ),
+                            ),
                             SizedBox(height: context.rs(6)),
-                            Text(page.sub,
-                                style: TextStyle(
-                                    fontSize: context.font(13.5),
-                                    color: OxroColors.muted,
-                                    height: 1.4)),
+                            Text(
+                              page.sub,
+                              style: TextStyle(
+                                fontSize: context.font(13.5),
+                                color: OxroColors.muted,
+                                height: 1.4,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -165,13 +179,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   SizedBox(height: context.rs(12)),
                   Expanded(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: context.padX),
+                      padding: EdgeInsets.symmetric(horizontal: context.padX),
                       child: PageView.builder(
                         controller: _pageCtrl,
                         itemCount: _pages.length,
-                        onPageChanged: (i) =>
-                            setState(() => _index = i),
+                        onPageChanged: (i) => setState(() => _index = i),
                         itemBuilder: (_, i) => _AnimatedCard(
                           icon: _pages[i].icon,
                           chip1: _pages[i].chip1,
@@ -190,9 +202,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       (i) => AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
                         margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: _index == i
-                            ? context.rs(22)
-                            : context.rs(8),
+                        width: _index == i ? context.rs(22) : context.rs(8),
                         height: context.rs(8),
                         decoration: BoxDecoration(
                           color: _index == i
@@ -206,7 +216,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   SizedBox(height: context.rs(12)),
                   Padding(
                     padding: EdgeInsets.fromLTRB(
-                        context.padX, 0, context.padX, context.rs(14)),
+                      context.padX,
+                      0,
+                      context.padX,
+                      context.rs(14),
+                    ),
                     child: OxroButton(
                       label: _index == _pages.length - 1
                           ? 'Get Started'
@@ -214,8 +228,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       onTap: () {
                         if (_index < _pages.length - 1) {
                           _pageCtrl.nextPage(
-                            duration:
-                                const Duration(milliseconds: 350),
+                            duration: const Duration(milliseconds: 350),
                             curve: Curves.easeOutCubic,
                           );
                         } else {
@@ -296,73 +309,94 @@ class _AnimatedCard extends StatelessWidget {
               ),
             ),
             Center(
-              child: AnimatedBuilder(
-                animation: anim,
-                builder: (context, child) {
-                  final t = anim.value;
-                  final floatY = -10 * math.sin(t * math.pi * 2);
-                  final pulse = 1.0 + 0.06 * math.sin(t * math.pi * 2);
-                  final wiggle = pageIndex == 1
-                      ? 0.12 * math.sin(t * math.pi * 4)
-                      : 0.0;
-                  final slideX =
-                      pageIndex == 2 ? 26 * math.sin(t * math.pi * 2) : 0.0;
-                  final orbit = t * math.pi * 2;
-                  final r = hero * 0.35;
-                  return SizedBox(
-                    width: hero,
-                    height: hero,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Transform.scale(
-                          scale: pulse,
-                          child: Container(
-                            width: circle,
-                            height: circle,
-                            decoration: const BoxDecoration(
-                              gradient: OxroColors.gradient,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Color(0x55FF6A00),
-                                  blurRadius: 30,
-                                  offset: Offset(0, 14),
+              child: (pageIndex == 0 || pageIndex == 1 || pageIndex == 2)
+                  ? SizedBox.expand(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(context.rs(24)),
+                        child: VideoBanner(
+                          asset: pageIndex == 0
+                              ? 'assets/videos/gimbap.mp4'
+                              : pageIndex == 1
+                              ? 'assets/videos/restaurant_3d.mov'
+                              : 'assets/videos/corn_dog.mp4',
+                          fallbackAsset: 'assets/food/hero_biryani.jpg',
+                          fit: BoxFit.cover,
+                          play: true,
+                        ),
+                      ),
+                    )
+                  : AnimatedBuilder(
+                      animation: anim,
+                      builder: (context, child) {
+                        final t = anim.value;
+                        final floatY = -10 * math.sin(t * math.pi * 2);
+                        final pulse = 1.0 + 0.06 * math.sin(t * math.pi * 2);
+                        final wiggle = pageIndex == 1
+                            ? 0.12 * math.sin(t * math.pi * 4)
+                            : 0.0;
+                        final slideX = pageIndex == 2
+                            ? 26 * math.sin(t * math.pi * 2)
+                            : 0.0;
+                        final orbit = t * math.pi * 2;
+                        final r = hero * 0.35;
+                        return SizedBox(
+                          width: hero,
+                          height: hero,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Transform.scale(
+                                scale: pulse,
+                                child: Container(
+                                  width: circle,
+                                  height: circle,
+                                  decoration: const BoxDecoration(
+                                    gradient: OxroColors.gradient,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Color(0x55FF6A00),
+                                        blurRadius: 30,
+                                        offset: Offset(0, 14),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              Positioned(
+                                left: hero / 2 + r * math.cos(orbit) - 13,
+                                top: hero / 2 + r * math.sin(orbit) - 13,
+                                child: Container(
+                                  width: context.rs(26),
+                                  height: context.rs(26),
+                                  decoration: const BoxDecoration(
+                                    color: OxroColors.blue,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Color(0x440A8CFF),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Transform.translate(
+                                offset: Offset(slideX, floatY),
+                                child: Transform.rotate(
+                                  angle: wiggle,
+                                  child: Icon(
+                                    icon,
+                                    size: context.rs(80),
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        Positioned(
-                          left: hero / 2 + r * math.cos(orbit) - 13,
-                          top: hero / 2 + r * math.sin(orbit) - 13,
-                          child: Container(
-                            width: context.rs(26),
-                            height: context.rs(26),
-                            decoration: const BoxDecoration(
-                              color: OxroColors.blue,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Color(0x440A8CFF), blurRadius: 10),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Transform.translate(
-                          offset: Offset(slideX, floatY),
-                          child: Transform.rotate(
-                            angle: wiggle,
-                            child: Icon(icon,
-                                size: context.rs(80),
-                                color: Colors.white),
-                          ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
             Positioned(
               left: 14,
@@ -391,9 +425,9 @@ class _AnimatedCard extends StatelessWidget {
                         height: 4,
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(
-                            alpha: 0.12 +
-                                0.10 *
-                                    ((i + (anim.value * 7).floor()) % 2),
+                            alpha:
+                                0.12 +
+                                0.10 * ((i + (anim.value * 7).floor()) % 2),
                           ),
                           borderRadius: BorderRadius.circular(2),
                         ),
@@ -428,7 +462,9 @@ class _FloatChipState extends State<_FloatChip>
   void initState() {
     super.initState();
     _c = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 500));
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
     _fade = CurvedAnimation(parent: _c, curve: Curves.easeOut);
     _slide = Tween<Offset>(
       begin: const Offset(0, 0.4),
@@ -452,8 +488,10 @@ class _FloatChipState extends State<_FloatChip>
       child: SlideTransition(
         position: _slide,
         child: Container(
-          padding:
-              EdgeInsets.symmetric(horizontal: 12, vertical: context.rs(7)),
+          padding: EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: context.rs(7),
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -473,11 +511,14 @@ class _FloatChipState extends State<_FloatChip>
                 ),
               ),
               const SizedBox(width: 6),
-              Text(widget.label,
-                  style: TextStyle(
-                      fontSize: context.font(12),
-                      fontWeight: FontWeight.w700,
-                      color: OxroColors.dark)),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: context.font(12),
+                  fontWeight: FontWeight.w700,
+                  color: OxroColors.dark,
+                ),
+              ),
             ],
           ),
         ),

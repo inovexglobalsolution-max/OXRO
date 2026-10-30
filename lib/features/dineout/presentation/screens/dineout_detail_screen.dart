@@ -4,9 +4,9 @@ import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/app/widgets/filter_chip_row.dart';
 import 'package:oxro/app/widgets/food_image.dart';
-import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/app/widgets/rating_chip.dart';
 import 'package:oxro/features/dineout/data/dineout_repo.dart';
+import 'package:oxro/features/checkout/presentation/screens/checkout_screen.dart';
 import 'package:oxro_pricing/oxro_pricing.dart';
 
 class DineoutDetailScreen extends StatefulWidget {
@@ -30,12 +30,61 @@ class _DineoutDetailScreenState extends State<DineoutDetailScreen> {
     _slot = _restaurant?.slots.first ?? '7:30 PM';
   }
 
+  void _pickCustomGuests() {
+    int val = _guests > 8 ? _guests : 2;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Guests'),
+        content: StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove),
+                  onPressed: () =>
+                      setDialogState(() => val = (val - 1).clamp(1, 25)),
+                ),
+                Expanded(
+                  child: Text(
+                    '$val',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () =>
+                      setDialogState(() => val = (val + 1).clamp(1, 25)),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() => _guests = val);
+              Navigator.pop(context);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _book(DineoutRestaurant restaurant) {
-    showOxroSnack(
+    Navigator.push(
       context,
-      'Table request sent for $_guests at $_slot',
-      actionLabel: 'DONE',
-      onAction: () {},
+      MaterialPageRoute(builder: (_) => const CheckoutScreen()),
     );
   }
 
@@ -163,6 +212,12 @@ class _DineoutDetailScreenState extends State<DineoutDetailScreen> {
                           selected: _guests == g,
                           onTap: () => setState(() => _guests = g),
                         ),
+                      OxroFilterChip(
+                        key: const ValueKey('dineout_guests_custom'),
+                        label: _guests > 8 ? '$_guests guests' : 'Custom',
+                        selected: _guests > 8,
+                        onTap: _pickCustomGuests,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -292,7 +347,7 @@ class _DineoutDetailScreenState extends State<DineoutDetailScreen> {
                     ],
                   ),
                   child: const Text(
-                    'Book a table',
+                    'Confirm reservation',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
