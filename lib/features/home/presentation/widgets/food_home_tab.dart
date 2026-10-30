@@ -1202,11 +1202,11 @@ class _Under250Tile extends StatelessWidget {
         height: 80,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFFE8C4), Color(0xFFFFA740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFE8C4), Color(0xFFFFA740)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
           border: Border.all(
             color: const Color(0xFFE08000).withValues(alpha: 0.35),
           ),
@@ -1245,32 +1245,32 @@ class _Under250Tile extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF7A18), Color(0xFFB32D00)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(
-                              0xFFFF5A1F,
-                            ).withValues(alpha: 0.4),
-                            blurRadius: 6,
-                            spreadRadius: 0.5,
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF7A18), Color(0xFFB32D00)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFFFF5A1F,
+                              ).withValues(alpha: 0.4),
+                              blurRadius: 6,
+                              spreadRadius: 0.5,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.currency_rupee_rounded,
+                          size: 17,
+                          color: Colors.black,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.currency_rupee_rounded,
-                        size: 15,
-                        color: Colors.white,
-                      ),
-                    ),
                     const SizedBox(height: 6),
                     const FittedBox(
                       fit: BoxFit.scaleDown,
@@ -1280,7 +1280,7 @@ class _Under250Tile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 7,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFFFFC46B),
+                          color: Colors.black,
                           letterSpacing: 0.5,
                           height: 1,
                         ),
@@ -1295,7 +1295,7 @@ class _Under250Tile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
-                          color: Colors.white,
+                          color: Colors.black,
                           height: 1,
                           letterSpacing: -0.3,
                         ),
