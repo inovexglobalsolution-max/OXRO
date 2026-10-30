@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:oxro_pricing/oxro_pricing.dart';
 
 import 'package:oxro/app/data/food_media.dart';
@@ -8,6 +9,7 @@ import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/app/widgets/press_scale.dart';
+import 'package:oxro/app/widgets/video_banner.dart';
 import 'package:oxro/features/address/data/address_store.dart';
 import 'package:oxro/features/categories/presentation/screens/sub_category_screen.dart';
 import 'package:oxro/features/coupons/data/coupon_store.dart';
@@ -32,6 +34,7 @@ class _PromoSlide {
     required this.sub,
     required this.cta,
     required this.image,
+    required this.video,
     required this.colors,
     required this.action,
   });
@@ -41,6 +44,7 @@ class _PromoSlide {
   final String sub;
   final String cta;
   final String image;
+  final String video;
   final List<Color> colors;
   final _PromoAction action;
 }
@@ -52,6 +56,7 @@ const _promoSlides = [
     sub: 'On every order above ₹199',
     cta: 'Explore PREMIUM',
     image: FoodMedia.heroThali,
+    video: 'assets/videos/promo_premium.mp4',
     colors: [Color(0xFF2A0714), Color(0xFF6B1535)],
     action: _PromoAction.premium,
   ),
@@ -61,6 +66,7 @@ const _promoSlides = [
     sub: 'Flat 30% OFF on dum biryani',
     cta: 'Order biryani',
     image: FoodMedia.heroBiryani,
+    video: 'assets/videos/promo_biryani.mp4',
     colors: [Color(0xFFB3261E), Color(0xFFFF6A00)],
     action: _PromoAction.biryani,
   ),
@@ -70,40 +76,11 @@ const _promoSlides = [
     sub: 'Buy 1 get 1 on signature pizzas',
     cta: 'Grab the deal',
     image: FoodMedia.heroPizza,
+    video: 'assets/videos/promo_pizza.mp4',
     colors: [Color(0xFF004E92), Color(0xFF0A8CFF)],
     action: _PromoAction.pizza,
   ),
 ];
-
-class _HeroCopy {
-  const _HeroCopy(this.lead, this.highlight, this.tail);
-
-  final String lead;
-  final String highlight;
-  final String tail;
-}
-
-_HeroCopy _heroCopyFor(String? id, String? name) {
-  final key = '${id ?? ''} ${name ?? ''}'.toLowerCase();
-  if (key.contains('pizza') || key.contains('domino')) {
-    return const _HeroCopy(
-      'Only the ',
-      'finest ingredients',
-      'for a perfect crust',
-    );
-  }
-  if (key.contains('biryani') || key.contains('paradise')) {
-    return const _HeroCopy(
-      'Slow-cooked ',
-      'dum biryani',
-      'with saffron & spice',
-    );
-  }
-  if (key.contains('saravana') || key.contains('south')) {
-    return const _HeroCopy('Fresh batter, ', 'crisp dosa', 'made to order');
-  }
-  return const _HeroCopy('', 'Fresh ingredients', 'crafted with care');
-}
 
 class TrackingScreen extends StatefulWidget {
   const TrackingScreen({super.key, required this.orderId});
@@ -205,13 +182,6 @@ class _TrackingScreenState extends State<TrackingScreen>
   static String _addressLine(Address? address) {
     if (address == null) return '123, Anna Nagar, Chennai — 600040';
     return '${address.line}, ${address.city} — ${address.pin}';
-  }
-
-  static String _phoneLine(Address? address) {
-    final phone = address?.phone.trim() ?? '';
-    if (phone.isEmpty) return 'Phone not added';
-    if (phone.startsWith('+')) return phone;
-    return '+91 $phone';
   }
 
   static String? _savingsText(OrderBill? bill) {
@@ -356,7 +326,6 @@ class _TrackingScreenState extends State<TrackingScreen>
     final progress = status == OrderStatus.cancelled
         ? 0.18
         : (done / 5).clamp(0.0, 1.0);
-    final heroCopy = _heroCopyFor(kitchenId, kitchenName);
     final heroImage = FoodMedia.forRestaurant(kitchenId, kitchenName);
     final payable =
         order?.payablePaise ??
@@ -404,10 +373,7 @@ class _TrackingScreenState extends State<TrackingScreen>
                           ),
                         ),
                         SizedBox(height: context.rs(14)),
-                        _in(
-                          0.12,
-                          _HeroBanner(image: heroImage, copy: heroCopy),
-                        ),
+                        _in(0.12, _HeroBanner(image: heroImage)),
                         _in(
                           0.2,
                           _deliverySheet(
@@ -633,7 +599,6 @@ class _TrackingScreenState extends State<TrackingScreen>
     final summary =
         '${Money.inr(payable)} | $itemCount $countLabel : 1x $firstItem';
     final addressTitle = 'Delivering at ${address?.label ?? 'Home'}';
-    final personTitle = 'Delivering to ${address?.name ?? 'Guest'}';
     final restaurantTitle = kitchenName == null
         ? 'Delivering from OXRO Kitchen'
         : 'Delivering from $kitchenName';
@@ -681,14 +646,16 @@ class _TrackingScreenState extends State<TrackingScreen>
                   subtitle: _addressLine(address),
                 ),
                 const _DashedDivider(),
+                const _DashedDivider(),
+                _riderCard(context),
+                const _DashedDivider(),
                 _infoRow(
                   context,
-                  icon: Icons.phone_in_talk_outlined,
+                  icon: Icons.location_on_outlined,
                   iconColor: OxroColors.royalBlue,
-                  title: personTitle,
-                  subtitle: _phoneLine(address),
+                  title: addressTitle,
+                  subtitle: _addressLine(address),
                 ),
-                const _DashedDivider(),
                 _infoRow(
                   context,
                   icon: Icons.shopping_bag_outlined,
@@ -759,10 +726,46 @@ class _TrackingScreenState extends State<TrackingScreen>
                       iconColor: OxroColors.primary,
                       title: restaurantTitle,
                       subtitle: restaurantSub,
-                      trailing: const Icon(
-                        Icons.chevron_right_rounded,
-                        size: 20,
-                        color: OxroColors.muted,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
+                            icon: const Icon(
+                              Icons.call_rounded,
+                              size: 18,
+                              color: OxroColors.green,
+                            ),
+                            onPressed: () async {
+                              final uri = Uri.parse('tel:+919876543210');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri);
+                              }
+                            },
+                          ),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
+                            icon: const Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              size: 18,
+                              color: OxroColors.royalBlue,
+                            ),
+                            onPressed: () async {
+                              final uri = Uri.parse('sms:+919876543210');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri);
+                              }
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   )
@@ -774,6 +777,47 @@ class _TrackingScreenState extends State<TrackingScreen>
                     iconColor: OxroColors.primary,
                     title: restaurantTitle,
                     subtitle: restaurantSub,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 36,
+                          ),
+                          icon: const Icon(
+                            Icons.call_rounded,
+                            size: 18,
+                            color: OxroColors.green,
+                          ),
+                          onPressed: () async {
+                            final uri = Uri.parse('tel:+919876543210');
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          },
+                        ),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 36,
+                          ),
+                          icon: const Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 18,
+                            color: OxroColors.royalBlue,
+                          ),
+                          onPressed: () async {
+                            final uri = Uri.parse('sms:+919876543210');
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
               ],
             ),
@@ -785,6 +829,83 @@ class _TrackingScreenState extends State<TrackingScreen>
             steps: steps,
             done: done,
             accent: accent,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _riderCard(BuildContext context) {
+    final riderName = 'Rahul Kumar';
+    final riderPhone = '9876543210';
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: context.rs(10)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: OxroColors.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.delivery_dining_rounded,
+              size: 22,
+              color: OxroColors.primary,
+            ),
+          ),
+          SizedBox(width: context.rs(12)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Delivery Partner',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: OxroColors.charcoal,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$riderName • +91 $riderPhone',
+                  style: const TextStyle(fontSize: 12, color: OxroColors.muted),
+                ),
+              ],
+            ),
+          ),
+          PressScale(
+            onTap: () async {
+              final uri = Uri.parse('tel:+91$riderPhone');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: OxroColors.green.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.call_rounded, size: 16, color: OxroColors.green),
+                  SizedBox(width: 4),
+                  Text(
+                    'Call',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: OxroColors.green,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -1689,10 +1810,9 @@ class _EtaCard extends StatelessWidget {
 }
 
 class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({required this.image, required this.copy});
+  const _HeroBanner({required this.image});
 
   final String image;
-  final _HeroCopy copy;
 
   @override
   Widget build(BuildContext context) {
@@ -1704,71 +1824,9 @@ class _HeroBanner extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              image,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stack) => const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [OxroColors.royalBlue, OxroColors.primary],
-                  ),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.restaurant_rounded,
-                    size: 54,
-                    color: Colors.white54,
-                  ),
-                ),
-              ),
-            ),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0x22000000), Color(0xB3000000)],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 20,
-              right: 20,
-              top: 0,
-              bottom: 24,
-              child: Center(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(text: copy.lead),
-                      TextSpan(
-                        text: copy.highlight,
-                        style: const TextStyle(
-                          backgroundColor: OxroColors.coral,
-                          color: Colors.white,
-                        ),
-                      ),
-                      TextSpan(text: '\n${copy.tail}'),
-                    ],
-                  ),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: context.font(16.5),
-                    height: 1.42,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    shadows: const [
-                      Shadow(
-                        color: Color(0xAA000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            VideoBanner(
+              asset: 'assets/videos/hero_paneer.mp4',
+              fallbackAsset: image,
             ),
             Positioned(
               left: 0,
@@ -1841,11 +1899,10 @@ class _PromoCarouselState extends State<_PromoCarousel> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.asset(
-                          slide.image,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stack) =>
-                              ColoredBox(color: slide.colors.last),
+                        VideoBanner(
+                          asset: slide.video,
+                          fallbackAsset: slide.image,
+                          play: index == _page,
                         ),
                         DecoratedBox(
                           decoration: BoxDecoration(
@@ -1853,8 +1910,8 @@ class _PromoCarouselState extends State<_PromoCarousel> {
                               begin: Alignment.topRight,
                               end: Alignment.bottomLeft,
                               colors: [
-                                slide.colors.last.withValues(alpha: 0.2),
-                                slide.colors.first.withValues(alpha: 0.95),
+                                slide.colors.last.withValues(alpha: 0.15),
+                                slide.colors.first.withValues(alpha: 0.55),
                               ],
                             ),
                           ),
@@ -2012,7 +2069,7 @@ class _CouponTile extends StatelessWidget {
               ),
             ),
             Opacity(
-              opacity: 0.32,
+              opacity: 0.72,
               child: Image.asset(
                 image,
                 fit: BoxFit.cover,
@@ -2027,7 +2084,7 @@ class _CouponTile extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    colors.last.withValues(alpha: 0.9),
+                    colors.last.withValues(alpha: 0.55),
                   ],
                 ),
               ),

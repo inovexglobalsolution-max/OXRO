@@ -72,17 +72,10 @@ class _AnimatedSearchHintState extends State<AnimatedSearchHint> {
 
   TextSpan _labelSpan(String label) {
     final emphasis = widget.emphasisStyle;
-    if (emphasis == null || !label.contains('"')) {
+    if (emphasis == null) {
       return TextSpan(text: label);
     }
-    final parts = label.split('"');
-    return TextSpan(
-      children: [
-        for (var i = 0; i < parts.length; i++)
-          if (parts[i].isNotEmpty)
-            TextSpan(text: parts[i], style: i.isOdd ? emphasis : null),
-      ],
-    );
+    return TextSpan(text: label, style: emphasis);
   }
 
   @override

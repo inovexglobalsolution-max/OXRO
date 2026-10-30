@@ -67,9 +67,7 @@ class _LocationScreenState extends State<LocationScreen> {
                 children: [
                   SizedBox(height: context.rs(56)),
                   Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: context.rs(22),
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: context.rs(22)),
                     child: Text(
                       'Set your location to start\nexploring\nrestaurants near you',
                       key: const ValueKey('location_title'),
@@ -85,9 +83,7 @@ class _LocationScreenState extends State<LocationScreen> {
                   SizedBox(height: context.rs(6)),
                   Expanded(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: context.rs(4),
-                      ),
+                      padding: EdgeInsets.symmetric(vertical: context.rs(4)),
                       child: FittedBox(
                         fit: BoxFit.contain,
                         child: SizedBox(
@@ -109,8 +105,9 @@ class _LocationScreenState extends State<LocationScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: OxroColors.coral,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor:
-                            OxroColors.coral.withValues(alpha: 0.7),
+                        disabledBackgroundColor: OxroColors.coral.withValues(
+                          alpha: 0.7,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -259,8 +256,7 @@ class _CityArtState extends State<_CityArt>
                     width: 52,
                     height: 11,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE45560)
-                          .withValues(alpha: 0.16),
+                      color: const Color(0xFFE45560).withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -274,8 +270,7 @@ class _CityArtState extends State<_CityArt>
                     color: const Color(0xFFF0545E),
                     shadows: [
                       Shadow(
-                        color: const Color(0xFFF0545E)
-                            .withValues(alpha: 0.32),
+                        color: const Color(0xFFF0545E).withValues(alpha: 0.32),
                         blurRadius: shadow,
                         offset: const Offset(0, 8),
                       ),
@@ -398,9 +393,7 @@ class _FoodKiosk extends StatelessWidget {
               decoration: BoxDecoration(
                 color: accent,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
               ),
               child: Icon(icon, size: width * 0.3, color: Colors.white),
             ),
@@ -436,40 +429,12 @@ class _CityPainter extends CustomPainter {
 
     final pathA = Path()
       ..moveTo(w * 0.02, h * 0.76)
-      ..cubicTo(
-        w * 0.20,
-        h * 0.68,
-        w * 0.30,
-        h * 0.64,
-        w * 0.48,
-        h * 0.66,
-      )
-      ..cubicTo(
-        w * 0.66,
-        h * 0.68,
-        w * 0.78,
-        h * 0.60,
-        w * 0.98,
-        h * 0.50,
-      );
+      ..cubicTo(w * 0.20, h * 0.68, w * 0.30, h * 0.64, w * 0.48, h * 0.66)
+      ..cubicTo(w * 0.66, h * 0.68, w * 0.78, h * 0.60, w * 0.98, h * 0.50);
     final pathB = Path()
       ..moveTo(w * 0.20, h * 0.98)
-      ..cubicTo(
-        w * 0.28,
-        h * 0.80,
-        w * 0.34,
-        h * 0.62,
-        w * 0.42,
-        h * 0.44,
-      )
-      ..cubicTo(
-        w * 0.48,
-        h * 0.28,
-        w * 0.50,
-        h * 0.18,
-        w * 0.53,
-        h * 0.04,
-      );
+      ..cubicTo(w * 0.28, h * 0.80, w * 0.34, h * 0.62, w * 0.42, h * 0.44)
+      ..cubicTo(w * 0.48, h * 0.28, w * 0.50, h * 0.18, w * 0.53, h * 0.04);
     for (final p in [pathA, pathB]) {
       canvas.drawPath(p, roadEdge);
       canvas.drawPath(p, road);
@@ -513,10 +478,7 @@ class _CityPainter extends CustomPainter {
     final cloud = Paint()
       ..color = const Color(0xFFF1F4F7)
       ..style = PaintingStyle.fill;
-    for (final c in const [
-      Offset(0.18, 0.23),
-      Offset(0.84, 0.27),
-    ]) {
+    for (final c in const [Offset(0.18, 0.23), Offset(0.84, 0.27)]) {
       final cx = w * c.dx;
       final cy = h * c.dy;
       canvas.drawCircle(Offset(cx, cy), 8, cloud);
@@ -548,48 +510,31 @@ class _CityPainter extends CustomPainter {
 
     canvas.drawPath(
       top,
-      Paint()..color = Color.lerp(
-        const Color(0xFFFFFFFF),
-        const Color(0xFFE9EEF3),
-        b.shade,
-      )!,
+      Paint()
+        ..color = Color.lerp(
+          const Color(0xFFFFFFFF),
+          const Color(0xFFE9EEF3),
+          b.shade,
+        )!,
     );
-    canvas.drawPath(
-      right,
-      Paint()..color = const Color(0xFFDDE5EC),
-    );
-    canvas.drawRect(
-      front,
-      Paint()..color = const Color(0xFFF5F8FA),
-    );
+    canvas.drawPath(right, Paint()..color = const Color(0xFFDDE5EC));
+    canvas.drawRect(front, Paint()..color = const Color(0xFFF5F8FA));
 
     final win = Paint()..color = const Color(0xFFE1E8EE);
     for (var i = 0; i < 3; i++) {
       final wy = y + 6 + i * (bh / 4);
       if (wy + 4 > y + bh - 3) break;
-      canvas.drawRect(
-        Rect.fromLTWH(x + bw * 0.18, wy, bw * 0.64, 3.4),
-        win,
-      );
+      canvas.drawRect(Rect.fromLTWH(x + bw * 0.18, wy, bw * 0.64, 3.4), win);
     }
     final winSide = Paint()..color = const Color(0xFFD3DEE7);
     for (var i = 0; i < 2; i++) {
       final wy = y - d + 8 + i * (bh / 3);
       final sx = x + bw + d * 0.25;
-      canvas.drawRect(
-        Rect.fromLTWH(sx, wy, d * 0.38, 2.8),
-        winSide,
-      );
+      canvas.drawRect(Rect.fromLTWH(sx, wy, d * 0.38, 2.8), winSide);
     }
   }
 
-  void _drawTree(
-    Canvas canvas,
-    double w,
-    double h,
-    Offset p,
-    double r,
-  ) {
+  void _drawTree(Canvas canvas, double w, double h, Offset p, double r) {
     final x = w * p.dx;
     final y = h * p.dy;
     canvas.drawRect(

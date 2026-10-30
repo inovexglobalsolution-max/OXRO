@@ -43,6 +43,8 @@ dependencies:
   url_launcher: ^6.3.2
   share_plus: ^13.3.1
   image_picker: ^1.1.2
+  permission_handler: ^11.3.1
+  video_player: ^2.10.0
 
 dev_dependencies:
   flutter_test:
@@ -70,6 +72,10 @@ flutter:
     - assets/logo/oxro_logo.jpeg
     - assets/food/
     - assets/images/
+    - assets/videos/hero_paneer.mp4
+    - assets/videos/promo_premium.mp4
+    - assets/videos/promo_biryani.mp4
+    - assets/videos/promo_pizza.mp4
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -925,25 +925,36 @@ class _FoodPreferencesCard extends StatelessWidget {
             color: OxroColors.primary,
           ),
           const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'Kitchen note',
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: OxroColors.charcoal,
-              ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Opt in for cutlery',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: OxroColors.charcoal,
+                  ),
+                ),
+                Text(
+                  store.cutleryOptIn
+                      ? 'Cutlery will be included'
+                      : 'No cutlery needed',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    color: OxroColors.muted,
+                  ),
+                ),
+              ],
             ),
           ),
-          TextButton(
-            onPressed: () {},
-            child: const Text(
-              'Add',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: OxroColors.primary,
-              ),
-            ),
+          Switch(
+            key: const ValueKey('bag_cutlery'),
+            value: store.cutleryOptIn,
+            onChanged: store.setCutlery,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
       ),

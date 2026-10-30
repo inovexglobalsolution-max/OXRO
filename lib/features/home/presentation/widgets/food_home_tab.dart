@@ -788,26 +788,40 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                               ),
                               const SizedBox(width: 8),
                               Expanded(
-                                child: AnimatedSearchHint(
-                                  key: const ValueKey('food_search_hint'),
-                                  hintKey: 'food_search_hint',
-                                  items: [
-                                    for (final name in SearchRepo.dishNames)
-                                      name.length <= 16
-                                          ? 'Search "$name"'
-                                          : '"$name"',
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      'Search',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: OxroColors.muted,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: AnimatedSearchHint(
+                                        key: const ValueKey('food_search_hint'),
+                                        hintKey: 'food_search_hint',
+                                        items: [
+                                          for (final name
+                                              in SearchRepo.dishNames)
+                                            '"$name"',
+                                        ],
+                                        fallback: '"Chicken Biryani"',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: OxroColors.dark,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                        emphasisStyle: const TextStyle(
+                                          fontSize: 13,
+                                          color: OxroColors.dark,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
                                   ],
-                                  fallback: 'Search biryani, pizza...',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: OxroColors.muted,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  emphasisStyle: const TextStyle(
-                                    fontSize: 13,
-                                    color: OxroColors.dark,
-                                    fontWeight: FontWeight.w800,
-                                  ),
                                 ),
                               ),
                             ],
@@ -871,7 +885,7 @@ class _FoodHomeTabState extends State<FoodHomeTab>
         builder: (context, constraints) {
           const gap = 8.0;
           const offersWidth = 64.0;
-          const budgetWidth = 46.0;
+          const budgetWidth = 48.0;
           final available =
               constraints.maxWidth -
               (context.padX * 2) -
@@ -886,7 +900,7 @@ class _FoodHomeTabState extends State<FoodHomeTab>
               ? 3
               : 2;
           final itemWidth = (available - (gap * (target - 1))) / target;
-          final thumb = (itemWidth * 0.88).clamp(44.0, 60.0);
+          final thumb = (itemWidth * 0.88).clamp(44.0, 56.0);
           return SizedBox(
             height: 84,
             child: Row(
@@ -895,13 +909,11 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                   padding: EdgeInsets.only(left: context.padX, right: gap),
                   child: _BestOffersTile(onTap: _openOffers),
                 ),
-                _Under250Tile(onTap: () => _openBudget(250)),
-                const SizedBox(width: gap),
                 Expanded(
                   child: ListView.separated(
                     key: const ValueKey('home_quick_cats'),
                     scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.only(right: context.padX),
+                    padding: EdgeInsets.only(right: gap),
                     itemCount: _cuisineStops.length,
                     separatorBuilder: (_, _) => const SizedBox(width: gap),
                     itemBuilder: (context, i) {
@@ -1017,6 +1029,10 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                       );
                     },
                   ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(right: context.padX),
+                  child: _Under250Tile(onTap: () => _openBudget(250)),
                 ),
               ],
             ),
@@ -1243,7 +1259,9 @@ class _Under250Tile extends StatelessWidget {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF5A1F).withValues(alpha: 0.4),
+                            color: const Color(
+                              0xFFFF5A1F,
+                            ).withValues(alpha: 0.4),
                             blurRadius: 6,
                             spreadRadius: 0.5,
                           ),
@@ -1412,7 +1430,6 @@ class _CuisineStop {
   final String? query;
 }
 
-
 class _BestOffersTile extends StatefulWidget {
   const _BestOffersTile({required this.onTap});
 
@@ -1515,14 +1532,13 @@ class _BestOffersTileState extends State<_BestOffersTile>
                           gradient: const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFFFF7A18),
-                              Color(0xFFB32D00),
-                            ],
+                            colors: [Color(0xFFFF7A18), Color(0xFFB32D00)],
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFFF5A1F).withValues(alpha: 0.35),
+                              color: const Color(
+                                0xFFFF5A1F,
+                              ).withValues(alpha: 0.35),
                               blurRadius: 6,
                               spreadRadius: 0.5,
                             ),
