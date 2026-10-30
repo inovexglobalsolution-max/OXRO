@@ -885,7 +885,7 @@ class _FoodHomeTabState extends State<FoodHomeTab>
         builder: (context, constraints) {
           const gap = 8.0;
           const offersWidth = 64.0;
-          const budgetWidth = 48.0;
+          const budgetWidth = 64.0;
           final available =
               constraints.maxWidth -
               (context.padX * 2) -
@@ -909,11 +909,13 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                   padding: EdgeInsets.only(left: context.padX, right: gap),
                   child: _BestOffersTile(onTap: _openOffers),
                 ),
+                _Under250Tile(onTap: () => _openBudget(250)),
+                const SizedBox(width: gap),
                 Expanded(
                   child: ListView.separated(
                     key: const ValueKey('home_quick_cats'),
                     scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.only(right: gap),
+                    padding: EdgeInsets.only(right: context.padX),
                     itemCount: _cuisineStops.length,
                     separatorBuilder: (_, _) => const SizedBox(width: gap),
                     itemBuilder: (context, i) {
@@ -1029,10 +1031,6 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                       );
                     },
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(right: context.padX),
-                  child: _Under250Tile(onTap: () => _openBudget(250)),
                 ),
               ],
             ),
@@ -1200,17 +1198,17 @@ class _Under250Tile extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        width: 48,
+        width: 64,
         height: 80,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
           gradient: const LinearGradient(
-            colors: [Color(0xFF2A1B36), Color(0xFF14101B)],
+            colors: [Color(0xFFFFE8C4), Color(0xFFFFA740)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           border: Border.all(
-            color: const Color(0xFFFF7A18).withValues(alpha: 0.35),
+            color: const Color(0xFFE08000).withValues(alpha: 0.35),
           ),
           boxShadow: [
             BoxShadow(

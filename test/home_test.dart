@@ -310,13 +310,13 @@ void main() {
       );
       expect(
         tester.getCenter(under250).dx,
-        greaterThan(tester.getCenter(lastCuisine).dx),
-        reason: 'Under ₹250 sits at the right end at $size',
+        lessThan(tester.getCenter(firstCuisine).dx),
+        reason: 'Under ₹250 sits at left end at $size',
       );
       expect(
-        tester.getRect(under250).right,
-        greaterThan(size.width * 0.9),
-        reason: 'Under ₹250 hugs the right edge at $size',
+        tester.getRect(under250).left,
+        lessThan(size.width * 0.2),
+        reason: 'Under ₹250 hugs the left edge at $size',
       );
       expect(tester.takeException(), isNull, reason: 'overflow at $size');
       await _dispose(tester);
