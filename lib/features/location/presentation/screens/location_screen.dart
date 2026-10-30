@@ -6,8 +6,8 @@ import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/features/address/presentation/widgets/address_sheet.dart';
-import 'package:oxro/features/auth/presentation/screens/login_screen.dart';
 import 'package:oxro/features/location/data/geo_store.dart';
+import 'package:oxro/features/notifications/presentation/screens/notification_permission_screen.dart';
 
 /// Location onboarding — white page, isometric food-city art, device
 /// location and manual address actions (reference 2.jpg).
@@ -22,7 +22,7 @@ class _LocationScreenState extends State<LocationScreen> {
   bool _locating = false;
 
   void _goLogin() {
-    replaceScreen(context, const LoginScreen());
+    replaceScreen(context, const NotificationPermissionScreen());
   }
 
   Future<void> _enableLocation() async {

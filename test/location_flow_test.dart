@@ -8,6 +8,7 @@ import 'package:oxro/features/address/data/address_store.dart';
 import 'package:oxro/features/auth/presentation/screens/login_screen.dart';
 import 'package:oxro/features/location/data/geo_store.dart';
 import 'package:oxro/features/location/presentation/screens/location_screen.dart';
+import 'package:oxro/features/notifications/presentation/screens/notification_permission_screen.dart';
 
 Future<void> _settle(WidgetTester tester) async {
   for (var i = 0; i < 4; i++) {
@@ -37,9 +38,7 @@ void main() {
     AddressStore.resetForTests();
   });
 
-  testWidgets('Location onboarding shows art and both actions', (
-    tester,
-  ) async {
+  testWidgets('Location onboarding shows art and both actions', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: LocationScreen()));
     await _settle(tester);
 
@@ -65,7 +64,7 @@ void main() {
     await _settle(tester);
 
     expect(GeoStore.instance.place.source, GeoSource.gps);
-    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(NotificationPermissionScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -114,10 +113,7 @@ void main() {
       find.byKey(const ValueKey('addr_line')),
       '12 Anna Salai, Teynampet',
     );
-    await tester.enterText(
-      find.byKey(const ValueKey('addr_city')),
-      'Chennai',
-    );
+    await tester.enterText(find.byKey(const ValueKey('addr_city')), 'Chennai');
     await tester.enterText(find.byKey(const ValueKey('addr_pin')), '600018');
     await tester.ensureVisible(find.byKey(const ValueKey('addr_save')));
     await tester.pump(const Duration(milliseconds: 200));
@@ -125,7 +121,7 @@ void main() {
     await _settle(tester);
 
     expect(AddressStore.instance.hasValid, isTrue);
-    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(NotificationPermissionScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
