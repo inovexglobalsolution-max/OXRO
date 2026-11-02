@@ -45,6 +45,9 @@ dependencies:
   image_picker: ^1.1.2
   permission_handler: ^11.3.1
   video_player: ^2.10.0
+  flutter_tilt: ^4.1.0
+  flutter_animate: ^4.5.2
+  confetti: ^0.8.0
 
 dev_dependencies:
   flutter_test:
@@ -79,6 +82,9 @@ flutter:
     - assets/videos/gimbap.mp4
     - assets/videos/restaurant_3d.mov
     - assets/videos/corn_dog.mp4
+    - assets/videos/logo_video.mp4
+    - assets/videos/icecream.mp4
+    - assets/videos/food_banners/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

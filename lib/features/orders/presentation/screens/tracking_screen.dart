@@ -2200,36 +2200,4 @@ class _DashPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _JourneyRailPainter extends CustomPainter {
-  const _JourneyRailPainter({required this.progress, required this.color});
 
-  final double progress;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final track = Paint()
-      ..color = OxroColors.border
-      ..strokeWidth = size.width
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(size.width / 2, 0),
-      Offset(size.width / 2, size.height),
-      track,
-    );
-    final active = Paint()
-      ..color = color
-      ..strokeWidth = size.width
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(size.width / 2, 0),
-      Offset(size.width / 2, size.height * progress.clamp(0.0, 1.0)),
-      active,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _JourneyRailPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
-  }
-}
