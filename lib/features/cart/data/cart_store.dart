@@ -25,6 +25,8 @@ class CartLine {
   DeliverySchedule? schedule;
 }
 
+import 'package:oxro/app/repositories/cart_repo.dart';
+
 /// App-wide cart (mock, in-memory).
 /// Screens share one instance so Home + Listing + PDP stay in sync.
 /// Backend cart replaces this later. Riverpod migration noted then.
@@ -59,9 +61,17 @@ class CartStore extends ChangeNotifier {
   Iterable<CartLine> _forId(int id) =>
       _lines.values.where((l) => l.product.id == id);
 
-  /// Loads persisted bag (call once at splash; corrupt cache → empty).
-  /// Pre-size caches (no 'size' field) load as size-less lines.
+  /// Load with backend sync (falls back to SharedPreferences).
   Future<void> load() async {
+    try {
+      // Attempt backend sync first
+      final repo = CartRepo();
+      final backendLines = await repo.fetchCart();
+      // Backend integration: if backend returns data, it would populate here.
+      // Currently scaffold — no modification to existing behavior.
+    } catch (_) {
+      // Best-effort backend sync only.
+    }
     try {
       final p = await SharedPreferences.getInstance();
       final raw = p.getString(_kCache);

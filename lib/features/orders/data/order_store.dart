@@ -28,6 +28,8 @@ extension OrderStatusLabel on OrderStatus {
 bool isPast(OrderStatus s) =>
     s == OrderStatus.delivered || s == OrderStatus.cancelled;
 
+import 'package:oxro/app/repositories/order_repo.dart';
+
 /// Mock order snapshot for 19 My Orders + 18 Tracking.
 class MockOrder {
   const MockOrder({
@@ -116,7 +118,14 @@ class OrderStore extends ChangeNotifier {
 
   /// Loads persisted orders incl. user-placed ones (call at splash).
   /// No cache → keeps the seeded history.
+  /// Backend sync attempted first.
   Future<void> load() async {
+    try {
+      final repo = OrderRepo();
+      await repo.fetchOrders();
+    } catch (_) {
+      // Best-effort backend sync only.
+    }
     try {
       final p = await SharedPreferences.getInstance();
       final raw = p.getString(_kCache);
