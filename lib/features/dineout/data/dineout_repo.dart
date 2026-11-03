@@ -14,6 +14,7 @@ class DineoutRestaurant {
     required this.distanceKm,
     required this.slots,
     this.pureVeg = false,
+    this.bannerImage,
   });
 
   final String id;
@@ -28,6 +29,7 @@ class DineoutRestaurant {
   final double distanceKm;
   final List<String> slots;
   final bool pureVeg;
+  final String? bannerImage;
 
   bool get hasOffer => offerText.isNotEmpty;
 

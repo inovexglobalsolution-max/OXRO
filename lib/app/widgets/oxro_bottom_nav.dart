@@ -127,10 +127,15 @@ class _OxroBottomNavState extends State<OxroBottomNav>
                   top: OxroBottomNav._shadowPad,
                   width: OxroBottomNav._cartSize,
                   height: OxroBottomNav._cartSize,
-                  child: _NavCart(
-                    float: _float,
-                    selected: widget.currentIndex == 1,
-                    onTap: () => widget.onTap(1),
+                  child: OverflowBox(
+                    maxHeight: 120,
+                    maxWidth: 120,
+                    alignment: Alignment.center,
+                    child: _NavCart(
+                      float: _float,
+                      selected: widget.currentIndex == 1,
+                      onTap: () => widget.onTap(1),
+                    ),
                   ),
                 ),
               ],
@@ -245,10 +250,7 @@ class _NavCartState extends State<_NavCart> {
           animation: widget.float,
           builder: (context, child) {
             final dy = (widget.float.value - 0.5) * 4.0;
-            return Transform.translate(
-              offset: Offset(0, dy),
-              child: child,
-            );
+            return Transform.translate(offset: Offset(0, dy), child: child);
           },
           child: AnimatedScale(
             scale: _pressed ? 0.92 : 1.0,
@@ -291,9 +293,7 @@ class _NavCartState extends State<_NavCart> {
                   Icon(
                     Icons.shopping_cart_rounded,
                     size: 27,
-                    color: widget.selected
-                        ? Colors.white
-                        : _rnGoldSoft,
+                    color: widget.selected ? Colors.white : _rnGoldSoft,
                   ),
                   const Positioned(right: -6, top: -6, child: BagBadge()),
                 ],

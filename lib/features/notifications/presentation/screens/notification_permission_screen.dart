@@ -413,7 +413,7 @@ class _HeroArt extends StatelessWidget {
                   child: Transform.translate(
                     offset: Offset(0, lift * 3),
                     child: Image.asset(
-                      'assets/images/delivery_boy_icon.png',
+                      'assets/images/delivery_boy_icon_blue_new.png',
                       width: 192,
                       height: 192,
                       fit: BoxFit.contain,

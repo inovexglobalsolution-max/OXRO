@@ -49,6 +49,7 @@ dependencies:
   flutter_animate: ^4.5.2
   flutter_secure_storage: ^11.2.0
   confetti: ^0.8.0
+  flutter_svg: ^2.0.10+1
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +77,14 @@ flutter:
     - assets/logo/oxro_logo.jpeg
     - assets/food/
     - assets/images/
+    - assets/images/payment_methods/google_pay.svg
+    - assets/images/payment_methods/whatsapp.svg
+    - assets/images/payment_methods/phonepe.svg
+    - assets/images/payment_methods/visa.svg
+    - assets/images/payment_methods/mastercard.svg
+    - assets/images/payment_methods/applepay.svg
+    - assets/images/payment_methods/paytm.svg
+    - assets/images/payment_methods/
     - assets/videos/hero_paneer.mp4
     - assets/videos/promo_premium.mp4
     - assets/videos/promo_biryani.mp4

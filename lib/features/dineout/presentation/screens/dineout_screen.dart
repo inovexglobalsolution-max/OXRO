@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:oxro/app/router/oxro_routes.dart';
@@ -15,14 +16,37 @@ class DineoutScreen extends StatefulWidget {
   State<DineoutScreen> createState() => _DineoutScreenState();
 }
 
-class _DineoutScreenState extends State<DineoutScreen> {
+class _DineoutScreenState extends State<DineoutScreen>
+    with TickerProviderStateMixin {
   final _search = TextEditingController();
   String _cuisine = 'All';
   String _query = '';
+  late final PageController _carouselController;
+  late final Timer _carouselTimer;
+  int _currentSlide = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _carouselController = PageController(viewportFraction: 0.88);
+    _carouselTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted && DineoutRepo.all.isNotEmpty) {
+        final next = (_currentSlide + 1) % DineoutRepo.all.take(10).length;
+        setState(() => _currentSlide = next);
+        _carouselController.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
 
   @override
   void dispose() {
     _search.dispose();
+    _carouselTimer.cancel();
+    _carouselController.dispose();
     super.dispose();
   }
 
@@ -208,91 +232,97 @@ class _DineoutScreenState extends State<DineoutScreen> {
   }
 
   Widget _hero(BuildContext context) {
-    return Container(
-      key: const ValueKey('dineout_hero'),
-      margin: EdgeInsets.fromLTRB(context.padX, 8, context.padX, 0),
-      padding: EdgeInsets.all(context.rs(18)),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [OxroColors.navyDark, OxroColors.royalBlue],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x2B051D47),
-            blurRadius: 18,
-            offset: Offset(0, 9),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+    final slides = DineoutRepo.all.take(10).toList();
+    return SizedBox(
+      height: context.rs(220),
+      child: PageView.builder(
+        controller: _carouselController,
+        itemCount: slides.isEmpty ? 1 : slides.length,
+        itemBuilder: (context, i) {
+          final r = slides.isEmpty ? null : slides[i];
+          return GestureDetector(
+            onTap: r == null ? null : () => _open(r),
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: context.rs(6)),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                image: DecorationImage(
+                  image: AssetImage(
+                    r?.bannerImage ?? 'assets/images/foundation_meal.png',
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'UP TO 30% OFF',
-                    style: TextStyle(
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Container(
+                      padding: EdgeInsets.all(context.rs(12)),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withValues(alpha: 0.6),
+                            Colors.transparent,
+                          ],
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r?.name ?? 'Restaurant',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          if (r?.cuisines.isNotEmpty ?? false)
+                            Text(
+                              r!.cuisineLabel,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 11,
+                              ),
+                            ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 8,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                for (int i = 0; i < 10; i++)
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 3,
+                                    ),
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: _currentSlide == i
+                                          ? Colors.orange
+                                          : Colors.white.withValues(alpha: 0.5),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 9),
-                Text(
-                  "The city's best tables,\none tap away.",
-                  style: TextStyle(
-                    fontSize: context.font(19),
-                    height: 1.15,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -0.35,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Reserve brunch, dinner and everything between.',
-                  style: TextStyle(
-                    fontSize: 11,
-                    height: 1.35,
-                    color: Colors.white.withValues(alpha: 0.72),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            width: context.rs(58),
-            height: context.rs(58),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-            ),
-            child: Icon(
-              Icons.restaurant_menu_rounded,
-              size: context.rs(27),
-              color: Colors.white,
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

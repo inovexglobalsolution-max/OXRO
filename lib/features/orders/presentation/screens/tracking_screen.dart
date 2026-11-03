@@ -97,6 +97,7 @@ class _TrackingScreenState extends State<TrackingScreen>
   late final AnimationController _ambient;
   late final ScrollController _scroll;
   late final ValueNotifier<double> _collapse;
+  bool _instructionsOpen = false;
 
   @override
   void initState() {
@@ -479,8 +480,8 @@ class _TrackingScreenState extends State<TrackingScreen>
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        'Your food is being prepared',
-                                        maxLines: 1,
+                                        'Your Order Is Being Prepared',
+                                        maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontSize: context.font(21 - 8 * t),
@@ -593,7 +594,7 @@ class _TrackingScreenState extends State<TrackingScreen>
     final countLabel = itemCount == 1 ? 'item' : 'items';
     final summary =
         '${Money.inr(payable)} | $itemCount $countLabel : 1x $firstItem';
-    final addressTitle = 'Delivering at ${address?.label ?? 'Home'}';
+    final addressTitle = 'Delivering to ${address?.label ?? 'Home'}';
     final restaurantTitle = kitchenName == null
         ? 'Delivering from OXRO Kitchen'
         : 'Delivering from $kitchenName';
@@ -643,6 +644,119 @@ class _TrackingScreenState extends State<TrackingScreen>
                 const _DashedDivider(),
                 const _DashedDivider(),
                 _riderCard(context),
+                const _DashedDivider(),
+                GestureDetector(
+                  onTap: () =>
+                      setState(() => _instructionsOpen = !_instructionsOpen),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: context.rs(6)),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.chat_rounded,
+                          size: 20,
+                          color: OxroColors.royalBlue,
+                        ),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Delivery Instructions',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              color: OxroColors.charcoal,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          _instructionsOpen
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: OxroColors.muted,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                AnimatedCrossFade(
+                  crossFadeState: _instructionsOpen
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 250),
+                  firstChild: const SizedBox.shrink(),
+                  secondChild: Padding(
+                    padding: EdgeInsets.only(top: context.rs(8)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children:
+                              [
+                                    'Don\'t ring the doorbell',
+                                    'Don\'t call, please message me',
+                                    'Leave the order at the door',
+                                    'Call when you arrive',
+                                    'Hand it directly to me',
+                                    'Contact me upon arrival',
+                                  ]
+                                  .map(
+                                    (label) => Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: OxroColors.pageBg,
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                        border: Border.all(
+                                          color: OxroColors.border,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        label,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: OxroColors.charcoal,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                        ),
+                        SizedBox(height: context.rs(8)),
+                        TextField(
+                          controller: TextEditingController(),
+                          decoration: InputDecoration(
+                            hintText: 'Custom instruction',
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: OxroColors.border),
+                            ),
+                          ),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: OxroColors.charcoal,
+                          ),
+                          maxLines: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 const _DashedDivider(),
                 _infoRow(
                   context,
@@ -948,251 +1062,6 @@ class _TrackingScreenState extends State<TrackingScreen>
           ?trailing,
         ],
       ),
-    );
-  }
-
-  Widget _journeyCard(
-    BuildContext context, {
-    required OrderStatus status,
-    required List<TrackingStep> steps,
-    required int done,
-    required Color accent,
-  }) {
-    final progress = status == OrderStatus.cancelled
-        ? 0.18
-        : (done / 5).clamp(0.0, 1.0);
-    return Container(
-      key: const ValueKey('track_journey'),
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        context.rs(14),
-        context.rs(12),
-        context.rs(14),
-        context.rs(10),
-      ),
-      decoration: BoxDecoration(
-        color: OxroColors.pageBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: OxroColors.border),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'LIVE JOURNEY',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.1,
-                    color: OxroColors.muted,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  _headline(status),
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w900,
-                    color: accent,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: context.rs(8)),
-          Stack(
-            children: [
-              Positioned(
-                left: 15,
-                top: 17,
-                bottom: 17,
-                child: SizedBox(
-                  width: 2,
-                  child: CustomPaint(
-                    painter: _JourneyRailPainter(
-                      progress: progress,
-                      color: accent,
-                    ),
-                  ),
-                ),
-              ),
-              Column(
-                children: [
-                  for (var i = 0; i < steps.length; i++)
-                    _journeyNode(context, i, steps[i], done, status, accent),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _journeyNode(
-    BuildContext context,
-    int index,
-    TrackingStep step,
-    int done,
-    OrderStatus status,
-    Color accent,
-  ) {
-    final isDone = index < done;
-    final isCurrent =
-        index == done &&
-        status != OrderStatus.delivered &&
-        status != OrderStatus.cancelled;
-    final dotColor = isDone
-        ? OxroColors.green
-        : isCurrent
-        ? OxroColors.royalBlue
-        : OxroColors.border;
-    final chipBg = isDone
-        ? const Color(0xFFD9F2E6)
-        : isCurrent
-        ? const Color(0xFFD8EBFF)
-        : Colors.white;
-    final ink = isDone
-        ? OxroColors.green
-        : isCurrent
-        ? OxroColors.royalBlue
-        : OxroColors.muted;
-    final time = step.time.contains('�') ? '—' : step.time;
-
-    return TweenAnimationBuilder<double>(
-      key: ValueKey('track_node_$index'),
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 280 + index * 130),
-      curve: Curves.easeOutBack,
-      builder: (context, value, _) {
-        final t = value.clamp(0.0, 1.0);
-        return Opacity(
-          opacity: t,
-          child: Transform.scale(
-            scale: 0.82 + 0.18 * t,
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: context.rs(6)),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isCurrent)
-                    AnimatedBuilder(
-                      animation: _ambient,
-                      builder: (context, _) => Container(
-                        width: 32,
-                        height: 32,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: dotColor.withValues(
-                              alpha: 0.32 + 0.38 * _ambient.value,
-                            ),
-                            width: 3,
-                          ),
-                        ),
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: chipBg,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: dotColor, width: 1.5),
-                          ),
-                          child: Icon(step.icon, size: 13, color: ink),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      width: 32,
-                      height: 32,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isDone ? chipBg : Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: dotColor,
-                          width: isDone ? 2 : 1.5,
-                        ),
-                      ),
-                      child: Icon(
-                        isDone ? Icons.check : step.icon,
-                        size: 14,
-                        color: ink,
-                      ),
-                    ),
-                  SizedBox(width: context.rs(12)),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          step.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: context.font(13),
-                            fontWeight: isDone || isCurrent
-                                ? FontWeight.w800
-                                : FontWeight.w500,
-                            color: isDone || isCurrent
-                                ? OxroColors.charcoal
-                                : OxroColors.muted,
-                          ),
-                        ),
-                        Text(
-                          time,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: context.font(11),
-                            color: OxroColors.muted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (isCurrent)
-                    AnimatedBuilder(
-                      animation: _ambient,
-                      builder: (context, _) => Container(
-                        margin: const EdgeInsets.only(left: 6),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: OxroColors.royalBlue.withValues(
-                            alpha: 0.09 + 0.06 * _ambient.value,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'now',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w900,
-                            color: OxroColors.royalBlue,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -2191,38 +2060,4 @@ class _DashPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _JourneyRailPainter extends CustomPainter {
-  const _JourneyRailPainter({required this.progress, required this.color});
-
-  final double progress;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final track = Paint()
-      ..color = OxroColors.border
-      ..strokeWidth = size.width
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(size.width / 2, 0),
-      Offset(size.width / 2, size.height),
-      track,
-    );
-    final active = Paint()
-      ..color = color
-      ..strokeWidth = size.width
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(size.width / 2, 0),
-      Offset(size.width / 2, size.height * progress.clamp(0.0, 1.0)),
-      active,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _JourneyRailPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
-  }
 }

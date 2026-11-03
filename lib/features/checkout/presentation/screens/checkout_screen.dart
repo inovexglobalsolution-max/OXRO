@@ -16,9 +16,10 @@ import 'package:oxro/features/address/presentation/widgets/address_required_dial
 import 'package:oxro/features/cart/data/cart_store.dart';
 import 'package:oxro/features/checkout/data/payment_gateway.dart';
 import 'package:oxro/features/checkout/data/payment_store.dart';
+import 'package:oxro/features/checkout/presentation/screens/payment_method_screen.dart';
 import 'package:oxro/features/checkout/presentation/widgets/cod_smart_change_dialog.dart';
 import 'package:oxro/features/coupons/presentation/screens/coupons_screen.dart';
-import 'package:oxro/features/home/data/home_data.dart';
+
 import 'package:oxro/features/bag/presentation/widgets/bag_schedule_card.dart';
 import 'package:oxro/features/orders/data/order_pricing.dart';
 import 'package:oxro/features/orders/data/order_store.dart';
@@ -52,9 +53,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   late final AnimationController _entry;
   late final AnimationController _press;
   bool _placing = false;
-  bool _paymentsOpen = true;
-  bool _billOpen = false;
-  Timer? _paymentsTimer;
+  bool _billOpen = true;
 
   @override
   void initState() {
@@ -73,7 +72,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
   @override
   void dispose() {
-    _paymentsTimer?.cancel();
     _entry.dispose();
     _press.dispose();
     super.dispose();
@@ -81,33 +79,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
   bool get _reduceMotion => MediaQuery.disableAnimationsOf(context);
 
-  void _togglePayments() {
-    _paymentsTimer?.cancel();
-    HapticFeedback.selectionClick();
-    setState(() => _paymentsOpen = !_paymentsOpen);
-  }
-
   void _toggleBill() {
     HapticFeedback.selectionClick();
     setState(() => _billOpen = !_billOpen);
   }
 
-
-  void _selectMethod(PaymentMethod m) {
-    HapticFeedback.selectionClick();
-    PaymentStore.instance.select(m);
-    setState(() {});
-    _paymentsTimer?.cancel();
-    _paymentsTimer = Timer(const Duration(milliseconds: 220), () {
-      if (!mounted) return;
-      setState(() => _paymentsOpen = false);
-    });
-    if (m == PaymentMethod.cod) {
-      _showSmartChangeDialog();
-    }
-  }
-
-  Future<void> _showSmartChangeDialog() async {
+  void _showSmartChangeDialog() async {
     final result = await showDialog<CodSmartChangeResult>(
       context: context,
       barrierDismissible: false,
@@ -316,6 +293,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                if (CartStore.instance.lines.isNotEmpty) ...[
+                                  _in(0.1, _orderItemCard()),
+                                  SizedBox(height: context.rs(12)),
+                                ],
                                 _in(0.15, _summaryCard(pay, quote)),
                                 SizedBox(height: context.rs(12)),
                                 _in(0.3, _addressCard(addr)),
@@ -756,61 +737,61 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                     ),
                     if (quote.smallCartFeePaise > 0)
                       _smallCartFeeHint(quote.itemSubtotalPaise),
-                     _billRow(
-                       'Platform fee',
-                       quote.platformFeePaise == 0
-                           ? 'FREE'
-                           : Money.inr(quote.platformFeePaise),
-                       valueColor: quote.platformFeePaise == 0
-                           ? OxroColors.green
-                           : null,
-                     ),
-                     Padding(
-                       padding: const EdgeInsets.symmetric(vertical: 12),
-                       child: Divider(height: 1, thickness: 1, color: _ckLine),
-                     ),
-                     Padding(
-                       padding: const EdgeInsets.symmetric(vertical: 4),
-                       child: Row(
-                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                         children: [
-                           Text(
-                             'Total amount',
-                             style: TextStyle(
-                               fontSize: 16,
-                               fontWeight: FontWeight.w900,
-                               color: _ckInk,
-                               letterSpacing: -0.2,
-                             ),
-                           ),
-                           TweenAnimationBuilder<double>(
-                             tween: Tween<double>(
-                               begin: 0,
-                               end: quote.grandTotalPaise.toDouble(),
-                             ),
-                             duration: _reduceMotion
-                                 ? Duration.zero
-                                 : const Duration(milliseconds: 450),
-                             curve: Curves.easeOutCubic,
-                             builder: (context, value, _) {
-                               return Text(
-                                 Money.inr(value.round()),
-                                 key: const ValueKey('checkout_total'),
-                                 maxLines: 1,
-                                 overflow: TextOverflow.ellipsis,
-                                 style: const TextStyle(
-                                   fontSize: 20,
-                                   fontWeight: FontWeight.w900,
-                                   color: _ckInk,
-                                   letterSpacing: -0.6,
-                                 ),
-                               );
-                             },
-                           ),
-                         ],
-                       ),
-                     ),
-                     if (quote.tipPaise > 0)
+                    _billRow(
+                      'Platform fee',
+                      quote.platformFeePaise == 0
+                          ? 'FREE'
+                          : Money.inr(quote.platformFeePaise),
+                      valueColor: quote.platformFeePaise == 0
+                          ? OxroColors.green
+                          : null,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(height: 1, thickness: 1, color: _ckLine),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Total amount',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: _ckInk,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          TweenAnimationBuilder<double>(
+                            tween: Tween<double>(
+                              begin: 0,
+                              end: quote.grandTotalPaise.toDouble(),
+                            ),
+                            duration: _reduceMotion
+                                ? Duration.zero
+                                : const Duration(milliseconds: 450),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, value, _) {
+                              return Text(
+                                Money.inr(value.round()),
+                                key: const ValueKey('checkout_total'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: _ckInk,
+                                  letterSpacing: -0.6,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (quote.tipPaise > 0)
                       _billRow(
                         'Delivery partner tip',
                         Money.inr(quote.tipPaise),
@@ -831,6 +812,73 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _orderItemCard() {
+    final cart = CartStore.instance;
+    final line = cart.lines.isNotEmpty ? cart.lines.first : null;
+    if (line == null) return const SizedBox.shrink();
+    final product = line.product;
+    return _surfaceCard(
+      padding: EdgeInsets.all(context.rs(14)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              'assets/images/foundation_meal.png',
+              width: 64,
+              height: 64,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Your Order',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                    color: _ckMuted,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  product.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: _ckInk,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Qty: ${line.qty}',
+                  style: TextStyle(fontSize: 11, color: _ckMuted),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '₹${product.price}',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: _ckInk,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -922,119 +970,82 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   }
 
   Widget _paymentSection(PaymentStore pay) {
-    final open = _paymentsOpen;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          key: const ValueKey('payment_toggle_row'),
-          onTap: _togglePayments,
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _surfaceCard(
-              padding: EdgeInsets.all(context.rs(13)),
-              child: Row(
+    return GestureDetector(
+      key: const ValueKey('checkout_pay_using_row'),
+      onTap: () async {
+        HapticFeedback.selectionClick();
+        await pushScreen(context, const PaymentMethodScreen());
+        // Refresh state and handle COD smart change after return.
+        if (mounted) {
+          setState(() {});
+          if (PaymentStore.instance.method == PaymentMethod.cod &&
+              PaymentStore.instance.codCashAmount == null) {
+            _showSmartChangeDialog();
+          }
+        }
+      },
+      behavior: HitTestBehavior.opaque,
+      child: _surfaceCard(
+        padding: EdgeInsets.symmetric(
+          horizontal: context.rs(14),
+          vertical: context.rs(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: context.rs(36),
+              height: context.rs(36),
+              decoration: BoxDecoration(color: _ckTint, shape: BoxShape.circle),
+              child: Icon(
+                Icons.credit_card_rounded,
+                size: 18,
+                color: _ckAccentDeep,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: context.rs(36),
-                    height: context.rs(36),
-                    decoration: const BoxDecoration(
-                      color: _ckTint,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.shield_outlined,
-                      size: 18,
-                      color: _ckAccentDeep,
+                  Text(
+                    'PAY USING',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      color: _ckMuted,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'PAYMENT METHOD',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.6,
-                        color: _ckInk,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _ckTint,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      paymentLabels[pay.method]!.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.6,
-                        color: _ckAccentDeep,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Semantics(
-                    button: true,
-                    expanded: open,
-                    label: open
-                        ? 'Hide payment methods'
-                        : 'Show payment methods',
-                    child: AnimatedRotation(
-                      key: const ValueKey('payment_toggle'),
-                      turns: open ? 0.5 : 0,
-                      duration: _reduceMotion
-                          ? Duration.zero
-                          : const Duration(milliseconds: 220),
-                      curve: Curves.easeOutCubic,
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: _ckTint,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: open ? _ckAccent : _ckLine),
-                        ),
-                        child: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 20,
-                          color: _ckAccentDeep,
-                        ),
-                      ),
+                  const SizedBox(height: 2),
+                  Text(
+                    pay.paymentLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: _ckInk,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
+            Container(
+              decoration: BoxDecoration(
+                color: _ckTint,
+                shape: BoxShape.circle,
+                border: Border.all(color: _ckLine),
+              ),
+              child: Icon(
+                Icons.arrow_forward_rounded,
+                size: 18,
+                color: _ckAccentDeep,
+              ),
+            ),
+          ],
         ),
-        ClipRect(
-          child: AnimatedSize(
-            duration: _reduceMotion
-                ? Duration.zero
-                : const Duration(milliseconds: 240),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.topCenter,
-            child: open
-                ? Column(
-                    children: [
-                      for (final m in PaymentMethod.values)
-                        _payCard(m, pay.method == m, () => _selectMethod(m)),
-                    ],
-                  )
-                : const SizedBox(width: double.infinity),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -1353,11 +1364,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   }
 
   Widget _tipCard(PaymentStore pay) {
-    const presets = [0, 20, 30, 50];
+    const presets = [20, 30, 40, 50];
     final custom = !presets.contains(pay.tip);
     return _surfaceCard(
       key: const ValueKey('checkout_tip_card'),
-      padding: EdgeInsets.all(context.rs(14)),
+      padding: EdgeInsets.all(context.rs(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1431,15 +1442,15 @@ class _CheckoutScreenState extends State<CheckoutScreen>
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Wrap(
-            spacing: 7,
-            runSpacing: 8,
+            spacing: 9,
+            runSpacing: 10,
             children: [
               for (final r in presets)
                 _tipChip(
                   key: ValueKey('tip_$r'),
-                  label: r == 0 ? 'No tip' : '₹$r',
+                  label: '₹$r',
                   selected: pay.tip == r,
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -1448,8 +1459,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                   },
                 ),
               _tipChip(
-                key: const ValueKey('tip_other'),
-                label: custom ? '₹${pay.tip}' : 'Other',
+                key: const ValueKey('tip_custom'),
+                label: custom ? '₹${pay.tip}' : 'Custom Amount',
                 selected: custom,
                 onTap: () => _openCustomTip(pay),
               ),
@@ -1461,7 +1472,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   }
 
   Future<void> _openCustomTip(PaymentStore pay) async {
-    const presets = [0, 20, 30, 50];
+    const presets = [20, 30, 40, 50];
     final initial = presets.contains(pay.tip) ? 0 : pay.tip;
     final amount = await showDialog<int>(
       context: context,
@@ -1606,118 +1617,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _payCard(PaymentMethod m, bool sel, VoidCallback onTap) {
-    final icons = {
-      PaymentMethod.upi: Icons.smartphone_outlined,
-      PaymentMethod.card: Icons.credit_card_outlined,
-      PaymentMethod.wallet: Icons.account_balance_wallet_outlined,
-      PaymentMethod.cod: Icons.payments_outlined,
-    };
-    final sub = m == PaymentMethod.wallet
-        ? 'Balance ${Product.inr(WalletStore.instance.balance)}'
-        : paymentSubs[m]!;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: GestureDetector(
-        key: ValueKey('pay_${m.name}'),
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: _reduceMotion
-              ? Duration.zero
-              : const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.all(context.rs(12)),
-          decoration: BoxDecoration(
-            color: sel ? _ckTint : _ckSurface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: sel ? _ckAccent : _ckLine,
-              width: sel ? 1.5 : 1,
-            ),
-            boxShadow: sel
-                ? [
-                    BoxShadow(
-                      color: _ckAccent.withValues(alpha: 0.14),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            children: [
-              AnimatedContainer(
-                duration: _reduceMotion
-                    ? Duration.zero
-                    : const Duration(milliseconds: 200),
-                width: context.rs(40),
-                height: context.rs(40),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  gradient: sel
-                      ? const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [_ckAccent, OxroColors.orangeBottom],
-                        )
-                      : null,
-                  color: sel ? null : _ckTint,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icons[m],
-                  size: 20,
-                  color: sel ? Colors.white : _ckAccentDeep,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      paymentLabels[m]!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                        color: _ckInk,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      sub,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11.5, color: _ckMuted),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              AnimatedSwitcher(
-                duration: _reduceMotion
-                    ? Duration.zero
-                    : const Duration(milliseconds: 180),
-                transitionBuilder: (child, animation) => ScaleTransition(
-                  scale: animation,
-                  child: FadeTransition(opacity: animation, child: child),
-                ),
-                child: Icon(
-                  sel ? Icons.radio_button_checked : Icons.radio_button_off,
-                  key: ValueKey(sel),
-                  color: sel ? _ckAccent : _ckMuted.withValues(alpha: 0.45),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -2392,8 +2291,8 @@ class _GratitudeArtState extends State<_GratitudeArt>
       child: RepaintBoundary(
         child: SizedBox(
           key: const ValueKey('gratitude_art'),
-          width: context.rs(74),
-          height: context.rs(90),
+          width: context.rs(100),
+          height: context.rs(120),
           child: AnimatedBuilder(
             animation: _idle,
             builder: (context, child) {
@@ -2430,7 +2329,7 @@ class _GratitudeArtState extends State<_GratitudeArt>
                 fit: StackFit.expand,
                 children: [
                   Image.asset(
-                    'assets/images/delivery_boy_icon.png',
+                    'assets/images/delivery_boy_icon_blue_new.png',
                     width: double.infinity,
                     height: double.infinity,
                     fit: BoxFit.cover,
