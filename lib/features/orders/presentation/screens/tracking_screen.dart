@@ -818,13 +818,6 @@ class _TrackingScreenState extends State<TrackingScreen>
             ),
           ),
           SizedBox(height: context.rs(14)),
-          _journeyCard(
-            context,
-            status: status,
-            steps: steps,
-            done: done,
-            accent: accent,
-          ),
         ],
       ),
     );

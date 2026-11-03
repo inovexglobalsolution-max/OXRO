@@ -25,6 +25,7 @@ import 'package:oxro/features/home/presentation/widgets/animated_sale_banner.dar
 import 'package:oxro/features/home/presentation/widgets/dish_spotlight.dart';
 import 'package:oxro/features/home/presentation/widgets/schedule_sheet.dart';
 import 'package:oxro/features/home/presentation/widgets/veg_mode_sheet.dart';
+import 'package:oxro/features/home/presentation/widgets/video_hero_banner.dart';
 import 'package:oxro/features/location/data/geo_store.dart';
 import 'package:oxro/features/orders/data/order_store.dart';
 import 'package:oxro/features/premium/data/premium_store.dart';
@@ -1057,24 +1058,31 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                     ? (_bannerCtrl.page ?? fallbackPage)
                     : fallbackPage;
                 final delta = (page - i).abs().clamp(0.0, 1.0);
-                final child = switch (banner.style) {
-                  BannerStyle.premium => _PremiumPromoBanner(
-                    banner: banner,
-                    index: real,
-                    ambient: _ambient,
-                    onTap: () => _openBanner(real),
-                  ),
-                  BannerStyle.sale => AnimatedSaleBanner(
-                    banner: banner,
-                    index: real,
-                    onTap: () => _openBanner(real),
-                  ),
-                  _ => AnimatedPromoBanner(
-                    banner: banner,
-                    index: real,
-                    onTap: () => _openBanner(real),
-                  ),
-                };
+                final child = banner.videoUrl != null
+                    ? VideoHeroBanner(
+                        banner: banner,
+                        index: real,
+                        play: real == _bannerPage,
+                        onTap: () => _openBanner(real),
+                      )
+                    : switch (banner.style) {
+                        BannerStyle.premium => _PremiumPromoBanner(
+                          banner: banner,
+                          index: real,
+                          ambient: _ambient,
+                          onTap: () => _openBanner(real),
+                        ),
+                        BannerStyle.sale => AnimatedSaleBanner(
+                          banner: banner,
+                          index: real,
+                          onTap: () => _openBanner(real),
+                        ),
+                        _ => AnimatedPromoBanner(
+                          banner: banner,
+                          index: real,
+                          onTap: () => _openBanner(real),
+                        ),
+                      };
                 return TickerMode(
                   enabled: real == _bannerPage,
                   child: Transform.scale(
@@ -1228,7 +1236,9 @@ class _MicButtonState extends State<_MicButton>
             child: Icon(
               Icons.mic_none_rounded,
               size: 23,
-              color: OxroColors.coral.withAlpha(((0.6 + 0.4 * glow) * 255).round()),
+              color: OxroColors.coral.withAlpha(
+                ((0.6 + 0.4 * glow) * 255).round(),
+              ),
             ),
           ),
         );

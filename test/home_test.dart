@@ -314,8 +314,8 @@ void main() {
       );
       expect(
         tester.getRect(under250).left,
-        lessThan(size.width * 0.2),
-        reason: 'Under ₹250 hugs the left edge at $size',
+        lessThan(tester.getRect(firstCuisine).left),
+        reason: 'Under ₹250 stays on the left rail at $size',
       );
       expect(tester.takeException(), isNull, reason: 'overflow at $size');
       await _dispose(tester);

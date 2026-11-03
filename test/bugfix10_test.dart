@@ -79,8 +79,8 @@ void main() {
     CartStore.instance.decrement(_big.id); // 1000
     expect(PaymentStore.instance.discount, 0);
     expect(PaymentStore.instance.coupon, 'OXRO500'); // code kept
-    // 100000 + 4000 delivery + 200 platform + 5000 GST.
-    expect(PaymentStore.instance.toPayPaise, 109200);
+    // 100000 + 4000 delivery + 700 platform + 5000 GST.
+    expect(PaymentStore.instance.toPayPaise, 109700);
   });
 
   test('1b. FREESHIP drops when cart falls below minimum', () {
@@ -89,8 +89,8 @@ void main() {
     expect(PaymentStore.instance.freeShip, isTrue);
     CartStore.instance.clear(); // 0
     expect(PaymentStore.instance.freeShip, isFalse);
-    // Empty cart: delivery 4000 + platform 200.
-    expect(PaymentStore.instance.toPayPaise, 4200);
+    // Empty cart: delivery 4000 + platform 700.
+    expect(PaymentStore.instance.toPayPaise, 4700);
   });
 
   testWidgets('2. Empty bag blocks Place Order (no phantom order)',

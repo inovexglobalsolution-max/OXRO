@@ -128,16 +128,16 @@ void main() {
   test('Payment totals + coupon', () {
     CartStore.instance.add(_p);
     expect(PaymentStore.instance.itemsTotal, 799);
-    // items 79900 + delivery 4000 + platform 200 + 5% GST 3995.
-    expect(PaymentStore.instance.toPayPaise, 88095);
+    // items 79900 + delivery 4000 + platform 700 + 5% GST 3995.
+    expect(PaymentStore.instance.toPayPaise, 88595);
     expect(PaymentStore.instance.applyCoupon('bad'), isFalse);
     // OXRO500 needs Rs.2,999+ cart: rejected on 799.
     expect(PaymentStore.instance.applyCoupon('oxro500'), isFalse);
     // FREESHIP works on 799 (min 499): ship waived.
     expect(PaymentStore.instance.applyCoupon('freeship'), isTrue);
     expect(PaymentStore.instance.freeShip, isTrue);
-    // delivery waived: 79900 + 200 + 3995.
-    expect(PaymentStore.instance.toPayPaise, 84095);
+    // delivery waived: 79900 + 700 + 3995.
+    expect(PaymentStore.instance.toPayPaise, 84595);
     PaymentStore.instance.clearCoupon();
     expect(PaymentStore.instance.discount, 0);
     expect(PaymentStore.instance.freeShip, isFalse);
@@ -148,8 +148,8 @@ void main() {
     expect(PaymentStore.instance.itemsTotal, 799 * 4);
     expect(PaymentStore.instance.applyCoupon('oxro500'), isTrue);
     expect(PaymentStore.instance.discount, 500);
-    // 319600 + 4000 + 200 + 15980 - 50000.
-    expect(PaymentStore.instance.toPayPaise, 289780);
+    // 319600 + 4000 + 700 + 15980 - 50000.
+    expect(PaymentStore.instance.toPayPaise, 290280);
     PaymentStore.instance.clearCoupon();
     expect(PaymentStore.instance.discount, 0);
   });
@@ -197,84 +197,28 @@ void main() {
     await _dispose(tester);
   });
 
-  testWidgets('Checkout shows, edits and clears per-dish schedules', (
+  testWidgets('Checkout shows and edits the whole-meal schedule', (
     tester,
   ) async {
-    final now = DateTime.now();
-    final today = DeliverySchedule(
-      date: now,
-      dayLabel: 'Today',
-      slot: '7:00 PM – 7:30 PM',
-    );
-    final tomorrow = DeliverySchedule(
-      date: now.add(const Duration(days: 1)),
-      dayLabel: 'Tomorrow',
-      slot: '8:00 PM – 8:30 PM',
-    );
     CartStore.instance.add(_p);
     CartStore.instance.add(_small);
-    CartStore.instance.setSchedule(_p.id, schedule: today);
-    CartStore.instance.setSchedule(_small.id, schedule: tomorrow);
     AddressStore.instance.save(_addr);
 
     await tester.pumpWidget(const MaterialApp(home: CheckoutScreen()));
     await _frames(tester);
 
-    final card = find.byKey(const ValueKey('checkout_schedules'));
+    final card = find.byKey(const ValueKey('bag_schedule_card'));
     expect(card, findsOneWidget);
     expect(
-      find.descendant(of: card, matching: find.text('Scheduled items')),
+      find.descendant(of: card, matching: find.text('Meal Delivery Time')),
       findsOneWidget,
     );
-    expect(
-      find.descendant(
-        of: card,
-        matching: find.text('Today · 7:00 PM – 7:30 PM'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: card,
-        matching: find.text('Tomorrow · 8:00 PM – 8:30 PM'),
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Schedule time'), findsOneWidget);
     final totalBefore = PaymentStore.instance.quote.grandTotalPaise;
 
-    await tester.scrollUntilVisible(
-      find.byKey(ValueKey('checkout_schedule_clear_${_p.id}')),
-      300,
-    );
+    await tester.scrollUntilVisible(card, 300);
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.byKey(ValueKey('checkout_schedule_clear_${_p.id}')));
-    await _frames(tester);
-
-    expect(
-      CartStore.instance.lines
-          .firstWhere((line) => line.product.id == _p.id)
-          .schedule,
-      isNull,
-    );
-    expect(
-      CartStore.instance.lines
-          .firstWhere((line) => line.product.id == _small.id)
-          .schedule,
-      tomorrow,
-    );
-    expect(find.byKey(ValueKey('checkout_schedule_${_p.id}')), findsNothing);
-    expect(
-      PaymentStore.instance.quote.grandTotalPaise,
-      totalBefore,
-      reason: 'schedules never affect pricing',
-    );
-
-    await tester.scrollUntilVisible(
-      find.byKey(ValueKey('checkout_schedule_${_small.id}')),
-      300,
-    );
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.byKey(ValueKey('checkout_schedule_${_small.id}')));
+    await tester.tap(card);
     await _settle(tester);
     expect(find.byKey(const ValueKey('schedule_sheet')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('schedule_date_2')));
@@ -283,11 +227,13 @@ void main() {
     await _settle(tester);
     await tester.tap(find.byKey(const ValueKey('schedule_confirm')));
     await _settle(tester);
-    final edited = CartStore.instance.lines
-        .firstWhere((line) => line.product.id == _small.id)
-        .schedule;
-    expect(edited, isNotNull);
-    expect(edited, isNot(tomorrow));
+
+    expect(CartStore.instance.bagSchedule, isNotNull);
+    expect(
+      PaymentStore.instance.quote.grandTotalPaise,
+      totalBefore,
+      reason: 'schedules never affect pricing',
+    );
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -301,7 +247,7 @@ void main() {
 
     final q = PaymentStore.instance.quote;
     expect(q.smallCartFeePaise, 2000);
-    expect(q.grandTotalPaise, 10610);
+    expect(q.grandTotalPaise, 11110);
     expect(find.text('Small cart fee'), findsOneWidget);
     expect(find.text('₹20'), findsWidgets);
     expect(
@@ -316,7 +262,7 @@ void main() {
     await _frames(tester, 3);
     final bill = OrderStore.instance.all.first.bill!;
     expect(bill.smallCartFeePaise, 2000);
-    expect(bill.grandTotalPaise, 10610);
+    expect(bill.grandTotalPaise, 11110);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -535,9 +481,8 @@ void main() {
       AddressStore.resetForTests();
       PaymentStore.resetForTests();
       CartStore.instance.add(_p);
-      CartStore.instance.setSchedule(
-        _p.id,
-        schedule: DeliverySchedule(
+      CartStore.instance.setBagSchedule(
+        DeliverySchedule(
           date: DateTime.now().add(const Duration(days: 1)),
           dayLabel: 'Tomorrow',
           slot: '8:00 PM – 8:30 PM',
@@ -546,7 +491,7 @@ void main() {
       AddressStore.instance.save(_addr);
       await tester.pumpWidget(const MaterialApp(home: CheckoutScreen()));
       await _frames(tester, 4);
-      expect(find.byKey(const ValueKey('checkout_schedules')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bag_schedule_card')), findsOneWidget);
       expect(tester.takeException(), isNull, reason: 'overflow at $size');
       await _dispose(tester);
     }

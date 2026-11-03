@@ -328,7 +328,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('billflash_platform_200')),
+      find.byKey(const ValueKey('billflash_platform_700')),
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('billflash_tax_23985')), findsOneWidget);
@@ -416,14 +416,14 @@ void main() {
     final quote = PaymentStore.instance.quoteForItemsTotal(169);
     expect(quote.itemSubtotalPaise, 16900);
     expect(quote.deliveryFeePaise, 4000);
-    expect(quote.platformFeePaise, 200);
+    expect(quote.platformFeePaise, 700);
     expect(quote.smallCartFeePaise, 0);
     expect(quote.taxPaise, 845);
-    expect(quote.grandTotalPaise, 21945);
-    expect(find.byKey(const ValueKey('bag_bar_total_21945')), findsOneWidget);
+    expect(quote.grandTotalPaise, 22445);
+    expect(find.byKey(const ValueKey('bag_bar_total_22445')), findsOneWidget);
 
     await _expandBill(tester);
-    expect(find.byKey(const ValueKey('bag_total_21945')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bag_total_22445')), findsOneWidget);
     expect(find.byKey(const ValueKey('billflash_items_16900')), findsOneWidget);
     expect(find.byKey(const ValueKey('billflash_smallcart_0')), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -467,7 +467,7 @@ void main() {
     await _dispose(tester);
   });
 
-  testWidgets('Food lines schedule independently; non-food has no chip', (
+  testWidgets('Bag schedules the whole meal and updates the slot', (
     tester,
   ) async {
     await _pumpBag(tester);
@@ -475,14 +475,11 @@ void main() {
     CartStore.instance.add(_p1);
     await _settle(tester);
 
-    expect(
-      find.byKey(ValueKey('bag_schedule_${_belowMin.id}')),
-      findsOneWidget,
-    );
-    expect(find.byKey(ValueKey('bag_schedule_${_p1.id}')), findsNothing);
+    expect(find.byKey(const ValueKey('bag_schedule_card')), findsOneWidget);
+    expect(find.text('Meal Delivery Time'), findsOneWidget);
     expect(find.text('Schedule time'), findsWidgets);
 
-    await tester.tap(find.byKey(ValueKey('bag_schedule_${_belowMin.id}')));
+    await tester.tap(find.byKey(const ValueKey('bag_schedule_card')));
     await _settle(tester);
     expect(find.byKey(const ValueKey('schedule_sheet')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('schedule_date_1')));
@@ -492,25 +489,18 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('schedule_confirm')));
     await _settle(tester);
 
-    final line = CartStore.instance.lines.firstWhere(
-      (l) => l.product.id == _belowMin.id,
-    );
-    final first = line.schedule;
+    final first = CartStore.instance.bagSchedule;
     expect(first, isNotNull);
     expect(first!.dayLabel, 'Tomorrow');
     expect(
       find.descendant(
-        of: find.byKey(ValueKey('bag_schedule_${_belowMin.id}')),
-        matching: find.textContaining('Tomorrow · '),
+        of: find.byKey(const ValueKey('bag_schedule_card')),
+        matching: find.textContaining('Tomorrow'),
       ),
       findsOneWidget,
     );
-    expect(
-      find.byKey(ValueKey('bag_schedule_clear_${_belowMin.id}')),
-      findsOneWidget,
-    );
 
-    await tester.tap(find.byKey(ValueKey('bag_schedule_${_belowMin.id}')));
+    await tester.tap(find.byKey(const ValueKey('bag_schedule_card')));
     await _settle(tester);
     await tester.tap(find.byKey(const ValueKey('schedule_date_2')));
     await _settle(tester);
@@ -518,21 +508,8 @@ void main() {
     await _settle(tester);
     await tester.tap(find.byKey(const ValueKey('schedule_confirm')));
     await _settle(tester);
-    expect(line.schedule, isNot(first));
-    expect(line.schedule!.dayLabel, isNot('Tomorrow'));
-
-    await tester.tap(
-      find.byKey(ValueKey('bag_schedule_clear_${_belowMin.id}')),
-    );
-    await _settle(tester);
-    expect(line.schedule, isNull);
-    expect(
-      find.descendant(
-        of: find.byKey(ValueKey('bag_schedule_${_belowMin.id}')),
-        matching: find.text('Schedule time'),
-      ),
-      findsOneWidget,
-    );
+    expect(CartStore.instance.bagSchedule, isNot(first));
+    expect(CartStore.instance.bagSchedule!.dayLabel, isNot('Tomorrow'));
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -800,7 +777,7 @@ void main() {
     await _dispose(tester);
   });
 
-  testWidgets('Selected per-dish schedule fits 320', (tester) async {
+  testWidgets('Selected meal schedule fits 320', (tester) async {
     tester.view.physicalSize = const Size(320, 568);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -809,21 +786,17 @@ void main() {
     CartStore.instance.add(_belowMin);
     await _settle(tester);
 
-    final chip = find.byKey(ValueKey('bag_schedule_${_belowMin.id}'));
-    await _scrollTo(tester, chip);
-    await tester.tap(chip);
+    final card = find.byKey(const ValueKey('bag_schedule_card'));
+    await _scrollTo(tester, card);
+    await tester.tap(card);
     await _settle(tester);
     await tester.tap(find.byKey(const ValueKey('schedule_confirm')));
     await _settle(tester);
 
     expect(
-      CartStore.instance.lines.single.schedule,
+      CartStore.instance.bagSchedule,
       isNotNull,
       reason: 'default slot should save at 320',
-    );
-    expect(
-      find.byKey(ValueKey('bag_schedule_clear_${_belowMin.id}')),
-      findsOneWidget,
     );
     expect(tester.takeException(), isNull);
     await _dispose(tester);
@@ -878,7 +851,7 @@ void main() {
     expect(find.byKey(const ValueKey('bag_bill_count_2')), findsOneWidget);
     expect(find.byKey(ValueKey('billflash_items_279800')), findsOneWidget);
     expect(find.byKey(ValueKey('billflash_delivery_4000')), findsOneWidget);
-    expect(find.byKey(ValueKey('billflash_platform_200')), findsOneWidget);
+    expect(find.byKey(ValueKey('billflash_platform_700')), findsOneWidget);
     expect(find.byKey(ValueKey('billflash_tax_13990')), findsOneWidget);
     expect(find.byKey(const ValueKey('bag_total_297990')), findsOneWidget);
     expect(find.byKey(const ValueKey('bag_bill_saved')), findsOneWidget);

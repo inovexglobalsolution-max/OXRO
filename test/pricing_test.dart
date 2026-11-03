@@ -68,7 +68,7 @@ void main() {
 
   test('promo zeroes the customer platform fee', () async {
     final store = PricingConfigStore.instance;
-    expect(store.effectivePlatformFeePaise, 200);
+    expect(store.effectivePlatformFeePaise, 700);
     await store.setPromoFreePlatformFee(true);
     expect(store.effectivePlatformFeePaise, 0);
     expect(store.audit.first.summary, contains('promo ON'));
@@ -108,11 +108,11 @@ void main() {
     CartStore.instance.add(_p);
     final q = PaymentStore.instance.quote;
     expect(q.itemSubtotalPaise, 30000);
-    expect(q.platformFeePaise, 200);
+    expect(q.platformFeePaise, 700);
     expect(q.taxPaise, 1500);
     expect(q.commissionPaise, 1500);
     expect(q.grandTotalPaise,
-        30000 + 4000 + 200 + 1500);
+        30000 + 4000 + 700 + 1500);
   });
 
   testWidgets('checkout shows platform fee + GST rows',

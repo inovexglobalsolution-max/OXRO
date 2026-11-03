@@ -38,13 +38,19 @@ class PaymentStore extends ChangeNotifier {
   @visibleForTesting
   static void resetForTests() {
     instance._method = PaymentMethod.upi;
+    instance._label = null;
     instance._coupon = '';
     instance._tipPaise = 0;
+    instance._codCashAmount = null;
+    instance._codChangePreference = null;
     PricingConfigStore.instance.resetToInitial();
     instance.notifyListeners();
   }
 
   PaymentMethod _method = PaymentMethod.upi;
+
+  /// Optional sub-label for the selected method (e.g. 'Google Pay').
+  String? _label;
 
   /// Applied coupon code only — discount/shipping are recomputed live
   /// from the current cart so shrinking the bag auto-invalidates
@@ -54,6 +60,12 @@ class PaymentStore extends ChangeNotifier {
 
   /// Customer tip in paise (100% passed to the delivery partner).
   int _tipPaise = 0;
+
+  /// Smart Change: cash amount entered by customer for COD (rupees).
+  double? _codCashAmount;
+
+  /// Smart Change: preference for extra cash ('wallet' or 'physical').
+  String? _codChangePreference;
 
   static const _kCoupon = 'oxro_coupon_v1';
 
@@ -89,6 +101,16 @@ class PaymentStore extends ChangeNotifier {
       PricingConfigStore.instance.config.customerDeliveryFeePaise ~/ 100;
 
   PaymentMethod get method => _method;
+
+  /// Smart Change: cash amount entered by customer for COD (rupees).
+  double? get codCashAmount => _codCashAmount;
+
+  /// Smart Change: preference for extra cash ('wallet' or 'physical').
+  String? get codChangePreference => _codChangePreference;
+
+  /// Display label for the current method (custom sub-label or the default).
+  String get paymentLabel => _label ?? paymentLabels[_method]!;
+
   String get coupon => _coupon;
   int get tipPaise => _tipPaise;
 
@@ -126,9 +148,37 @@ class PaymentStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void select(PaymentMethod m) {
-    if (_method == m) return;
+  void select(PaymentMethod m, {String? label}) {
+    final nextLabel = (label == null || label == paymentLabels[m])
+        ? null
+        : label;
+    if (_method == m && _label == nextLabel) return;
     _method = m;
+    _label = nextLabel;
+    // Clear smart change state when switching away from COD.
+    if (m != PaymentMethod.cod) {
+      _codCashAmount = null;
+      _codChangePreference = null;
+    }
+    notifyListeners();
+  }
+
+  void setCodCashAmount(double? amount) {
+    if (amount == _codCashAmount) return;
+    _codCashAmount = amount;
+    notifyListeners();
+  }
+
+  void setCodChangePreference(String? preference) {
+    if (preference == _codChangePreference) return;
+    _codChangePreference = preference;
+    notifyListeners();
+  }
+
+  void clearCodSmartChange() {
+    if (_codCashAmount == null && _codChangePreference == null) return;
+    _codCashAmount = null;
+    _codChangePreference = null;
     notifyListeners();
   }
 
@@ -173,20 +223,15 @@ class PaymentStore extends ChangeNotifier {
       oxroDiscountPaise: discountPaise,
       tipPaise: _tipPaise,
     );
-    final platformFee =
-        PricingConfigStore.instance.effectivePlatformFeePaise;
+    final platformFee = PricingConfigStore.instance.effectivePlatformFeePaise;
     final quote = PricingEngine(cfg).quoteOrder(
-      OrderQuoteInput(
-        subOrders: [sub],
-        platformFeeOverridePaise: platformFee,
-      ),
+      OrderQuoteInput(subOrders: [sub], platformFeeOverridePaise: platformFee),
     );
     if (total == 0 || quote.grandTotalPaise > 0 || discountPaise > 0) {
       return quote;
     }
     final itemSubtotal = total * 100;
-    final smallCartFee =
-        PricingEngine.smallCartFeePaiseFor(itemSubtotal);
+    final smallCartFee = PricingEngine.smallCartFeePaiseFor(itemSubtotal);
     final tax = Money.applyBps(itemSubtotal, cfg.customerGstBps);
     return OrderQuote(
       itemSubtotalPaise: itemSubtotal,

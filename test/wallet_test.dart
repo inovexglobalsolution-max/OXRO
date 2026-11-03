@@ -60,9 +60,14 @@ void main() {
     await _settle(tester);
 
     expect(find.byKey(const ValueKey('wallet_scroll')), findsOneWidget);
-    expect(find.text('OXRO Wallet'), findsOneWidget);
+    expect(find.text('OXRO Money'), findsOneWidget);
     expect(find.text('OXRO Balance'), findsOneWidget);
     expect(find.byKey(const ValueKey('wallet_empty')), findsOneWidget);
+
+    // Dismiss the one-time "OXRO Money Note" dialog before interacting.
+    expect(find.text('OXRO Money Note'), findsOneWidget);
+    await tester.tap(find.text('Agree'));
+    await _settle(tester);
 
     await tester.tap(find.byKey(const ValueKey('wallet_add_500')));
     await _settle(tester);
@@ -85,11 +90,11 @@ void main() {
       const Offset(0, -300),
     );
     await _settle(tester);
-    expect(find.text('OXRO Wallet'), findsOneWidget);
+    expect(find.text('OXRO Money'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('profile_wallet')));
     await _settle(tester);
     expect(find.byKey(const ValueKey('wallet_scroll')), findsOneWidget);
-    expect(find.text('OXRO Wallet'), findsOneWidget);
+    expect(find.text('OXRO Money'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -98,15 +103,17 @@ void main() {
     WalletStore.instance.add(1000);
     CartStore.instance.add(_p);
     AddressStore.resetForTests();
-    AddressStore.instance.add(const Address(
-      id: 'w1',
-      label: 'Home',
-      name: 'Test User',
-      phone: '9876543210',
-      line: '123 Main Street',
-      city: 'Chennai',
-      pin: '600001',
-    ));
+    AddressStore.instance.add(
+      const Address(
+        id: 'w1',
+        label: 'Home',
+        name: 'Test User',
+        phone: '9876543210',
+        line: '123 Main Street',
+        city: 'Chennai',
+        pin: '600001',
+      ),
+    );
     await tester.pumpWidget(const MaterialApp(home: CheckoutScreen()));
     await _settle(tester);
 
@@ -126,8 +133,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       WalletStore.resetForTests();
       WalletStore.instance.add(500);
-      await tester.pumpWidget(
-          const MaterialApp(home: WalletScreen()));
+      await tester.pumpWidget(const MaterialApp(home: WalletScreen()));
       await _settle(tester);
       expect(tester.takeException(), isNull, reason: 'wallet at $size');
       await _dispose(tester);

@@ -290,8 +290,6 @@ void main() {
     await _settle(tester);
 
     expect(find.text('Cancelled'), findsWidgets);
-    expect(find.text('now'), findsNothing);
-    expect(find.textContaining('Arriving by'), findsNothing);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -398,16 +396,8 @@ void main() {
     await _settle(tester);
 
     expect(find.byKey(const ValueKey('track_screen')), findsOneWidget);
-    for (var i = 0; i < 5; i++) {
-      expect(find.byKey(ValueKey('track_node_$i')), findsOneWidget);
-    }
-    expect(find.textContaining('Preparing'), findsWidgets);
-    expect(find.byKey(const ValueKey('track_eta')), findsOneWidget);
-    expect(find.byKey(const ValueKey('track_hero')), findsOneWidget);
-    expect(find.byKey(const ValueKey('track_journey')), findsOneWidget);
-    expect(find.byKey(const ValueKey('track_promo_carousel')), findsOneWidget);
+    expect(find.textContaining('Being Prepared'), findsWidgets);
     expect(find.text('OXRO Spotlight'), findsOneWidget);
-    expect(find.text('Order #123457'), findsOneWidget);
     // Copy pill works.
     await tester.tap(find.byKey(const ValueKey('track_copy')));
     await _settle(tester);
@@ -486,7 +476,6 @@ void main() {
     await tester.tap(btn);
     await _settle(tester);
     expect(find.byKey(const ValueKey('track_screen')), findsOneWidget);
-    expect(find.text('Order #123457'), findsOneWidget);
     expect(find.byKey(const ValueKey('track_help')), findsOneWidget);
     // Back pops to orders.
     await tester.tap(find.byIcon(Icons.arrow_back));

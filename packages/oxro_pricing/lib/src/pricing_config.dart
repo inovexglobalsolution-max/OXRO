@@ -103,7 +103,7 @@ class PricingConfig {
     required this.version,
     required this.effectiveFromIso,
     this.commissionBps = 500,
-    this.platformFeePaise = 200,
+    this.platformFeePaise = 700,
     this.customerDeliveryFeePaise = 4000,
     this.customerPackagingFeePaise = 0,
     this.customerGstBps = 500,
@@ -123,6 +123,7 @@ class PricingConfig {
   static const PricingConfig initial = PricingConfig(
     version: 1,
     effectiveFromIso: '2026-01-01T00:00:00Z',
+    platformFeePaise: 700,
   );
 
   final int version;
@@ -270,7 +271,7 @@ class PricingConfig {
           (m['effectiveFromIso'] as String?) ?? '',
       commissionBps: (m['commissionBps'] as num?)?.toInt() ?? 500,
       platformFeePaise:
-          (m['platformFeePaise'] as num?)?.toInt() ?? 200,
+           (m['platformFeePaise'] as num?)?.toInt() ?? 700,
       customerDeliveryFeePaise:
           (m['customerDeliveryFeePaise'] as num?)?.toInt() ?? 4000,
       customerPackagingFeePaise:

@@ -71,11 +71,11 @@ void main() {
         matching: find.byIcon(Icons.restaurant_rounded),
       ),
     );
-    expect(deliveryIcon.size, 18);
-    expect(diningIcon.size, 18);
+    expect(deliveryIcon.size, 25);
+    expect(diningIcon.size, 25);
     expect(
       tester.getSize(find.byKey(const ValueKey('nav_cart_button'))).width,
-      50,
+      58,
     );
 
     await tester.tap(find.byKey(const ValueKey('nav_cart')));

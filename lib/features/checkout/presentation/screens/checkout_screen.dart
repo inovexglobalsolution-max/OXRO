@@ -16,6 +16,7 @@ import 'package:oxro/features/address/presentation/widgets/address_required_dial
 import 'package:oxro/features/cart/data/cart_store.dart';
 import 'package:oxro/features/checkout/data/payment_gateway.dart';
 import 'package:oxro/features/checkout/data/payment_store.dart';
+import 'package:oxro/features/checkout/presentation/widgets/cod_smart_change_dialog.dart';
 import 'package:oxro/features/coupons/presentation/screens/coupons_screen.dart';
 import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/bag/presentation/widgets/bag_schedule_card.dart';
@@ -52,6 +53,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   late final AnimationController _press;
   bool _placing = false;
   bool _paymentsOpen = true;
+  bool _billOpen = false;
   Timer? _paymentsTimer;
 
   @override
@@ -85,6 +87,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     setState(() => _paymentsOpen = !_paymentsOpen);
   }
 
+  void _toggleBill() {
+    HapticFeedback.selectionClick();
+    setState(() => _billOpen = !_billOpen);
+  }
+
+
   void _selectMethod(PaymentMethod m) {
     HapticFeedback.selectionClick();
     PaymentStore.instance.select(m);
@@ -94,6 +102,24 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       if (!mounted) return;
       setState(() => _paymentsOpen = false);
     });
+    if (m == PaymentMethod.cod) {
+      _showSmartChangeDialog();
+    }
+  }
+
+  Future<void> _showSmartChangeDialog() async {
+    final result = await showDialog<CodSmartChangeResult>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => CodSmartChangeDialog(
+        orderAmountPaise: PaymentStore.instance.toPayPaise,
+        initialCash: PaymentStore.instance.codCashAmount,
+        initialPreference: PaymentStore.instance.codChangePreference,
+      ),
+    );
+    if (!mounted || result == null || !result.confirmed) return;
+    PaymentStore.instance.setCodCashAmount(result.cashAmount);
+    PaymentStore.instance.setCodChangePreference(result.preference);
   }
 
   Widget _in(double start, Widget child) {
@@ -204,6 +230,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     // Stale-coupon guard: next order starts with no promo.
     PaymentStore.instance.clearCoupon();
     PaymentStore.instance.setTipPaise(0);
+    PaymentStore.instance.clearCodSmartChange();
     setState(() => _placing = false);
     replaceScreen(context, _PaymentResult(orderId: id));
   }
@@ -673,132 +700,132 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                           ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        key: const ValueKey('checkout_bill_toggle'),
+                        onTap: _toggleBill,
+                        behavior: HitTestBehavior.opaque,
+                        child: AnimatedRotation(
+                          turns: _billOpen ? 0.5 : 0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 20,
+                            color: _ckAccentDeep,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _billRow('Item total', Money.inr(quote.itemSubtotalPaise)),
-                  if (productSavings > 0)
-                    _billRow(
-                      'Product discount',
-                      '−${Money.inr(productSavings * 100)}',
-                      note: 'Already applied to the item total.',
-                      valueColor: OxroColors.green,
-                    ),
-                  if (quote.packagingPaise > 0)
-                    _billRow(
-                      'Restaurant packaging charges',
-                      Money.inr(quote.packagingPaise),
-                      note: 'This is decided & charged by the restaurant.',
-                    ),
-                  _billRow(
-                    deliveryLabel,
-                    quote.deliveryFeePaise == 0
-                        ? 'FREE'
-                        : Money.inr(quote.deliveryFeePaise),
-                    note: 'Goes to them for their time and effort.',
-                    valueColor: quote.deliveryFeePaise == 0
-                        ? OxroColors.green
-                        : null,
-                  ),
-                  _billRow(
-                    'Small cart fee',
-                    quote.smallCartFeePaise == 0
-                        ? 'FREE'
-                        : Money.inr(quote.smallCartFeePaise),
-                    note: 'Waived on carts of ₹99 or more.',
-                    valueColor: quote.smallCartFeePaise == 0
-                        ? OxroColors.green
-                        : null,
-                  ),
-                  if (quote.smallCartFeePaise > 0)
-                    _smallCartFeeHint(quote.itemSubtotalPaise),
-                  _billRow(
-                    'Platform fee',
-                    quote.platformFeePaise == 0
-                        ? 'FREE'
-                        : Money.inr(quote.platformFeePaise),
-                    valueColor: quote.platformFeePaise == 0
-                        ? OxroColors.green
-                        : null,
-                  ),
-                  _billRow('GST (govt. taxes)', Money.inr(quote.taxPaise)),
-                  if (quote.tipPaise > 0)
-                    _billRow('Delivery partner tip', Money.inr(quote.tipPaise)),
-                  if (hasCoupon)
-                    _billRow(
-                      'Coupon ${pay.coupon}',
-                      '−${Money.inr(quote.discountPaise)}',
-                      valueColor: OxroColors.green,
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(height: 1, thickness: 1, color: _ckLine),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              margin: EdgeInsets.fromLTRB(
-                context.rs(12),
-                0,
-                context.rs(12),
-                context.rs(12),
-              ),
-              padding: EdgeInsets.symmetric(
-                horizontal: context.rs(15),
-                vertical: context.rs(13),
-              ),
-              decoration: const BoxDecoration(
-                color: _ckInk,
-                borderRadius: BorderRadius.all(Radius.circular(14)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'To pay',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2,
-                        color: Colors.white.withValues(alpha: 0.72),
+                  if (_billOpen) ...[
+                    _billRow('Item total', Money.inr(quote.itemSubtotalPaise)),
+                    if (productSavings > 0)
+                      _billRow(
+                        'Product discount',
+                        '−${Money.inr(productSavings * 100)}',
+                        note: 'Already applied to the item total.',
+                        valueColor: OxroColors.green,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: TweenAnimationBuilder<double>(
-                        tween: Tween<double>(
-                          begin: 0,
-                          end: quote.grandTotalPaise.toDouble(),
-                        ),
-                        duration: _reduceMotion
-                            ? Duration.zero
-                            : const Duration(milliseconds: 450),
-                        curve: Curves.easeOutCubic,
-                        builder: (context, value, _) {
-                          return Text(
-                            Money.inr(value.round()),
-                            key: const ValueKey('checkout_total'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.3,
-                              color: OxroColors.orangeBottom,
-                            ),
-                          );
-                        },
+                    if (quote.packagingPaise > 0)
+                      _billRow(
+                        'Restaurant packaging charges',
+                        Money.inr(quote.packagingPaise),
+                        note: 'This is decided & charged by the restaurant.',
                       ),
+                    _billRow(
+                      deliveryLabel,
+                      quote.deliveryFeePaise == 0
+                          ? 'FREE'
+                          : Money.inr(quote.deliveryFeePaise),
+                      note: 'Goes to them for their time and effort.',
+                      valueColor: quote.deliveryFeePaise == 0
+                          ? OxroColors.green
+                          : null,
                     ),
-                  ),
+                    _billRow(
+                      'Small cart fee',
+                      quote.smallCartFeePaise == 0
+                          ? 'FREE'
+                          : Money.inr(quote.smallCartFeePaise),
+                      note: 'Waived on carts of ₹99 or more.',
+                      valueColor: quote.smallCartFeePaise == 0
+                          ? OxroColors.green
+                          : null,
+                    ),
+                    if (quote.smallCartFeePaise > 0)
+                      _smallCartFeeHint(quote.itemSubtotalPaise),
+                     _billRow(
+                       'Platform fee',
+                       quote.platformFeePaise == 0
+                           ? 'FREE'
+                           : Money.inr(quote.platformFeePaise),
+                       valueColor: quote.platformFeePaise == 0
+                           ? OxroColors.green
+                           : null,
+                     ),
+                     Padding(
+                       padding: const EdgeInsets.symmetric(vertical: 12),
+                       child: Divider(height: 1, thickness: 1, color: _ckLine),
+                     ),
+                     Padding(
+                       padding: const EdgeInsets.symmetric(vertical: 4),
+                       child: Row(
+                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                         children: [
+                           Text(
+                             'Total amount',
+                             style: TextStyle(
+                               fontSize: 16,
+                               fontWeight: FontWeight.w900,
+                               color: _ckInk,
+                               letterSpacing: -0.2,
+                             ),
+                           ),
+                           TweenAnimationBuilder<double>(
+                             tween: Tween<double>(
+                               begin: 0,
+                               end: quote.grandTotalPaise.toDouble(),
+                             ),
+                             duration: _reduceMotion
+                                 ? Duration.zero
+                                 : const Duration(milliseconds: 450),
+                             curve: Curves.easeOutCubic,
+                             builder: (context, value, _) {
+                               return Text(
+                                 Money.inr(value.round()),
+                                 key: const ValueKey('checkout_total'),
+                                 maxLines: 1,
+                                 overflow: TextOverflow.ellipsis,
+                                 style: const TextStyle(
+                                   fontSize: 20,
+                                   fontWeight: FontWeight.w900,
+                                   color: _ckInk,
+                                   letterSpacing: -0.6,
+                                 ),
+                               );
+                             },
+                           ),
+                         ],
+                       ),
+                     ),
+                     if (quote.tipPaise > 0)
+                      _billRow(
+                        'Delivery partner tip',
+                        Money.inr(quote.tipPaise),
+                      ),
+                    if (hasCoupon)
+                      _billRow(
+                        'Coupon ${pay.coupon}',
+                        '−${Money.inr(quote.discountPaise)}',
+                        valueColor: OxroColors.green,
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(height: 1, thickness: 1, color: _ckLine),
+                    ),
+                  ],
                 ],
               ),
             ),

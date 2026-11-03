@@ -25,6 +25,7 @@ class HomeBanner {
     required this.colors,
     required this.icon,
     this.imageUrl,
+    this.videoUrl,
     this.tag,
     this.style = BannerStyle.standard,
   });
@@ -37,6 +38,9 @@ class HomeBanner {
 
   /// Bundled food photo (load failure = gradient + icon fallback).
   final String? imageUrl;
+
+  /// Bundled looping hero video (muted). Null keeps the animated art fallback.
+  final String? videoUrl;
 
   /// Short offer sticker rendered as a seal on the hero (e.g. '30% OFF').
   final String? tag;
@@ -188,6 +192,7 @@ final homeBanners = [
     colors: [const Color(0xFFE23744), const Color(0xFFB3121C)],
     icon: Icons.bolt_rounded,
     imageUrl: FoodMedia.heroBiryani,
+    videoUrl: 'assets/videos/food_banners/banner_samosa.mp4',
     tag: '50% OFF',
     style: BannerStyle.sale,
   ),
@@ -198,6 +203,7 @@ final homeBanners = [
     colors: [const Color(0xFFFFF7EC), const Color(0xFF4A0E24)],
     icon: Icons.workspace_premium_rounded,
     imageUrl: FoodMedia.heroThali,
+    videoUrl: 'assets/videos/food_banners/banner_south_meals.mp4',
     style: BannerStyle.premium,
   ),
   HomeBanner(
@@ -207,6 +213,7 @@ final homeBanners = [
     colors: [const Color(0xFFFF8A00), const Color(0xFFFF4D00)],
     icon: Icons.rice_bowl_outlined,
     imageUrl: FoodMedia.heroBiryani,
+    videoUrl: 'assets/videos/food_banners/banner_chicken_fry.mp4',
     tag: '30% OFF',
   ),
   HomeBanner(
@@ -216,6 +223,7 @@ final homeBanners = [
     colors: [const Color(0xFF0A8CFF), const Color(0xFF004E92)],
     icon: Icons.local_pizza_outlined,
     imageUrl: FoodMedia.heroPizza,
+    videoUrl: 'assets/videos/food_banners/banner_samosa.mp4',
     tag: 'BOGO FREE',
   ),
   HomeBanner(
@@ -225,6 +233,7 @@ final homeBanners = [
     colors: [const Color(0xFF0E9F6E), const Color(0xFF03543F)],
     icon: Icons.breakfast_dining_outlined,
     imageUrl: FoodMedia.heroSouthIndian,
+    videoUrl: 'assets/videos/food_banners/banner_dosa.mp4',
     tag: 'FROM ₹99',
   ),
   HomeBanner(
@@ -234,6 +243,7 @@ final homeBanners = [
     colors: [const Color(0xFFE91E63), const Color(0xFF9C27B0)],
     icon: Icons.icecream_outlined,
     imageUrl: FoodMedia.heroDessert,
+    videoUrl: 'assets/videos/food_banners/banner_chai.mp4',
     tag: '40% OFF',
   ),
   HomeBanner(
@@ -243,6 +253,7 @@ final homeBanners = [
     colors: [const Color(0xFF65A30D), const Color(0xFF1A2E05)],
     icon: Icons.eco_outlined,
     imageUrl: FoodMedia.heroHealthy,
+    videoUrl: 'assets/videos/food_banners/banner_south_meals.mp4',
     tag: '400 KCAL',
   ),
   HomeBanner(
@@ -252,6 +263,7 @@ final homeBanners = [
     colors: [const Color(0xFFD97706), const Color(0xFF78350F)],
     icon: Icons.coffee_outlined,
     imageUrl: FoodMedia.coffee,
+    videoUrl: 'assets/videos/food_banners/banner_chai.mp4',
     tag: 'FROM ₹49',
   ),
   HomeBanner(
@@ -261,6 +273,7 @@ final homeBanners = [
     colors: [const Color(0xFF475569), const Color(0xFF0F172A)],
     icon: Icons.outdoor_grill_outlined,
     imageUrl: FoodMedia.heroBbq,
+    videoUrl: 'assets/videos/food_banners/banner_chicken_fry.mp4',
     tag: '25% OFF',
   ),
   HomeBanner(
@@ -270,6 +283,7 @@ final homeBanners = [
     colors: [const Color(0xFF8B5CF6), const Color(0xFF4C1D95)],
     icon: Icons.storefront_outlined,
     imageUrl: FoodMedia.streetFood,
+    videoUrl: 'assets/videos/food_banners/banner_samosa.mp4',
     tag: 'FROM ₹39',
   ),
 ];

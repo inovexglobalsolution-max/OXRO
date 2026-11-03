@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:oxro/app/repositories/order_repo.dart';
 import 'package:oxro/features/cart/data/cart_store.dart';
 import 'package:oxro/features/detail/data/product_sizes.dart';
 import 'package:oxro/features/home/data/home_data.dart';
@@ -27,8 +28,6 @@ extension OrderStatusLabel on OrderStatus {
 
 bool isPast(OrderStatus s) =>
     s == OrderStatus.delivered || s == OrderStatus.cancelled;
-
-import 'package:oxro/app/repositories/order_repo.dart';
 
 /// Mock order snapshot for 19 My Orders + 18 Tracking.
 class MockOrder {

@@ -1311,7 +1311,7 @@ class _WalletNoteDialog extends StatelessWidget {
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                 ),
-                SizedBox(width: 16),
+                SizedBox(width: 8),
                 FilledButton(
                   onPressed: () {
                     Navigator.pop(context);
