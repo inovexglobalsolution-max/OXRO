@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:oxro/app/api/api_client.dart';
 import 'package:flutter/services.dart';
 
 import 'package:oxro_pricing/oxro_pricing.dart';
 
+import 'package:oxro/features/bag/presentation/widgets/bag_schedule_card.dart';
 import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
@@ -14,13 +17,15 @@ import 'package:oxro/features/address/data/address_store.dart';
 import 'package:oxro/features/address/presentation/screens/address_selection_screen.dart';
 import 'package:oxro/features/address/presentation/widgets/address_required_dialog.dart';
 import 'package:oxro/features/cart/data/cart_store.dart';
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/repositories/order_repo.dart';
+import 'package:oxro/app/repositories/smart_change_repo.dart';
 import 'package:oxro/features/checkout/data/payment_gateway.dart';
 import 'package:oxro/features/checkout/presentation/screens/payment_method_screen.dart';
-import 'package:oxro/features/checkout/presentation/widgets/cod_smart_change_dialog.dart';
 import 'package:oxro/features/checkout/data/payment_store.dart';
 import 'package:oxro/features/coupons/presentation/screens/coupons_screen.dart';
-import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/home/presentation/widgets/schedule_sheet.dart';
+import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/orders/data/order_pricing.dart';
 import 'package:oxro/features/orders/data/order_store.dart';
 import 'package:oxro/features/orders/presentation/screens/tracking_screen.dart';
@@ -53,11 +58,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   late final AnimationController _entry;
   late final AnimationController _press;
   bool _placing = false;
-  bool _paymentsOpen = true;
-  Timer? _paymentsTimer;
-  double? _codCash;
-  String? _codChangePreference;
-  bool _billOpen = false;
+  String? _orderAttemptId;
+  bool _billOpen = true;
 
   @override
   void initState() {
@@ -76,7 +78,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
   @override
   void dispose() {
-    _paymentsTimer?.cancel();
     _entry.dispose();
     _press.dispose();
     super.dispose();
@@ -92,41 +93,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   void _toggleBill() {
     HapticFeedback.selectionClick();
     setState(() => _billOpen = !_billOpen);
-  }
-
-  void _selectMethod(PaymentMethod m) {
-    HapticFeedback.selectionClick();
-    PaymentStore.instance.select(m);
-    setState(() {});
-    _paymentsTimer?.cancel();
-    _paymentsTimer = Timer(const Duration(milliseconds: 220), () {
-      if (!mounted) return;
-      setState(() => _paymentsOpen = false);
-    });
-    if (m == PaymentMethod.cod) {
-      _showSmartChange();
-    } else {
-      _codCash = null;
-      _codChangePreference = null;
-    }
-  }
-
-  Future<void> _showSmartChange() async {
-    final pay = PaymentStore.instance;
-    final result = await showDialog<CodSmartChangeResult>(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => CodSmartChangeDialog(
-        orderAmountPaise: pay.toPayPaise,
-        initialCash: _codCash,
-        initialPreference: _codChangePreference,
-      ),
-    );
-    if (!mounted || result == null) return;
-    setState(() {
-      _codCash = result.cashAmount;
-      _codChangePreference = result.preference;
-    });
   }
 
   Widget _in(double start, Widget child) {
@@ -176,69 +142,236 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       return;
     }
     setState(() => _placing = true);
-    final method = PaymentStore.instance.method;
-    final pay = PaymentStore.instance;
-    if (method != PaymentMethod.cod && method != PaymentMethod.wallet) {
-      final paid = await PaymentGateway.instance.charge(method, pay.toPayPaise);
-      if (!paid) {
-        if (!mounted) return;
-        setState(() => _placing = false);
-        await _showPaymentFailure();
-        return;
+    try {
+      final method = PaymentStore.instance.method;
+      final pay = PaymentStore.instance;
+      final serverBacked = CustomerIdentity.networkEnabled;
+      if (method != PaymentMethod.cod && method != PaymentMethod.wallet) {
+        final paid = await PaymentGateway.instance.charge(
+          method,
+          pay.toPayPaise,
+        );
+        if (!paid) {
+          if (!mounted) return;
+          setState(() => _placing = false);
+          await _showPaymentFailure();
+          return;
+        }
       }
-    }
-    if (method == PaymentMethod.wallet && pay.toPayPaise > 0) {
-      final ok = WalletStore.instance.deductPaise(
-        pay.toPayPaise,
-        label: 'Order payment',
+      if (!serverBacked &&
+          method == PaymentMethod.wallet &&
+          pay.toPayPaise > 0) {
+        final ok = WalletStore.instance.deductPaise(
+          pay.toPayPaise,
+          label: 'Order payment',
+        );
+        if (!ok) {
+          if (!mounted) return;
+          setState(() => _placing = false);
+          showOxroSnack(context, 'Insufficient wallet balance — top up');
+          return;
+        }
+      }
+      if (!mounted) return;
+      final cart = CartStore.instance;
+      final restaurantId = cart.restaurantId;
+      final restaurantName = cart.restaurantName;
+      final instructions = cart.instructions.isEmpty ? null : cart.instructions;
+      final cutleryOptIn = cart.cutleryOptIn;
+      final snapshot = [
+        for (final l in cart.lines)
+          for (var i = 0; i < l.qty; i++) l.product,
+      ];
+      final q = pay.quote;
+      final bill = OrderBill(
+        itemSubtotalPaise: q.itemSubtotalPaise,
+        packagingPaise: q.packagingPaise,
+        deliveryPaise: q.deliveryFeePaise,
+        platformFeePaise: q.platformFeePaise,
+        smallCartFeePaise: q.smallCartFeePaise,
+        taxPaise: q.taxPaise,
+        tipPaise: q.tipPaise,
+        discountPaise: q.discountPaise,
+        grandTotalPaise: q.grandTotalPaise,
+        configVersion: q.configVersion,
       );
-      if (!ok) {
+      final billMap = <String, dynamic>{
+        'itemSubtotalPaise': bill.itemSubtotalPaise,
+        'packagingPaise': bill.packagingPaise,
+        'deliveryPaise': bill.deliveryPaise,
+        'platformFeePaise': bill.platformFeePaise,
+        'smallCartFeePaise': bill.smallCartFeePaise,
+        'taxPaise': bill.taxPaise,
+        'tipPaise': bill.tipPaise,
+        'discountPaise': bill.discountPaise,
+        'grandTotalPaise': bill.grandTotalPaise,
+        'configVersion': bill.configVersion,
+      };
+      final scTxn = pay.hasCodSmartChange ? pay.codTxnId : null;
+      final id = _orderAttemptId ??= _newOrderAttemptId();
+      if (scTxn != null) {
+        try {
+          await SmartChangeRepo.instance.linkOrder(txnId: scTxn, orderId: id);
+        } catch (_) {
+          if (!mounted) return;
+          setState(() => _placing = false);
+          await showDialog<void>(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              key: const ValueKey('smart_change_failed'),
+              title: const Text('Smart Change failed'),
+              content: const Text('Could not link Smart Change.'),
+              actions: [
+                FilledButton(
+                  key: const ValueKey('smart_change_failed_ok'),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+      }
+      if (serverBacked) {
+        final placed = await _placeServerOrder(
+          orderId: id,
+          products: snapshot,
+          paymentMethod: method,
+          bill: billMap,
+          restaurantId: restaurantId,
+          restaurantName: restaurantName,
+          instructions: instructions,
+          cutleryOptIn: cutleryOptIn,
+          smartChangeTxnId: scTxn,
+        );
         if (!mounted) return;
-        setState(() => _placing = false);
-        showOxroSnack(context, 'Insufficient wallet balance — top up');
+        if (!placed) {
+          await _showOrderFailure(
+            'Order could not be placed. Your bag and wallet were not changed. '
+            'Try again or choose another method.',
+          );
+          return;
+        }
+        _orderAttemptId = null;
+        if (scTxn != null) pay.clearCodSmartChange();
+        await WalletStore.instance.load();
+        if (!mounted) return;
+        cart.clear();
+        PaymentStore.instance.clearCoupon();
+        PaymentStore.instance.setTipPaise(0);
+        replaceScreen(context, _PaymentResult(orderId: id));
         return;
       }
+
+      OrderStore.instance.placeOrder(
+        id: id,
+        products: snapshot,
+        restaurantId: restaurantId,
+        restaurantName: restaurantName,
+        instructions: instructions,
+        cutleryOptIn: cutleryOptIn,
+        bill: bill,
+      );
+      if (scTxn != null) pay.clearCodSmartChange();
+      _orderAttemptId = null;
+      cart.clear();
+      // Stale-coupon guard: next order starts with no promo.
+      PaymentStore.instance.clearCoupon();
+      PaymentStore.instance.setTipPaise(0);
+      if (!mounted) return;
+      replaceScreen(context, _PaymentResult(orderId: id));
+    } catch (e) {
+      if (!mounted) return;
+      await _showOrderFailure(
+        'Could not reach OXRO. Check your internet connection and try again.'
+        '${kDebugMode ? ' (base: ${ApiClient().baseUrl} — $e)' : ''}',
+      );
+    } finally {
+      if (mounted) setState(() => _placing = false);
     }
+  }
+
+  static String _newOrderAttemptId() =>
+      'OXRO${DateTime.now().microsecondsSinceEpoch}${math.Random().nextInt(1000)}';
+
+  Future<bool> _placeServerOrder({
+    required String orderId,
+    required List<Product> products,
+    required PaymentMethod paymentMethod,
+    required Map<String, dynamic> bill,
+    String? restaurantId,
+    String? restaurantName,
+    String? instructions,
+    bool? cutleryOptIn,
+    String? smartChangeTxnId,
+  }) async {
+    final body = <String, dynamic>{
+      'orderId': orderId,
+      'products': [for (final product in products) product.toJson()],
+      'paymentMethod': paymentMethod.name,
+      'bill': bill,
+    };
+    if (restaurantId != null) body['restaurantId'] = restaurantId;
+    if (restaurantName != null) body['restaurantName'] = restaurantName;
+    if (instructions != null) body['instructions'] = instructions;
+    if (cutleryOptIn != null) body['cutleryOptIn'] = cutleryOptIn;
+    if (smartChangeTxnId != null) body['smartChangeTxnId'] = smartChangeTxnId;
+
+    try {
+      final placed = await OrderRepo().placeOrder(body);
+      if (placed != null && OrderStore.instance.applyServerOrder(placed)) {
+        return true;
+      }
+    } catch (e, st) {
+      debugPrint('Checkout._placeServerOrder: $e\n$st');
+    }
+
+    // A previous request may have reached the server but lost its response.
+    // Reuse the stable attempt id to resolve the duplicate safely.
+    try {
+      final remote = await OrderRepo().fetchOrders();
+      if (remote != null) {
+        for (final entry in remote) {
+          if (entry is Map && entry['id'] == orderId) {
+            return OrderStore.instance.applyServerOrder(
+              Map<String, dynamic>.from(entry),
+            );
+          }
+        }
+      }
+    } catch (e, st) {
+      debugPrint('Checkout._placeServerOrder fetchOrders: $e\n$st');
+      return false;
+    }
+    return false;
+  }
+
+  Future<void> _showOrderFailure(String message) async {
     if (!mounted) return;
-    final id = 'OXRO${DateTime.now().millisecondsSinceEpoch % 1000000}';
-    // Snapshot items BEFORE clearing (qty-expanded for bill parity).
-    final cart = CartStore.instance;
-    final restaurantId = cart.restaurantId;
-    final restaurantName = cart.restaurantName;
-    final instructions = cart.instructions.isEmpty ? null : cart.instructions;
-    final cutleryOptIn = cart.cutleryOptIn;
-    final snapshot = [
-      for (final l in cart.lines)
-        for (var i = 0; i < l.qty; i++) l.product,
-    ];
-    final q = pay.quote;
-    final bill = OrderBill(
-      itemSubtotalPaise: q.itemSubtotalPaise,
-      packagingPaise: q.packagingPaise,
-      deliveryPaise: q.deliveryFeePaise,
-      platformFeePaise: q.platformFeePaise,
-      smallCartFeePaise: q.smallCartFeePaise,
-      taxPaise: q.taxPaise,
-      tipPaise: q.tipPaise,
-      discountPaise: q.discountPaise,
-      grandTotalPaise: q.grandTotalPaise,
-      configVersion: q.configVersion,
+    final retry = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        key: const ValueKey('order_failed'),
+        title: const Text('Order not placed'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            key: const ValueKey('order_failed_change_method'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Change method'),
+          ),
+          FilledButton(
+            key: const ValueKey('order_failed_retry'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Try again'),
+          ),
+        ],
+      ),
     );
-    OrderStore.instance.placeOrder(
-      id: id,
-      products: snapshot,
-      restaurantId: restaurantId,
-      restaurantName: restaurantName,
-      instructions: instructions,
-      cutleryOptIn: cutleryOptIn,
-      bill: bill,
-    );
-    cart.clear();
-    // Stale-coupon guard: next order starts with no promo.
-    PaymentStore.instance.clearCoupon();
-    PaymentStore.instance.setTipPaise(0);
-    setState(() => _placing = false);
-    replaceScreen(context, _PaymentResult(orderId: id));
+    if (retry == true && mounted) await _placeOrder();
   }
 
   Future<void> _showPaymentFailure() async {
@@ -327,10 +460,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                 _in(0.3, _addressCard(addr)),
                                 if (CartStore.instance.lines.isNotEmpty) ...[
                                   SizedBox(height: context.rs(12)),
+                                  BagScheduleCard(
+                                    schedule: CartStore.instance.bagSchedule,
+                                  ),
+                                  SizedBox(height: context.rs(12)),
                                   _scheduledItemsCard(),
                                 ],
-                                SizedBox(height: context.rs(12)),
-                                _in(0.45, _paymentSection(pay)),
                                 SizedBox(height: context.rs(12)),
                                 _in(0.5, _tipCard(pay)),
                                 SizedBox(height: context.rs(12)),
@@ -670,22 +805,42 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                           color: _ckAccentDeep,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: GestureDetector(
                           key: const ValueKey('checkout_bill_toggle'),
                           onTap: _toggleBill,
                           behavior: HitTestBehavior.opaque,
-                          child: const Text(
-                            'Bill Summary',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.2,
-                              color: _ckInk,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Flexible(
+                                child: Text(
+                                  'Bill Summary',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.2,
+                                    color: _ckInk,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              AnimatedRotation(
+                                turns: _billOpen ? 0.5 : 0,
+                                duration: _reduceMotion
+                                    ? Duration.zero
+                                    : const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                child: const Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 18,
+                                  color: _ckAccentDeep,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -782,12 +937,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                               if (hasCoupon)
                                 _billRow(
                                   'Coupon ${pay.coupon}',
-                                  '−${Money.inr(quote.discountPaise)}',
+                                  '-${Money.inr(quote.discountPaise)}',
                                   valueColor: OxroColors.green,
                                 ),
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
+                                  vertical: 8,
                                 ),
                                 child: Divider(
                                   height: 1,
@@ -795,19 +950,16 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                   color: _ckLine,
                                 ),
                               ),
+                              _billRow(
+                                'Total amount',
+                                Money.inr(quote.grandTotalPaise),
+                                valueColor: _ckAccent,
+                              ),
                             ],
                           )
                         : const SizedBox(width: double.infinity),
                   ),
                 ],
-              ),
-            ),
-            Text(
-              Money.inr(quote.grandTotalPaise),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                color: _ckInk,
               ),
             ),
           ],
@@ -1015,124 +1167,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     );
   }
 
-  Widget _paymentSection(PaymentStore pay) {
-    final open = _paymentsOpen;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          key: const ValueKey('payment_toggle_row'),
-          onTap: _openPaymentMethods,
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _surfaceCard(
-              padding: EdgeInsets.all(context.rs(13)),
-              child: Row(
-                children: [
-                  Container(
-                    width: context.rs(36),
-                    height: context.rs(36),
-                    decoration: const BoxDecoration(
-                      color: _ckTint,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.shield_outlined,
-                      size: 18,
-                      color: _ckAccentDeep,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'PAYMENT METHOD',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.6,
-                        color: _ckInk,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _ckTint,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      (paymentLabels[pay.method] ?? pay.paymentLabel)
-                          .toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.6,
-                        color: _ckAccentDeep,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Semantics(
-                    button: true,
-                    expanded: open,
-                    label: open
-                        ? 'Hide payment methods'
-                        : 'Show payment methods',
-                    child: AnimatedRotation(
-                      key: const ValueKey('payment_toggle'),
-                      turns: open ? 0.5 : 0,
-                      duration: _reduceMotion
-                          ? Duration.zero
-                          : const Duration(milliseconds: 220),
-                      curve: Curves.easeOutCubic,
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: _ckTint,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: open ? _ckAccent : _ckLine),
-                        ),
-                        child: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 20,
-                          color: _ckAccentDeep,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        ClipRect(
-          child: AnimatedSize(
-            duration: _reduceMotion
-                ? Duration.zero
-                : const Duration(milliseconds: 240),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.topCenter,
-            child: open
-                ? Column(
-                    children: [
-                      for (final m in PaymentMethod.values)
-                        _payCard(m, pay.method == m, () => _selectMethod(m)),
-                    ],
-                  )
-                : const SizedBox(width: double.infinity),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _couponCard(PaymentStore pay) {
     final applied = pay.coupon.isNotEmpty;
     final saved = pay.discount;
@@ -1304,9 +1338,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       Container(
         padding: EdgeInsets.fromLTRB(
           context.padX,
-          context.rs(9),
+          context.rs(6),
           context.padX,
-          context.rs(9),
+          context.rs(6),
         ),
         decoration: BoxDecoration(
           color: _ckSurface,
@@ -1324,51 +1358,111 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           child: Row(
             children: [
               Expanded(
-                child: ListenableBuilder(
-                  listenable: PaymentStore.instance,
-                  builder: (context, _) {
-                    final pay = PaymentStore.instance;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'To Pay',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.9,
-                            color: _ckMuted,
-                          ),
-                        ),
-                        const SizedBox(height: 1),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            child: Text(
-                              Money.inr(pay.toPayPaise),
-                              key: ValueKey('checkout_bar_${pay.toPayPaise}'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: context.font(20),
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.4,
-                                color: _ckInk,
+                child: GestureDetector(
+                  key: const ValueKey('checkout_pay_using_row'),
+                  onTap: _openPaymentMethods,
+                  behavior: HitTestBehavior.opaque,
+                  child: ListenableBuilder(
+                    listenable: PaymentStore.instance,
+                    builder: (context, _) {
+                      final pay = PaymentStore.instance;
+                      final sub = switch (pay.method) {
+                        PaymentMethod.upi => 'Pay via UPI apps',
+                        PaymentMethod.card => 'Pay with a card',
+                        PaymentMethod.wallet => 'Pay from Oxro Money',
+                        PaymentMethod.cod => 'Pay with cash',
+                      };
+                      return FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Payment Method',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.4,
+                                    color: _ckMuted,
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                Icon(
+                                  Icons.keyboard_arrow_up_rounded,
+                                  size: 11,
+                                  color: _ckMuted,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 1),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '${pay.paymentLabel} · $sub',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: _ckInk,
+                                ),
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 1),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                    vertical: 1,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _ckTint,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: const Text(
+                                    'CHANGE',
+                                    style: TextStyle(
+                                      fontSize: 7,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                      color: _ckAccentDeep,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 1),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 12,
+                                  color: _ckAccentDeep,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              Container(
+                key: const ValueKey('pay_wallet'),
+                padding: const EdgeInsets.all(4),
+                child: Text(
+                  Money.inr(WalletStore.instance.balancePaise),
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ),
               Expanded(
                 child: GestureDetector(
                   key: const ValueKey('checkout_place_order'),
@@ -1386,8 +1480,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                     child: Container(
                       alignment: Alignment.center,
                       padding: EdgeInsets.symmetric(
-                        horizontal: context.rs(10),
-                        vertical: context.rs(14),
+                        horizontal: context.rs(8),
+                        vertical: context.rs(12),
                       ),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
@@ -1415,25 +1509,64 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                             )
                           : FittedBox(
                               fit: BoxFit.scaleDown,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Place Order',
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                      fontSize: context.font(13.5),
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  const Icon(
-                                    Icons.arrow_forward_rounded,
-                                    size: 17,
-                                    color: Colors.white,
-                                  ),
-                                ],
+                              child: ListenableBuilder(
+                                listenable: PaymentStore.instance,
+                                builder: (context, _) {
+                                  final pay = PaymentStore.instance;
+                                  return Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            Money.inr(pay.toPayPaise),
+                                            key: ValueKey(
+                                              'checkout_bar_${pay.toPayPaise}',
+                                            ),
+                                            maxLines: 1,
+                                            style: TextStyle(
+                                              fontSize: context.font(12),
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: -0.3,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          Text(
+                                            'TOTAL',
+                                            maxLines: 1,
+                                            style: TextStyle(
+                                              fontSize: 6.5,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 1.0,
+                                              color: Colors.white.withValues(
+                                                alpha: 0.8,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Place Order',
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          fontSize: context.font(11.5),
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      const Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 14,
+                                        color: Colors.white,
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                             ),
                     ),
@@ -1448,11 +1581,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   }
 
   Widget _tipCard(PaymentStore pay) {
-    const presets = [0, 20, 30, 50];
+    const presets = [20, 30, 40, 50];
     final custom = !presets.contains(pay.tip);
     return _surfaceCard(
       key: const ValueKey('checkout_tip_card'),
-      padding: EdgeInsets.all(context.rs(14)),
+      padding: EdgeInsets.all(context.rs(10)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1511,8 +1644,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                       "They'll get notified instantly. The full tip is "
                       'sent after delivery.',
                       style: TextStyle(
-                        fontSize: 11,
-                        height: 1.35,
+                        fontSize: 10,
+                        height: 1.2,
                         color: _ckMuted,
                       ),
                     ),
@@ -1528,13 +1661,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ),
           const SizedBox(height: 12),
           Wrap(
-            spacing: 7,
-            runSpacing: 8,
+            spacing: 6,
+            runSpacing: 6,
             children: [
               for (final r in presets)
                 _tipChip(
                   key: ValueKey('tip_$r'),
-                  label: r == 0 ? 'No tip' : '₹$r',
+                  label: '₹$r',
                   selected: pay.tip == r,
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -1544,7 +1677,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 ),
               _tipChip(
                 key: const ValueKey('tip_other'),
-                label: custom ? '₹${pay.tip}' : 'Other',
+                label: custom ? '₹${pay.tip}' : 'Custom',
                 selected: custom,
                 onTap: () => _openCustomTip(pay),
               ),
@@ -1704,121 +1837,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       ),
     );
   }
-
-  Widget _payCard(PaymentMethod m, bool sel, VoidCallback onTap) {
-    final icons = {
-      PaymentMethod.upi: Icons.smartphone_outlined,
-      PaymentMethod.card: Icons.credit_card_outlined,
-      PaymentMethod.wallet: Icons.account_balance_wallet_outlined,
-      PaymentMethod.cod: Icons.payments_outlined,
-    };
-    final sub = m == PaymentMethod.wallet
-        ? 'Balance ${Product.inr(WalletStore.instance.balance)}'
-        : paymentSubs[m] ?? '';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: GestureDetector(
-        key: ValueKey('pay_${m.name}'),
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: _reduceMotion
-              ? Duration.zero
-              : const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.all(context.rs(12)),
-          decoration: BoxDecoration(
-            color: sel ? _ckTint : _ckSurface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: sel ? _ckAccent : _ckLine,
-              width: sel ? 1.5 : 1,
-            ),
-            boxShadow: sel
-                ? [
-                    BoxShadow(
-                      color: _ckAccent.withValues(alpha: 0.14),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            children: [
-              AnimatedContainer(
-                duration: _reduceMotion
-                    ? Duration.zero
-                    : const Duration(milliseconds: 200),
-                width: context.rs(40),
-                height: context.rs(40),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  gradient: sel
-                      ? const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [_ckAccent, OxroColors.orangeBottom],
-                        )
-                      : null,
-                  color: sel ? null : _ckTint,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icons[m],
-                  size: 20,
-                  color: sel ? Colors.white : _ckAccentDeep,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      paymentLabels[m] ?? 'Payment',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                        color: _ckInk,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      sub,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11.5, color: _ckMuted),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              AnimatedSwitcher(
-                duration: _reduceMotion
-                    ? Duration.zero
-                    : const Duration(milliseconds: 180),
-                transitionBuilder: (child, animation) => ScaleTransition(
-                  scale: animation,
-                  child: FadeTransition(opacity: animation, child: child),
-                ),
-                child: Icon(
-                  sel ? Icons.radio_button_checked : Icons.radio_button_off,
-                  key: ValueKey(sel),
-                  color: sel ? _ckAccent : _ckMuted.withValues(alpha: 0.45),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-/// 16 Payment Result — premium burst: elastic pop + expanding rings +
+/// 16 Payment Result – premium burst: elastic pop + expanding rings +
 /// hand-drawn tick + confetti + staggered text/buttons (ref 16 1:1).
 class _PaymentResult extends StatefulWidget {
   const _PaymentResult({required this.orderId});
@@ -2487,8 +2508,8 @@ class _GratitudeArtState extends State<_GratitudeArt>
       child: RepaintBoundary(
         child: SizedBox(
           key: const ValueKey('gratitude_art'),
-          width: context.rs(74),
-          height: context.rs(90),
+          width: context.rs(50),
+          height: context.rs(60),
           child: AnimatedBuilder(
             animation: _idle,
             builder: (context, child) {
