@@ -1,8 +1,11 @@
+'use strict';
+
 const express = require('express');
 const router = express.Router();
+const ctrl = require('../controllers/restaurantController');
 
-router.get('/', (req, res) => res.json({ restaurants: [], status: 'scaffold' }));
-router.get('/:id', (req, res) => res.json({ id: req.params.id, status: 'scaffold' }));
-router.get('/:id/menu', (req, res) => res.json({ menu: [], status: 'scaffold' }));
+router.get('/', ctrl.list);
+router.get('/:id', ctrl.get);
+router.get('/:id/menu', ctrl.menu);
 
 module.exports = router;

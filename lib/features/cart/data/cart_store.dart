@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:oxro/app/data/delivery_schedule.dart';
-import 'package:oxro/app/repositories/cart_repo.dart';
 import 'package:oxro/features/home/data/home_data.dart';
+import 'package:oxro/app/repositories/cart_repo.dart';
 
 /// One cart row — same product in two sizes = two rows.
 class CartLine {
@@ -40,12 +40,8 @@ class CartStore extends ChangeNotifier {
   static const _kCutlery = 'oxro_bag_cutlery_v1';
   static const _kBagSchedule = 'oxro_bag_schedule_v1';
 
-  /// Tests run in fake-async; never await real backend I/O there.
-  static bool _backendSyncEnabled = true;
-
   @visibleForTesting
   static void resetForTests() {
-    _backendSyncEnabled = false;
     instance._lines.clear();
     instance._instructions = '';
     instance._cutleryOptIn = false;
@@ -66,16 +62,14 @@ class CartStore extends ChangeNotifier {
 
   /// Load with backend sync (falls back to SharedPreferences).
   Future<void> load() async {
-    if (_backendSyncEnabled) {
-      try {
-        // Attempt backend sync first
-        final repo = CartRepo();
-        await repo.fetchCart();
-        // Backend integration: if backend returns data, it would populate here.
-        // Currently scaffold — no modification to existing behavior.
-      } catch (_) {
-        // Best-effort backend sync only.
-      }
+    try {
+      // Attempt backend sync first
+      final repo = CartRepo();
+      await repo.fetchCart();
+      // Backend integration: if backend returns data, it would populate here.
+      // Currently scaffold — no modification to existing behavior.
+    } catch (_) {
+      // Best-effort backend sync only.
     }
     try {
       final p = await SharedPreferences.getInstance();

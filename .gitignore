@@ -1,3 +1,7 @@
+# Local env / secrets (never commit)
+/env/
+*.env.json
+
 # Miscellaneous
 *.class
 *.log

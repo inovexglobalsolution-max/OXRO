@@ -1,7 +1,15 @@
+'use strict';
+
 const express = require('express');
 const router = express.Router();
+const ctrl = require('../controllers/profileController');
 
-router.get('/me', (req, res) => res.json({ profile: {}, status: 'scaffold' }));
-router.put('/me', (req, res) => res.json({ updated: true, status: 'scaffold' }));
+router.get('/me', ctrl.get);
+router.put('/me', ctrl.put);
+router.get('/premium', ctrl.premium);
+router.post('/premium/join', ctrl.joinPremium);
+router.post('/premium/cancel', ctrl.cancelPremium);
+router.get('/preferences', ctrl.preferences);
+router.put('/preferences', ctrl.setPreferences);
 
 module.exports = router;

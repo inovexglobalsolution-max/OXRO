@@ -1,7 +1,13 @@
+'use strict';
+
 const express = require('express');
 const router = express.Router();
+const ctrl = require('../controllers/addressController');
 
-router.get('/', (req, res) => res.json({ addresses: [], status: 'scaffold' }));
-router.post('/', (req, res) => res.json({ created: true, status: 'scaffold' }));
+router.get('/', ctrl.list);
+router.post('/', ctrl.create);
+router.put('/:id', ctrl.update);
+router.post('/:id/select', ctrl.select);
+router.delete('/:id', ctrl.remove);
 
 module.exports = router;

@@ -1,9 +1,14 @@
+'use strict';
+
 const express = require('express');
 const router = express.Router();
+const ctrl = require('../controllers/cartController');
 
-router.get('/', (req, res) => res.json({ lines: [], status: 'scaffold' }));
-router.post('/', (req, res) => res.json({ added: true, status: 'scaffold' }));
-router.put('/:id', (req, res) => res.json({ updated: req.params.id, status: 'scaffold' }));
-router.delete('/:id', (req, res) => res.json({ removed: req.params.id, status: 'scaffold' }));
+router.get('/', ctrl.get);
+router.put('/', ctrl.replace);
+router.delete('/', ctrl.clear);
+router.post('/items', ctrl.addItem);
+router.put('/items/:key', ctrl.updateItem);
+router.delete('/items/:key', ctrl.removeItem);
 
 module.exports = router;

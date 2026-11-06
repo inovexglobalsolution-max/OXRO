@@ -4,8 +4,10 @@ const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 
+const config = require('./config/env');
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = config.port;
 
 // Security middleware
 app.use(helmet());
@@ -28,6 +30,13 @@ const addressRoutes = require('./routes/address');
 const pricingRoutes = require('./routes/pricing');
 const checkoutRoutes = require('./routes/checkout');
 const searchRoutes = require('./routes/search');
+const smartChangeRoutes = require('./routes/smartChange');
+const wishlistRoutes = require('./routes/wishlist');
+const reviewRoutes = require('./routes/reviews');
+const supportRoutes = require('./routes/support');
+const notificationRoutes = require('./routes/notifications');
+const couponRoutes = require('./routes/coupons');
+const dineoutRoutes = require('./routes/dineout');
 const errorHandler = require('./middleware/errorHandler');
 
 app.use('/health', healthRoutes);
@@ -41,6 +50,13 @@ app.use('/addresses', addressRoutes);
 app.use('/pricing', pricingRoutes);
 app.use('/checkout', checkoutRoutes);
 app.use('/search', searchRoutes);
+app.use('/smart-change', smartChangeRoutes);
+app.use('/wishlist', wishlistRoutes);
+app.use('/reviews', reviewRoutes);
+app.use('/support', supportRoutes);
+app.use('/notifications', notificationRoutes);
+app.use('/coupons', couponRoutes);
+app.use('/dineout', dineoutRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -50,8 +66,11 @@ app.use((req, res) => {
 // Centralized error handler (must be last)
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`OXRO backend running on port ${PORT}`);
-});
+// Listen only when run directly (tests import `app` on an ephemeral port).
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`OXRO backend running on port ${PORT}`);
+  });
+}
 
 module.exports = app;

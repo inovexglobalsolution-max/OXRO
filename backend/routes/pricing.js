@@ -1,7 +1,11 @@
+'use strict';
+
 const express = require('express');
 const router = express.Router();
+const ctrl = require('../controllers/pricingController');
 
-router.get('/', (req, res) => res.json({ config: {}, status: 'scaffold' }));
-router.put('/', (req, res) => res.json({ updated: true, status: 'scaffold' }));
+router.get('/', ctrl.get);
+router.put('/', ctrl.update);
+router.post('/', ctrl.update);
 
 module.exports = router;

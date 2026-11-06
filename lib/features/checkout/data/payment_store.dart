@@ -38,19 +38,14 @@ class PaymentStore extends ChangeNotifier {
   @visibleForTesting
   static void resetForTests() {
     instance._method = PaymentMethod.upi;
-    instance._label = null;
     instance._coupon = '';
     instance._tipPaise = 0;
-    instance._codCashAmount = null;
-    instance._codChangePreference = null;
     PricingConfigStore.instance.resetToInitial();
     instance.notifyListeners();
   }
 
   PaymentMethod _method = PaymentMethod.upi;
-
-  /// Optional sub-label for the selected method (e.g. 'Google Pay').
-  String? _label;
+  String _paymentLabel = paymentLabels[PaymentMethod.upi]!;
 
   /// Applied coupon code only — discount/shipping are recomputed live
   /// from the current cart so shrinking the bag auto-invalidates
@@ -60,12 +55,6 @@ class PaymentStore extends ChangeNotifier {
 
   /// Customer tip in paise (100% passed to the delivery partner).
   int _tipPaise = 0;
-
-  /// Smart Change: cash amount entered by customer for COD (rupees).
-  double? _codCashAmount;
-
-  /// Smart Change: preference for extra cash ('wallet' or 'physical').
-  String? _codChangePreference;
 
   static const _kCoupon = 'oxro_coupon_v1';
 
@@ -101,16 +90,6 @@ class PaymentStore extends ChangeNotifier {
       PricingConfigStore.instance.config.customerDeliveryFeePaise ~/ 100;
 
   PaymentMethod get method => _method;
-
-  /// Smart Change: cash amount entered by customer for COD (rupees).
-  double? get codCashAmount => _codCashAmount;
-
-  /// Smart Change: preference for extra cash ('wallet' or 'physical').
-  String? get codChangePreference => _codChangePreference;
-
-  /// Display label for the current method (custom sub-label or the default).
-  String get paymentLabel => _label ?? paymentLabels[_method]!;
-
   String get coupon => _coupon;
   int get tipPaise => _tipPaise;
 
@@ -149,37 +128,19 @@ class PaymentStore extends ChangeNotifier {
   }
 
   void select(PaymentMethod m, {String? label}) {
-    final nextLabel = (label == null || label == paymentLabels[m])
-        ? null
-        : label;
-    if (_method == m && _label == nextLabel) return;
     _method = m;
-    _label = nextLabel;
-    // Clear smart change state when switching away from COD.
-    if (m != PaymentMethod.cod) {
-      _codCashAmount = null;
-      _codChangePreference = null;
+    if (label != null) {
+      _paymentLabel = label;
+    } else {
+      _paymentLabel = paymentLabels[m] ?? _paymentLabel;
     }
     notifyListeners();
   }
 
-  void setCodCashAmount(double? amount) {
-    if (amount == _codCashAmount) return;
-    _codCashAmount = amount;
-    notifyListeners();
-  }
-
-  void setCodChangePreference(String? preference) {
-    if (preference == _codChangePreference) return;
-    _codChangePreference = preference;
-    notifyListeners();
-  }
-
-  void clearCodSmartChange() {
-    if (_codCashAmount == null && _codChangePreference == null) return;
-    _codCashAmount = null;
-    _codChangePreference = null;
-    notifyListeners();
+  String get paymentLabel {
+    final label = _paymentLabel;
+    if (label.isNotEmpty) return label;
+    return paymentLabels[_method] ?? 'Payment';
   }
 
   /// Returns true when code accepted for current cart total.

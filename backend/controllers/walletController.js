@@ -1,6 +1,21 @@
+'use strict';
+
+const store = require('../services/walletStore');
+const { customerIdFrom } = require('../utils/request');
+
 const walletController = {
-  getBalance: (req, res) => res.json({ balance: 0, transactions: [], status: 'scaffold' }),
-  addMoney: (req, res) => res.json({ added: true, status: 'scaffold' }),
+  get: async (req, res) => {
+    res.json(await store.get(customerIdFrom(req)));
+  },
+
+  /** Top-up stays disabled until a real payment gateway is integrated. */
+  add: (req, res) => {
+    res.status(501).json({
+      error:
+        'OXRO Money top-up is disabled until payment integration is complete.',
+      code: 'topup_disabled',
+    });
+  },
 };
 
 module.exports = walletController;
