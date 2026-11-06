@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/repositories/notification_repo.dart';
 
 /// Notification kind: order updates vs offers.
 enum NotifKind { order, offer }
@@ -24,14 +29,14 @@ class OxroNotif {
   final bool unread;
 
   OxroNotif copyWith({bool? unread}) => OxroNotif(
-        id: id,
-        title: title,
-        sub: sub,
-        time: time,
-        icon: icon,
-        kind: kind,
-        unread: unread ?? this.unread,
-      );
+    id: id,
+    title: title,
+    sub: sub,
+    time: time,
+    icon: icon,
+    kind: kind,
+    unread: unread ?? this.unread,
+  );
 }
 
 /// Notifications inbox (mock, in-memory).
@@ -109,6 +114,55 @@ class NotifStore extends ChangeNotifier {
   final List<OxroNotif> _items = [];
   bool _enabled = true;
 
+  /// Loads the server inbox when reachable (call once at splash).
+  /// Empty/failed responses keep the existing local inbox.
+  Future<void> load() async {
+    if (!CustomerIdentity.networkEnabled) return;
+    try {
+      final remote = await NotificationRepo().list();
+      if (remote == null || remote.isEmpty) return;
+      final loaded = <OxroNotif>[];
+      for (final e in remote) {
+        if (e is! Map<String, dynamic>) continue;
+        final kindName = e['kind'] as String?;
+        final kind = kindName == 'offer' ? NotifKind.offer : NotifKind.order;
+        loaded.add(
+          OxroNotif(
+            id: (e['id'] as String?) ?? '',
+            title: (e['title'] as String?) ?? '',
+            sub: (e['sub'] as String?) ?? '',
+            time: (e['time'] as String?) ?? 'now',
+            // Flutter's IconData requires const codePoints — derive from
+            // kind instead of the stored codepoint.
+            icon: kind == NotifKind.offer
+                ? Icons.local_offer_outlined
+                : Icons.local_shipping_outlined,
+            kind: kind,
+            unread: (e['unread'] as bool?) ?? true,
+          ),
+        );
+      }
+      if (loaded.isEmpty) return;
+      _items
+        ..clear()
+        ..addAll(loaded);
+      notifyListeners();
+    } catch (_) {
+      // Offline — keep the local inbox.
+    }
+  }
+
+  static void _sync(Future<bool> Function() action) {
+    if (!CustomerIdentity.networkEnabled) return;
+    unawaited(() async {
+      try {
+        await action();
+      } catch (_) {
+        // Best-effort sync only.
+      }
+    }());
+  }
+
   bool get enabled => _enabled;
 
   List<OxroNotif> get items => List.unmodifiable(_items);
@@ -124,11 +178,39 @@ class NotifStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Inserts a new inbox row at the top (Smart Change credits, order
+  /// events...). Returns false when a row with the same [id] exists —
+  /// duplicate notifications are never shown twice.
+  bool add({
+    required String id,
+    required String title,
+    required String sub,
+    IconData icon = Icons.notifications_none,
+    NotifKind kind = NotifKind.order,
+    String time = 'now',
+  }) {
+    if (_items.any((n) => n.id == id)) return false;
+    _items.insert(
+      0,
+      OxroNotif(
+        id: id,
+        title: title,
+        sub: sub,
+        time: time,
+        icon: icon,
+        kind: kind,
+      ),
+    );
+    notifyListeners();
+    return true;
+  }
+
   void markRead(String id) {
     final i = _items.indexWhere((n) => n.id == id);
     if (i < 0 || !_items[i].unread) return;
     _items[i] = _items[i].copyWith(unread: false);
     notifyListeners();
+    _sync(() => NotificationRepo().markRead(id, unread: false));
   }
 
   void markAllRead() {
@@ -137,6 +219,7 @@ class NotifStore extends ChangeNotifier {
       _items[i] = _items[i].copyWith(unread: false);
     }
     notifyListeners();
+    _sync(() => NotificationRepo().markAllRead());
   }
 
   /// Swipe-right toggle: unread <-> read.
@@ -145,6 +228,7 @@ class NotifStore extends ChangeNotifier {
     if (i < 0) return;
     _items[i] = _items[i].copyWith(unread: !_items[i].unread);
     notifyListeners();
+    _sync(() => NotificationRepo().markRead(id, unread: _items[i].unread));
   }
 
   OxroNotif? _lastRemoved;

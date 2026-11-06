@@ -367,14 +367,14 @@ test('checkout wallet: insufficient is rejected, debit is exact', async () => {
   assert.equal(wallet.data.balancePaise, 50000 - bill.grandTotalPaise);
 });
 
-test('checkout verify is not faked', async () => {
+test('checkout verify rejects invalid signature', async () => {
   const { status, data } = await post('/checkout/verify', {
-    orderId: 'OXRO1',
-    paymentId: 'pay_1',
-    amount: 100,
+    razorpayOrderId: 'order_1',
+    razorpayPaymentId: 'pay_1',
+    razorpaySignature: 'bad-signature',
   });
-  assert.equal(status, 501);
-  assert.equal(data.code, 'payment_not_integrated');
+  assert.equal(status, 400);
+  assert.equal(data.code, 'payment_verification_failed');
 });
 
 test('search + restaurants come from the seeded catalogue', async () => {

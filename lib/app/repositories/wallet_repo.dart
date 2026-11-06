@@ -1,16 +1,20 @@
-import '../api/api_client.dart';
-import '../api/auth_interceptor.dart';
+import 'dart:convert';
 
+import 'package:oxro/app/api/api_client.dart';
+import 'package:oxro/app/api/customer_identity.dart';
+
+/// Server-backed OXRO Money ledger. Top-up is intentionally absent until
+/// a real payment gateway exists.
 class WalletRepo {
   final ApiClient _client = ApiClient();
 
-  Future<dynamic> fetchBalance() async {
-    final headers = await AuthInterceptor().injectHeaders({});
-    return await _client.get('/wallet', headers: headers);
-  }
-
-  Future<dynamic> addMoney(int amount) async {
-    final headers = await AuthInterceptor().injectHeaders({});
-    return await _client.post('/wallet/add', body: {'amount': amount}, headers: headers);
+  Future<Map<String, dynamic>?> fetchLedger() async {
+    final id = CustomerIdentity.customerId;
+    final res = await _client.get(
+      '/wallet?customerId=${Uri.encodeComponent(id)}',
+    );
+    if (res.statusCode != 200) return null;
+    final decoded = jsonDecode(res.body);
+    return decoded is Map<String, dynamic> ? decoded : null;
   }
 }

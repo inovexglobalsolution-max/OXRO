@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:oxro_pricing/oxro_pricing.dart';
 
+import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/features/pricing/data/pricing_config_store.dart';
+import 'package:oxro/features/rider/presentation/screens/rider_cod_collect_screen.dart';
 
 /// Rider app mock-up (UI only, mock data).
 ///
@@ -55,43 +57,62 @@ class _RiderOffersScreenState extends State<RiderOffersScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Rider Hub',
-            style: TextStyle(
-                color: OxroColors.charcoal,
-                fontWeight: FontWeight.w800)),
-        iconTheme:
-            const IconThemeData(color: OxroColors.charcoal),
+        title: const Text(
+          'Rider Hub',
+          style: TextStyle(
+            color: OxroColors.charcoal,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: OxroColors.charcoal),
       ),
       body: ListenableBuilder(
         listenable: PricingConfigStore.instance,
         builder: (context, _) {
-          final engine = PricingEngine(
-              PricingConfigStore.instance.config);
+          final engine = PricingEngine(PricingConfigStore.instance.config);
           final payouts = [
             for (final o in _offers)
-              engine.payoutFor(DeliveryPayoutInput(
-                roadMetres: o.roadMetres,
-                orderCount: o.orderCount,
-                tipPaise: o.tipPaise,
-                acceptedAt: DateTime.now(),
-              )),
+              engine.payoutFor(
+                DeliveryPayoutInput(
+                  roadMetres: o.roadMetres,
+                  orderCount: o.orderCount,
+                  tipPaise: o.tipPaise,
+                  acceptedAt: DateTime.now(),
+                ),
+              ),
           ];
           final todayEarnings = payouts.fold<int>(
-              0, (s, p) => s + p.totalPaise);
+            0,
+            (s, p) => s + p.totalPaise,
+          );
 
           return ListView(
             key: const ValueKey('rider_scroll'),
-            padding: EdgeInsets.fromLTRB(
-                context.padX, 8, context.padX, 24),
+            padding: EdgeInsets.fromLTRB(context.padX, 8, context.padX, 24),
             children: [
               _earningsHeader(context, todayEarnings),
               SizedBox(height: context.rs(12)),
-              const Text('NEW DELIVERY REQUESTS',
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: OxroColors.muted,
-                      letterSpacing: 1.1)),
+              const Text(
+                'SMART CHANGE (COD)',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: OxroColors.muted,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _smartChangeCard(context),
+              SizedBox(height: context.rs(12)),
+              const Text(
+                'NEW DELIVERY REQUESTS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: OxroColors.muted,
+                  letterSpacing: 1.1,
+                ),
+              ),
               const SizedBox(height: 8),
               for (var i = 0; i < _offers.length; i++)
                 _offerCard(context, _offers[i], payouts[i]),
@@ -114,34 +135,94 @@ class _RiderOffersScreenState extends State<RiderOffersScreen> {
         children: [
           const Row(
             children: [
-              Icon(Icons.delivery_dining,
-                  color: Colors.white, size: 18),
+              Icon(Icons.delivery_dining, color: Colors.white, size: 18),
               SizedBox(width: 6),
-              Text('TODAY · ESTIMATED',
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white70,
-                      letterSpacing: 1.1)),
+              Text(
+                'TODAY · ESTIMATED',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white70,
+                  letterSpacing: 1.1,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(Money.inr(estimate),
-              style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white)),
+          Text(
+            Money.inr(estimate),
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
           const SizedBox(height: 2),
-          const Text('Across 3 available deliveries (incl. tips)',
-              style: TextStyle(
-                  fontSize: 12, color: Colors.white70)),
+          const Text(
+            'Across 3 available deliveries (incl. tips)',
+            style: TextStyle(fontSize: 12, color: Colors.white70),
+          ),
         ],
       ),
     );
   }
 
-  Widget _offerCard(BuildContext context, _DeliveryOffer o,
-      DeliveryPayout p) {
+  Widget _smartChangeCard(BuildContext context) {
+    return GestureDetector(
+      key: const ValueKey('rider_smart_change'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () => pushScreen(context, const RiderCodCollectScreen()),
+      child: Container(
+        padding: EdgeInsets.all(context.rs(14)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: OxroColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: OxroColors.primary.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.payments_outlined,
+                size: 18,
+                color: OxroColors.primary,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Smart Change COD collections',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: OxroColors.charcoal,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Verify cash & credit change to OXRO Money',
+                    style: TextStyle(fontSize: 11, color: OxroColors.muted),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: OxroColors.muted),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _offerCard(BuildContext context, _DeliveryOffer o, DeliveryPayout p) {
     final accepted = _accepted.contains(o.id);
     final km = p.billableKm;
     return Container(
@@ -151,10 +232,9 @@ class _RiderOffersScreenState extends State<RiderOffersScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-            color: accepted
-                ? OxroColors.green
-                : OxroColors.border,
-            width: accepted ? 1.6 : 1),
+          color: accepted ? OxroColors.green : OxroColors.border,
+          width: accepted ? 1.6 : 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,24 +242,28 @@ class _RiderOffersScreenState extends State<RiderOffersScreen> {
           Row(
             children: [
               Expanded(
-                child: Text(o.id,
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800)),
+                child: Text(
+                  o.id,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: OxroColors.royalBlue
-                      .withValues(alpha: 0.10),
+                  color: OxroColors.royalBlue.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('${km.toStringAsFixed(1)} km',
-                    style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: OxroColors.royalBlue)),
+                child: Text(
+                  '${km.toStringAsFixed(1)} km',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: OxroColors.royalBlue,
+                  ),
+                ),
               ),
             ],
           ),
@@ -188,36 +272,36 @@ class _RiderOffersScreenState extends State<RiderOffersScreen> {
           const SizedBox(height: 6),
           _leg(Icons.flag_outlined, 'Drop', o.drop),
           const Divider(height: 18),
-          _row('Base payout',
-              Money.inr(p.basePayoutPaise)),
-          _row('Distance (${km.toStringAsFixed(1)} km)',
-              Money.inr(p.distancePayPaise)),
+          _row('Base payout', Money.inr(p.basePayoutPaise)),
+          _row(
+            'Distance (${km.toStringAsFixed(1)} km)',
+            Money.inr(p.distancePayPaise),
+          ),
           if (p.stackingBonusPaise > 0)
-            _row('Stacked order bonus',
-                Money.inr(p.stackingBonusPaise)),
+            _row('Stacked order bonus', Money.inr(p.stackingBonusPaise)),
           if (p.peakBonusPaise > 0)
-            _row('Peak-hour incentive',
-                Money.inr(p.peakBonusPaise)),
+            _row('Peak-hour incentive', Money.inr(p.peakBonusPaise)),
           if (p.specialBonusPaise > 0)
-            _row('Special bonus',
-                Money.inr(p.specialBonusPaise)),
+            _row('Special bonus', Money.inr(p.specialBonusPaise)),
           if (p.tipPaise > 0)
-            _row('Customer tip', Money.inr(p.tipPaise),
-                highlight: true),
+            _row('Customer tip', Money.inr(p.tipPaise), highlight: true),
           const SizedBox(height: 6),
           Row(
             children: [
               const Expanded(
-                child: Text('Estimated earnings',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800)),
+                child: Text(
+                  'Estimated earnings',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                ),
               ),
-              Text(Money.inr(p.totalPaise),
-                  style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: OxroColors.primary)),
+              Text(
+                Money.inr(p.totalPaise),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: OxroColors.primary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -225,31 +309,27 @@ class _RiderOffersScreenState extends State<RiderOffersScreen> {
             key: ValueKey('rider_accept_${o.id}'),
             onTap: () {
               setState(() => _accepted.add(o.id));
-              showOxroSnack(context,
-                  'Accepted ${o.id} · ${Money.inr(p.totalPaise)}');
+              showOxroSnack(
+                context,
+                'Accepted ${o.id} · ${Money.inr(p.totalPaise)}',
+              );
             },
             behavior: HitTestBehavior.opaque,
             child: Container(
               alignment: Alignment.center,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: accepted
-                    ? Colors.white
-                    : OxroColors.primary,
+                color: accepted ? Colors.white : OxroColors.primary,
                 borderRadius: BorderRadius.circular(12),
-                border: accepted
-                    ? Border.all(color: OxroColors.green)
-                    : null,
+                border: accepted ? Border.all(color: OxroColors.green) : null,
               ),
               child: Text(
                 accepted ? 'Accepted ✓' : 'Accept delivery',
                 style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: accepted
-                        ? OxroColors.green
-                        : Colors.white),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: accepted ? OxroColors.green : Colors.white,
+                ),
               ),
             ),
           ),
@@ -259,45 +339,51 @@ class _RiderOffersScreenState extends State<RiderOffersScreen> {
   }
 
   Widget _leg(IconData icon, String label, String value) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 15, color: OxroColors.muted),
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 52,
-            child: Text(label,
-                style: const TextStyle(
-                    fontSize: 12, color: OxroColors.muted)),
-          ),
-          Expanded(
-            child: Text(value,
-                style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: OxroColors.charcoal)),
-          ),
-        ],
-      );
-
-  Widget _row(String k, String v, {bool highlight = false}) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Row(
-          children: [
-            Expanded(
-                child: Text(k,
-                    style: const TextStyle(
-                        fontSize: 12, color: OxroColors.muted))),
-            Text(v,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: highlight
-                        ? OxroColors.green
-                        : OxroColors.charcoal)),
-          ],
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 15, color: OxroColors.muted),
+      const SizedBox(width: 6),
+      SizedBox(
+        width: 52,
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: OxroColors.muted),
         ),
-      );
+      ),
+      Expanded(
+        child: Text(
+          value,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: OxroColors.charcoal,
+          ),
+        ),
+      ),
+    ],
+  );
+
+  Widget _row(String k, String v, {bool highlight = false}) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            k,
+            style: const TextStyle(fontSize: 12, color: OxroColors.muted),
+          ),
+        ),
+        Text(
+          v,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: highlight ? OxroColors.green : OxroColors.charcoal,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _DeliveryOffer {

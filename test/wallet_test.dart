@@ -55,7 +55,7 @@ void main() {
     expect(WalletStore.instance.txs.first.amount, -200);
   });
 
-  testWidgets('Wallet screen top-up works', (tester) async {
+  testWidgets('Wallet screen top-up shows pending notice', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: WalletScreen()));
     await _settle(tester);
 
@@ -71,8 +71,13 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('wallet_add_500')));
     await _settle(tester);
-    expect(WalletStore.instance.balance, 500);
-    expect(find.byKey(const ValueKey('wallet_empty')), findsNothing);
+    // No payment gateway yet — never credit fake money.
+    expect(WalletStore.instance.balance, 0);
+    expect(find.byKey(const ValueKey('wallet_empty')), findsOneWidget);
+    expect(
+      find.text('Top-up coming soon — payment integration pending'),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });

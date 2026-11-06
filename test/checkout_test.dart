@@ -181,8 +181,11 @@ void main() {
     await _frames(tester);
 
     expect(find.byKey(const ValueKey('checkout_summary')), findsOneWidget);
-    expect(find.byKey(const ValueKey('pay_upi')), findsOneWidget);
-    expect(find.byKey(const ValueKey('pay_cod')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('checkout_pay_using_row')),
+      findsOneWidget,
+    );
+    expect(find.text('Payment Method'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('coupon_offers_link')),
       300,

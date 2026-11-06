@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:oxro_pricing/oxro_pricing.dart';
+
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/repositories/pricing_repo.dart';
 
 /// One admin change, kept for the audit log.
 class PricingAuditEntry {
@@ -71,11 +75,24 @@ class PricingConfigStore extends ChangeNotifier {
       final raw = p.getString(_kConfig);
       if (raw != null && raw.isNotEmpty) {
         _config = PricingConfig.fromJson(
-            jsonDecode(raw) as Map<String, dynamic>);
+          jsonDecode(raw) as Map<String, dynamic>,
+        );
       }
       notifyListeners();
     } catch (_) {
       // Best-effort cache; fall back to initial config.
+    }
+    if (!CustomerIdentity.networkEnabled) return;
+    try {
+      final remote = await PricingRepo().fetchConfig();
+      if (remote != null) {
+        final next = PricingConfig.fromJson(remote);
+        next.validate();
+        _config = next;
+        notifyListeners();
+      }
+    } catch (_) {
+      // Offline — keep the local config.
     }
   }
 
@@ -90,13 +107,27 @@ class PricingConfigStore extends ChangeNotifier {
     _record(bumped.version, diff.join(', '));
     notifyListeners();
     await _persist();
+    _pushConfig(bumped);
+  }
+
+  static void _pushConfig(PricingConfig config) {
+    if (!CustomerIdentity.networkEnabled) return;
+    unawaited(() async {
+      try {
+        await PricingRepo().updateConfig(config.toJson());
+      } catch (_) {
+        // Best-effort sync only.
+      }
+    }());
   }
 
   Future<void> setPromoFreePlatformFee(bool on) async {
     if (_promoFreePlatformFee == on) return;
     _promoFreePlatformFee = on;
-    _record(_config.version,
-        on ? 'Platform fee promo ON (₹0)' : 'Platform fee promo OFF');
+    _record(
+      _config.version,
+      on ? 'Platform fee promo ON (₹0)' : 'Platform fee promo OFF',
+    );
     notifyListeners();
     await _persist();
   }
@@ -104,8 +135,7 @@ class PricingConfigStore extends ChangeNotifier {
   void _record(int version, String summary) {
     _audit.insert(
       0,
-      PricingAuditEntry(
-          version: version, summary: summary, at: DateTime.now()),
+      PricingAuditEntry(version: version, summary: summary, at: DateTime.now()),
     );
     if (_audit.length > 50) _audit.removeLast();
   }
@@ -114,28 +144,38 @@ class PricingConfigStore extends ChangeNotifier {
     final out = <String>[];
     void chk(String name, num x, num y, {bool percent = false}) {
       if (x != y) {
-        out.add(percent
-            ? '$name ${(x / 100).toStringAsFixed(2)}% → ${(y / 100).toStringAsFixed(2)}%'
-            : '$name $x → $y');
+        out.add(
+          percent
+              ? '$name ${(x / 100).toStringAsFixed(2)}% → ${(y / 100).toStringAsFixed(2)}%'
+              : '$name $x → $y',
+        );
       }
     }
 
-    chk('Commission', a.commissionBps, b.commissionBps,
-        percent: true);
+    chk('Commission', a.commissionBps, b.commissionBps, percent: true);
     chk('Platform fee', a.platformFeePaise, b.platformFeePaise);
-    chk('Delivery fee', a.customerDeliveryFeePaise,
-        b.customerDeliveryFeePaise);
+    chk('Delivery fee', a.customerDeliveryFeePaise, b.customerDeliveryFeePaise);
     chk('GST', a.customerGstBps, b.customerGstBps, percent: true);
-    chk('Commission GST', a.commissionGstBps, b.commissionGstBps,
-        percent: true);
+    chk(
+      'Commission GST',
+      a.commissionGstBps,
+      b.commissionGstBps,
+      percent: true,
+    );
     chk('TDS', a.tdsBps, b.tdsBps, percent: true);
     chk('Base payout', a.basePayoutPaise, b.basePayoutPaise);
-    chk('Included distance', a.includedDistanceMetres,
-        b.includedDistanceMetres);
+    chk(
+      'Included distance',
+      a.includedDistanceMetres,
+      b.includedDistanceMetres,
+    );
     chk('Per km', a.perKmPaise, b.perKmPaise);
     chk('Stacking bonus', a.stackingBonusPaise, b.stackingBonusPaise);
-    chk('Waiting comp/min', a.waitingCompPerMinutePaise,
-        b.waitingCompPerMinutePaise);
+    chk(
+      'Waiting comp/min',
+      a.waitingCompPerMinutePaise,
+      b.waitingCompPerMinutePaise,
+    );
     return out;
   }
 

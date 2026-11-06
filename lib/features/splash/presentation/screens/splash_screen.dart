@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:oxro/app/router/oxro_routes.dart';
+import 'package:oxro/app/api/customer_identity.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/features/account/data/profile_store.dart';
@@ -10,15 +13,18 @@ import 'package:oxro/features/applock/presentation/screens/pin_screen.dart';
 import 'package:oxro/features/auth/presentation/screens/login_screen.dart';
 import 'package:oxro/features/cart/data/cart_store.dart';
 import 'package:oxro/features/checkout/data/payment_store.dart';
+import 'package:oxro/features/coupons/data/coupon_store.dart';
 import 'package:oxro/features/help/data/support_store.dart';
 import 'package:oxro/features/home/data/food_preference_store.dart';
 import 'package:oxro/features/home/presentation/screens/home_screen.dart';
 import 'package:oxro/features/location/data/geo_store.dart';
+import 'package:oxro/features/notifications/data/notification_store.dart';
 import 'package:oxro/features/pricing/data/pricing_config_store.dart';
 import 'package:oxro/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:oxro/features/orders/data/order_store.dart';
 import 'package:oxro/features/premium/data/premium_store.dart';
 import 'package:oxro/features/reviews/data/review_store.dart';
+import 'package:oxro/features/wallet/data/smart_change_credit.dart';
 import 'package:oxro/features/wallet/data/wallet_store.dart';
 import 'package:oxro/features/wishlist/data/wishlist_store.dart';
 
@@ -41,26 +47,39 @@ class _SplashScreenState extends State<SplashScreen> {
     // Parallel loads + brand beat run together (was 3 sequential
     // awaits); any prefs failure falls back to Login, never hangs.
     try {
+      // Load before any API call derives customerId from the device.
+      await CustomerIdentity.ensureIdentityLoaded();
+      // Profile first: every API call derives customerId from it (phone /
+      // email, else the stable guest id loaded above).
+      await ProfileStore.instance.load();
+      // Cap every load at 2s: an unreachable backend must never stall
+      // the splash — the load keeps running and notifies when done.
+      Future<void> cap(Future<void> f) =>
+          f.timeout(const Duration(seconds: 2), onTimeout: () {});
       await Future.wait([
-        ProfileStore.instance.load(),
-        ApplockStore.instance.load(),
-        ReviewStore.instance.load(),
-        CartStore.instance.load(),
-        AddressStore.instance.load(),
-        OrderStore.instance.load(),
-        WalletStore.instance.load(),
-        WishlistStore.instance.load(),
-        PaymentStore.instance.load(),
-        PremiumStore.instance.load(),
-        PricingConfigStore.instance.load(),
-        GeoStore.instance.load(),
-        FoodPreferenceStore.instance.load(),
-        SupportStore.instance.load(),
+        cap(ApplockStore.instance.load()),
+        cap(ReviewStore.instance.load()),
+        cap(CartStore.instance.load()),
+        cap(AddressStore.instance.load()),
+        cap(OrderStore.instance.load()),
+        cap(WalletStore.instance.load()),
+        cap(WishlistStore.instance.load()),
+        cap(PaymentStore.instance.load()),
+        cap(PremiumStore.instance.load()),
+        cap(PricingConfigStore.instance.load()),
+        cap(GeoStore.instance.load()),
+        cap(FoodPreferenceStore.instance.load()),
+        cap(SupportStore.instance.load()),
+        cap(NotifStore.instance.load()),
+        cap(CouponStore.load()),
         Future.delayed(const Duration(milliseconds: 1800)),
       ]);
     } catch (_) {
       // Fall through to Login below.
     }
+    // Best-effort: pull pending Smart Change credits into OXRO Money on
+    // every launch — the customer never has to open the wallet first.
+    unawaited(SmartChangeWalletCredit.apply());
     if (!mounted) return;
     final prof = ProfileStore.instance;
     final Widget dest;

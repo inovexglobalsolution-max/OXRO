@@ -75,10 +75,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
     setState(() => _saved = true);
+    if (ProfileStore.instance.lastRemoteSyncResult == false) {
+      showOxroSnack(
+        context,
+        'Saved on this device — server sync failed',
+        actionLabel: 'Retry',
+        onAction: () => _retryProfileSync(),
+      );
+      return;
+    }
     showOxroSnack(context, 'Profile updated');
     await Future.delayed(const Duration(milliseconds: 650));
     if (!mounted) return;
     Navigator.of(context).maybePop();
+  }
+
+  Future<void> _retryProfileSync() async {
+    final ok = await ProfileStore.instance.retryProfileSync();
+    if (!mounted) return;
+    showOxroSnack(
+      context,
+      ok ? 'Profile synced' : 'Server still unavailable',
+      actionLabel: ok ? null : 'Retry',
+      onAction: ok ? null : () => _retryProfileSync(),
+    );
   }
 
   InputDecoration _dec({
@@ -103,8 +123,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       errorStyle: const TextStyle(fontSize: 12, height: 1),
       filled: true,
       fillColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: OxroColors.border),
@@ -115,8 +134,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-            const BorderSide(color: OxroColors.primary, width: 1.5),
+        borderSide: const BorderSide(color: OxroColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -124,8 +142,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-            const BorderSide(color: Colors.red, width: 1.5),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
     );
   }
@@ -140,23 +157,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           children: [
             Padding(
               padding: EdgeInsets.symmetric(
-                  horizontal: context.rs(8), vertical: 4),
+                horizontal: context.rs(8),
+                vertical: 4,
+              ),
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () =>
-                        Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_back,
-                        color: OxroColors.charcoal),
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: OxroColors.charcoal,
+                    ),
                   ),
                   const Expanded(
-                    child: Text('Edit Profile',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: OxroColors.charcoal)),
+                    child: Text(
+                      'Edit Profile',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: OxroColors.charcoal,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -172,7 +195,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   return ListView(
                     key: const ValueKey('edit_scroll'),
                     padding: EdgeInsets.fromLTRB(
-                        context.padX, 6, context.padX, 20),
+                      context.padX,
+                      6,
+                      context.padX,
+                      20,
+                    ),
                     children: [
                       Center(
                         child: Stack(
@@ -183,26 +210,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               height: 96,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: OxroColors.primary
-                                    .withValues(alpha: 0.12),
+                                color: OxroColors.primary.withValues(
+                                  alpha: 0.12,
+                                ),
                               ),
                             ),
                             Container(
-                              padding:
-                                  const EdgeInsets.all(3),
+                              padding: const EdgeInsets.all(3),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                    color: Colors.white,
-                                    width: 3),
+                                  color: Colors.white,
+                                  width: 3,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: OxroColors.primary
-                                        .withValues(
-                                            alpha: 0.30),
+                                    color: OxroColors.primary.withValues(
+                                      alpha: 0.30,
+                                    ),
                                     blurRadius: 18,
-                                    offset:
-                                        const Offset(0, 8),
+                                    offset: const Offset(0, 8),
                                   ),
                                 ],
                               ),
@@ -213,23 +240,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 child: Container(
                                   width: 72,
                                   height: 72,
-                                  decoration:
-                                      const BoxDecoration(
-                                    gradient:
-                                        OxroColors.gradient,
+                                  decoration: const BoxDecoration(
+                                    gradient: OxroColors.gradient,
                                     shape: BoxShape.circle,
                                   ),
                                   child: ProfileAvatar(
                                     size: 72,
-                                    backgroundColor:
-                                        Colors.transparent,
+                                    backgroundColor: Colors.transparent,
                                     fallback: Center(
-                                      child: Text(initial,
-                                          style: const TextStyle(
-                                              fontSize: 28,
-                                              fontWeight:
-                                                  FontWeight.w800,
-                                              color: Colors.white)),
+                                      child: Text(
+                                        initial,
+                                        style: const TextStyle(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                     ),
                                     showCameraBadge: true,
                                   ),
@@ -241,189 +267,159 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       SizedBox(height: context.rs(16)),
                       TextField(
-                          key:
-                              const ValueKey('edit_name'),
-                          controller: _nameCtrl,
-                          textCapitalization:
-                              TextCapitalization.words,
-                          textInputAction:
-                              TextInputAction.next,
-                          onChanged: (_) {
-                            if (_nameError != null) {
-                              setState(
-                                  () => _nameError = null);
-                            }
-                          },
-                          onSubmitted: (_) =>
-                              FocusScope.of(context)
-                                  .nextFocus(),
-                          decoration: _dec(
-                            label: 'Full name',
-                            hint: 'e.g. Sachin V',
-                            error: _nameError,
-                            prefixIcon: const Icon(
-                                Icons.person_outline,
-                                color: OxroColors.muted),
+                        key: const ValueKey('edit_name'),
+                        controller: _nameCtrl,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        onChanged: (_) {
+                          if (_nameError != null) {
+                            setState(() => _nameError = null);
+                          }
+                        },
+                        onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                        decoration: _dec(
+                          label: 'Full name',
+                          hint: 'e.g. Sachin V',
+                          error: _nameError,
+                          prefixIcon: const Icon(
+                            Icons.person_outline,
+                            color: OxroColors.muted,
                           ),
                         ),
+                      ),
                       SizedBox(height: context.rs(10)),
                       TextField(
-                          key:
-                              const ValueKey('edit_phone'),
-                          controller: _phoneCtrl,
-                          keyboardType:
-                              TextInputType.phone,
-                          maxLength: 10,
-                          inputFormatters: [
-                            FilteringTextInputFormatter
-                                .digitsOnly
-                          ],
-                          textInputAction:
-                              TextInputAction.done,
-                          onChanged: (_) {
-                            if (_phoneError != null) {
-                              setState(() =>
-                                  _phoneError = null);
-                            }
-                          },
-                          onSubmitted: (_) => _save(),
-                          decoration: _dec(
-                            label: 'Phone number',
-                            hint: '10-digit mobile',
-                            error: _phoneError,
-                            prefix: const Padding(
-                              padding: EdgeInsets.only(
-                                  right: 8),
-                              child: Text('+91',
-                                  style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight:
-                                          FontWeight.w700,
-                                      color: OxroColors
-                                          .charcoal)),
+                        key: const ValueKey('edit_phone'),
+                        controller: _phoneCtrl,
+                        keyboardType: TextInputType.phone,
+                        maxLength: 10,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        textInputAction: TextInputAction.done,
+                        onChanged: (_) {
+                          if (_phoneError != null) {
+                            setState(() => _phoneError = null);
+                          }
+                        },
+                        onSubmitted: (_) => _save(),
+                        decoration: _dec(
+                          label: 'Phone number',
+                          hint: '10-digit mobile',
+                          error: _phoneError,
+                          prefix: const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: Text(
+                              '+91',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: OxroColors.charcoal,
+                              ),
                             ),
-                            prefixIcon: const Icon(
-                                Icons.call_outlined,
-                                color: OxroColors.muted),
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.call_outlined,
+                            color: OxroColors.muted,
                           ),
                         ),
+                      ),
                       SizedBox(height: context.rs(10)),
                       TextField(
-                          controller: TextEditingController(
-                              text: prof.email ?? ''),
-                          readOnly: true,
-                          enabled: false,
-                          decoration: InputDecoration(
-                            labelText: 'Email (login)',
-                            filled: true,
-                            fillColor: Colors.white
-                                .withValues(alpha: 0.6),
-                            contentPadding:
-                                const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 14),
-                            prefixIcon: const Icon(
-                                Icons.mail_outline,
-                                color: OxroColors.muted),
-                            border: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.circular(
-                                      12),
-                              borderSide:
-                                  const BorderSide(
-                                      color:
-                                          OxroColors.border),
+                        controller: TextEditingController(
+                          text: prof.email ?? '',
+                        ),
+                        readOnly: true,
+                        enabled: false,
+                        decoration: InputDecoration(
+                          labelText: 'Email (login)',
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.6),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.mail_outline,
+                            color: OxroColors.muted,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: OxroColors.border,
                             ),
-                            disabledBorder:
-                                OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.circular(
-                                      12),
-                              borderSide:
-                                  const BorderSide(
-                                      color:
-                                          OxroColors.border),
+                          ),
+                          disabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: OxroColors.border,
                             ),
                           ),
                         ),
+                      ),
                       SizedBox(height: context.rs(16)),
                       PressScale(
-                          key:
-                              const ValueKey('edit_save'),
-                          onTap: _save,
-                          child: AnimatedContainer(
-                            duration: const Duration(
-                                milliseconds: 250),
-                            height: context.btnH,
-                            constraints:
-                                const BoxConstraints(
-                                    minHeight: 48),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              gradient: _saved
-                                  ? const LinearGradient(
-                                      colors: [
-                                          Colors.green,
-                                          Color(
-                                              0xFF16A34A)
-                                        ])
-                                  : OxroColors.gradient,
-                              borderRadius:
-                                  BorderRadius.circular(
-                                      context.rs(12)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (_saved
-                                          ? Colors.green
-                                          : OxroColors
-                                              .primary)
-                                      .withValues(
-                                          alpha: 0.35),
-                                  blurRadius: 14,
-                                  offset:
-                                      const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize:
-                                  MainAxisSize.min,
-                              children: [
-                                if (_saving)
-                                  const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child:
-                                        CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: Colors.white,
-                                    ),
+                        key: const ValueKey('edit_save'),
+                        onTap: _save,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          height: context.btnH,
+                          constraints: const BoxConstraints(minHeight: 48),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            gradient: _saved
+                                ? const LinearGradient(
+                                    colors: [Colors.green, Color(0xFF16A34A)],
                                   )
-                                else
-                                  Icon(
-                                      _saved
-                                          ? Icons.check_circle
-                                          : Icons.save_outlined,
-                                      color: Colors.white,
-                                      size: 20),
-                                const SizedBox(width: 8),
-                                Text(
-                                    _saving
-                                        ? 'Saving...'
-                                        : _saved
-                                            ? 'Saved!'
-                                            : 'Save Changes',
-                                    style: TextStyle(
-                                        fontSize: context
-                                            .font(16),
-                                        fontWeight:
-                                            FontWeight.w700,
-                                        color:
-                                            Colors.white)),
-                              ],
-                            ),
+                                : OxroColors.gradient,
+                            borderRadius: BorderRadius.circular(context.rs(12)),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    (_saved ? Colors.green : OxroColors.primary)
+                                        .withValues(alpha: 0.35),
+                                blurRadius: 14,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_saving)
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              else
+                                Icon(
+                                  _saved
+                                      ? Icons.check_circle
+                                      : Icons.save_outlined,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _saving
+                                    ? 'Saving...'
+                                    : _saved
+                                    ? 'Saved!'
+                                    : 'Save Changes',
+                                style: TextStyle(
+                                  fontSize: context.font(16),
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                      ),
                     ],
                   );
                 },

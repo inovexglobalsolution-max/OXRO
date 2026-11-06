@@ -1,4 +1,7 @@
-/// One promo coupon (mock, in-memory).
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/repositories/coupon_repo.dart';
+
+/// One promo coupon.
 /// Percent coupons use [off] as % with [cap] max rupees.
 class Coupon {
   const Coupon({
@@ -29,9 +32,11 @@ class Coupon {
   }
 }
 
-/// All coupons (Supabase promos replace later).
+/// All coupons (backend is authoritative when reachable).
 class CouponStore {
-  static const coupons = [
+  static List<Coupon> coupons = _seed;
+
+  static const _seed = [
     Coupon(
       code: 'OXRO500',
       title: 'Flat Rs.500 OFF',
@@ -64,6 +69,37 @@ class CouponStore {
       freeShip: true,
     ),
   ];
+
+  /// Pulls the live coupon table once at splash (keeps [coupons] on
+  /// failure so checkout always has something to validate against).
+  static Future<void> load() async {
+    if (!CustomerIdentity.networkEnabled) return;
+    try {
+      final remote = await CouponRepo().list();
+      if (remote == null || remote.isEmpty) return;
+      final next = <Coupon>[];
+      for (final e in remote) {
+        if (e is! Map<String, dynamic>) continue;
+        final code = e['code'];
+        if (code is! String || code.isEmpty) continue;
+        next.add(
+          Coupon(
+            code: code,
+            title: (e['title'] as String?) ?? '',
+            sub: (e['sub'] as String?) ?? '',
+            off: (e['off'] as num?)?.toInt() ?? 0,
+            percent: (e['percent'] as bool?) ?? false,
+            cap: (e['cap'] as num?)?.toInt() ?? 0,
+            minOrder: (e['minOrder'] as num?)?.toInt() ?? 0,
+            freeShip: (e['freeShip'] as bool?) ?? false,
+          ),
+        );
+      }
+      if (next.isNotEmpty) coupons = next;
+    } catch (_) {
+      // Offline — keep the local list.
+    }
+  }
 
   /// Case-insensitive lookup; null when unknown.
   static Coupon? byCode(String code) {

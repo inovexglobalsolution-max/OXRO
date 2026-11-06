@@ -1,5 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/repositories/profile_repo.dart';
 
 /// The two food choices shown in the preference sheet.
 enum FoodPreference { veg, nonVeg }
@@ -35,6 +40,9 @@ class FoodPreferenceStore extends ChangeNotifier {
   /// The active filter, or null when every kind of food is shown.
   FoodPreference? get activeFilter => _enabled ? _preference : null;
 
+  String get _prefName =>
+      _preference == FoodPreference.nonVeg ? 'nonveg' : 'veg';
+
   Future<void> load() async {
     try {
       final p = await SharedPreferences.getInstance();
@@ -56,6 +64,40 @@ class FoodPreferenceStore extends ChangeNotifier {
     } catch (_) {
       // Best-effort preference only.
     }
+    if (!CustomerIdentity.networkEnabled) return;
+    try {
+      final remote = await ProfileRepo().fetchPreferences();
+      if (remote == null) return;
+      if (remote['enabled'] == true) {
+        _enabled = true;
+        _preference = remote['preference'] == 'nonveg'
+            ? FoodPreference.nonVeg
+            : FoodPreference.veg;
+        notifyListeners();
+      } else if (_enabled) {
+        // Never set server-side yet — seed it from the local choice.
+        await ProfileRepo().savePreferences(
+          enabled: true,
+          preference: _prefName,
+        );
+      }
+    } catch (_) {
+      // Offline — the local preference stays authoritative.
+    }
+  }
+
+  void _sync() {
+    if (!CustomerIdentity.networkEnabled) return;
+    unawaited(() async {
+      try {
+        await ProfileRepo().savePreferences(
+          enabled: _enabled,
+          preference: _enabled ? _prefName : null,
+        );
+      } catch (_) {
+        // Best-effort sync only.
+      }
+    }());
   }
 
   Future<void> apply(FoodPreference preference) async {
@@ -63,6 +105,7 @@ class FoodPreferenceStore extends ChangeNotifier {
     _preference = preference;
     notifyListeners();
     await _persist();
+    _sync();
   }
 
   Future<void> disable() async {
@@ -70,6 +113,7 @@ class FoodPreferenceStore extends ChangeNotifier {
     _enabled = false;
     notifyListeners();
     await _persist();
+    _sync();
   }
 
   Future<void> setPreference(FoodPreference preference) async {
@@ -77,16 +121,14 @@ class FoodPreferenceStore extends ChangeNotifier {
     _preference = preference;
     notifyListeners();
     await _persist();
+    _sync();
   }
 
   Future<void> _persist() async {
     try {
       final p = await SharedPreferences.getInstance();
       await p.setBool(_kEnabled, _enabled);
-      await p.setString(
-        _kPreference,
-        _preference == FoodPreference.nonVeg ? 'nonveg' : 'veg',
-      );
+      await p.setString(_kPreference, _prefName);
     } catch (_) {
       // Best-effort preference only.
     }

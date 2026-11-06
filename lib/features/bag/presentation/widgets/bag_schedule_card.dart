@@ -92,7 +92,7 @@ class _BagScheduleCardState extends State<BagScheduleCard>
               width: double.infinity,
               padding: EdgeInsets.symmetric(
                 horizontal: context.rs(10),
-                vertical: context.rs(5),
+                vertical: context.rs(6),
               ),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -116,14 +116,14 @@ class _BagScheduleCardState extends State<BagScheduleCard>
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Animated clock / delivery-time icon.
+                  // Smaller clock icon for compact appearance.
                   Container(
-                    width: context.rs(28),
-                    height: context.rs(28),
+                    width: context.rs(22),
+                    height: context.rs(22),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: OxroColors.primary.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: OxroColors.primary.withValues(alpha: 0.35),
                       ),
@@ -140,7 +140,7 @@ class _BagScheduleCardState extends State<BagScheduleCard>
                       },
                       child: const Icon(
                         Icons.schedule_outlined,
-                        size: 16,
+                        size: 13,
                         color: OxroColors.primary,
                       ),
                     ),
@@ -156,13 +156,13 @@ class _BagScheduleCardState extends State<BagScheduleCard>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.w800,
                             color: OxroColors.premiumInk,
-                            letterSpacing: 0.6,
+                            letterSpacing: 0.4,
                           ),
                         ),
-                        const SizedBox(height: 1),
+                        const SizedBox(height: 2),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
                           switchInCurve: Curves.easeOutCubic,
@@ -182,13 +182,13 @@ class _BagScheduleCardState extends State<BagScheduleCard>
                             ),
                           ),
                         ),
-                        const SizedBox(height: 1),
+                        const SizedBox(height: 0),
                         Text(
                           'Complete your meal · Tap to set delivery time',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 8.5,
+                            fontSize: 8,
                             fontWeight: FontWeight.w600,
                             color: OxroColors.premiumMuted,
                           ),

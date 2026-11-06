@@ -1,16 +1,23 @@
-import '../api/api_client.dart';
-import '../api/auth_interceptor.dart';
+import 'dart:convert';
 
+import 'package:oxro/app/api/api_client.dart';
+
+/// Server-backed pricing configuration (local store stays the fallback).
 class PricingRepo {
   final ApiClient _client = ApiClient();
 
-  Future<dynamic> fetchConfig() async {
-    final headers = await AuthInterceptor().injectHeaders({});
-    return await _client.get('/pricing', headers: headers);
+  Future<Map<String, dynamic>?> fetchConfig() async {
+    final res = await _client.get('/pricing');
+    if (res.statusCode != 200) return null;
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) return null;
+    return decoded['config'] is Map<String, dynamic>
+        ? decoded['config'] as Map<String, dynamic>
+        : null;
   }
 
-  Future<dynamic> updateConfig(Map<String, dynamic> config) async {
-    final headers = await AuthInterceptor().injectHeaders({});
-    return await _client.post('/pricing', body: config, headers: headers);
+  Future<bool> updateConfig(Map<String, dynamic> config) async {
+    final res = await _client.put('/pricing', body: config);
+    return res.statusCode == 200;
   }
 }

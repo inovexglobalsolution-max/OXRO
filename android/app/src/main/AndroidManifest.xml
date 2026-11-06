@@ -38,6 +38,16 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+<!-- Required for Razorpay UPI Intent: allows discovering installed UPI apps
+         (Google Pay, PhonePe, Paytm, BHIM, etc.) on Android 11+ (package
+         visibility). Without this, only the UPI ID/collect flow works. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" />
+        </intent>
+    </queries>
+
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.

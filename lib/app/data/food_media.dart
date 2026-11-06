@@ -31,6 +31,14 @@ class FoodMedia {
   static const milkshake = 'assets/food/milkshake.jpg';
   static const thali = 'assets/food/thali.jpg';
 
+  // Dining-out / 5-star hotel table photography.
+  static const dining1 = 'assets/food/dining_1.jpg';
+  static const dining2 = 'assets/food/dining_2.jpg';
+  static const dining3 = 'assets/food/dining_3.jpg';
+  static const dining4 = 'assets/food/dining_4.jpg';
+  static const dining5 = 'assets/food/dining_5.jpg';
+  static const dining6 = 'assets/food/dining_6.jpg';
+
   static const heroBiryani = 'assets/food/hero_biryani.jpg';
   static const heroPizza = 'assets/food/hero_pizza.jpg';
   static const heroSouthIndian = 'assets/food/hero_south_indian.jpg';

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -6,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:oxro/app/data/delivery_schedule.dart';
 import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/app/repositories/cart_repo.dart';
+import 'package:oxro/app/api/customer_identity.dart';
 
 /// One cart row — same product in two sizes = two rows.
 class CartLine {
@@ -46,6 +48,7 @@ class CartStore extends ChangeNotifier {
     instance._instructions = '';
     instance._cutleryOptIn = false;
     instance._bagSchedule = null;
+    instance._serverEmpty = false;
     instance.notifyListeners();
   }
 
@@ -53,6 +56,7 @@ class CartStore extends ChangeNotifier {
   String _instructions = '';
   bool _cutleryOptIn = false;
   DeliverySchedule? _bagSchedule;
+  bool _serverEmpty = false;
 
   static String _key(int id, String? size) =>
       size == null || size.isEmpty ? '$id' : '${id}__$size';
@@ -62,14 +66,23 @@ class CartStore extends ChangeNotifier {
 
   /// Load with backend sync (falls back to SharedPreferences).
   Future<void> load() async {
-    try {
-      // Attempt backend sync first
-      final repo = CartRepo();
-      await repo.fetchCart();
-      // Backend integration: if backend returns data, it would populate here.
-      // Currently scaffold — no modification to existing behavior.
-    } catch (_) {
-      // Best-effort backend sync only.
+    _serverEmpty = false;
+    if (CustomerIdentity.networkEnabled) {
+      try {
+        final data = await CartRepo().fetchCart();
+        if (data != null) {
+          final lines = data['lines'];
+          if (lines is List && lines.isNotEmpty && _applyServerSnapshot(data)) {
+            await _persist();
+            notifyListeners();
+            return;
+          }
+          // Empty server cart — seed it from the local cache after it loads.
+          if (lines is List && lines.isEmpty) _serverEmpty = true;
+        }
+      } catch (_) {
+        // Offline/invalid payload — use the local cache below.
+      }
     }
     try {
       final p = await SharedPreferences.getInstance();
@@ -112,6 +125,89 @@ class CartStore extends ChangeNotifier {
     } catch (_) {
       // Best-effort cache only.
     }
+    await _maybeSeedServer();
+  }
+
+  /// Pushes the locally cached cart to an empty server so a bag saved
+  /// offline lands in the DB instead of being wiped on the next load.
+  Future<void> _maybeSeedServer() async {
+    if (!_serverEmpty || !CustomerIdentity.networkEnabled) {
+      _serverEmpty = false;
+      return;
+    }
+    try {
+      if (_lines.isNotEmpty || _instructions.isNotEmpty || _cutleryOptIn) {
+        await CartRepo().replaceCart(
+          lines: _serverSnapshot(),
+          instructions: _instructions,
+          cutleryOptIn: _cutleryOptIn,
+        );
+      }
+    } catch (_) {
+      // Local cache remains authoritative; next sync can retry.
+    } finally {
+      _serverEmpty = false;
+    }
+  }
+
+  Map<String, Object> _lineSnapshot(CartLine line) => {
+    'product': line.product.toJson(),
+    'qty': line.qty,
+    if (line.size != null) 'size': line.size!,
+    if (line.schedule != null) 'schedule': line.schedule!.toJson(),
+  };
+
+  List<Map<String, Object>> _serverSnapshot() => [
+    for (final line in _lines.values) _lineSnapshot(line),
+  ];
+
+  bool _applyServerSnapshot(Map<String, dynamic> data) {
+    final next = <String, CartLine>{};
+    final lines = data['lines'];
+    if (lines is! List) return false;
+    for (final raw in lines) {
+      if (raw is! Map) continue;
+      final productValue = raw['product'];
+      if (productValue is! Map) continue;
+      final product = Product.fromJson(Map<String, dynamic>.from(productValue));
+      final qty = (raw['qty'] as num?)?.toInt();
+      if (qty == null || qty <= 0) continue;
+      final sizeValue = raw['size'];
+      final size = sizeValue is String && sizeValue.isNotEmpty
+          ? sizeValue
+          : null;
+      next[_key(product.id, size)] = CartLine(
+        product: product,
+        qty: qty.clamp(1, 99),
+        size: size,
+        schedule: DeliverySchedule.tryFromJson(raw['schedule']),
+      );
+    }
+    _lines
+      ..clear()
+      ..addAll(next);
+    _instructions = (data['instructions'] as String? ?? '').trim();
+    _cutleryOptIn = data['cutleryOptIn'] as bool? ?? false;
+    _bagSchedule = null;
+    if (data['bagSchedule'] is Map<String, dynamic>) {
+      _bagSchedule = DeliverySchedule.tryFromJson(data['bagSchedule']);
+    }
+    return true;
+  }
+
+  void _syncServerSnapshot() {
+    if (!CustomerIdentity.networkEnabled) return;
+    unawaited(() async {
+      try {
+        await CartRepo().replaceCart(
+          lines: _serverSnapshot(),
+          instructions: _instructions,
+          cutleryOptIn: _cutleryOptIn,
+        );
+      } catch (_) {
+        // Local cache remains authoritative on this device; next sync wins.
+      }
+    }());
   }
 
   Future<void> _persist() async {
@@ -142,6 +238,7 @@ class CartStore extends ChangeNotifier {
   void _changed() {
     notifyListeners();
     _persist();
+    _syncServerSnapshot();
   }
 
   void add(Product p, {String? size}) {

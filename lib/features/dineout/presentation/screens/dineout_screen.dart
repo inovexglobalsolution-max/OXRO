@@ -234,7 +234,8 @@ class _DineoutScreenState extends State<DineoutScreen>
   Widget _hero(BuildContext context) {
     final slides = DineoutRepo.all.take(10).toList();
     return SizedBox(
-      height: context.rs(220),
+      key: const ValueKey('dineout_hero'),
+      height: context.rs(190),
       child: PageView.builder(
         controller: _carouselController,
         itemCount: slides.isEmpty ? 1 : slides.length,
@@ -248,7 +249,7 @@ class _DineoutScreenState extends State<DineoutScreen>
                 borderRadius: BorderRadius.circular(20),
                 image: DecorationImage(
                   image: AssetImage(
-                    r?.bannerImage ?? 'assets/images/foundation_meal.png',
+                    r?.imageUrl ?? 'assets/images/foundation_meal.png',
                   ),
                   fit: BoxFit.cover,
                 ),
@@ -290,32 +291,30 @@ class _DineoutScreenState extends State<DineoutScreen>
                                 fontSize: 11,
                               ),
                             ),
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 8,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                for (int i = 0; i < 10; i++)
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 3,
-                                    ),
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: _currentSlide == i
-                                          ? Colors.orange
-                                          : Colors.white.withValues(alpha: 0.5),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
                         ],
                       ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 8,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (int i = 0; i < 10; i++)
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: _currentSlide == i
+                                  ? Colors.orange
+                                  : Colors.white.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],

@@ -3,10 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:oxro_pricing/oxro_pricing.dart';
+
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/features/home/data/home_data.dart';
+import 'package:oxro/features/wallet/data/smart_change_credit.dart';
 import 'package:oxro/features/wallet/data/wallet_store.dart';
 
 const _creditGreen = Color(0xFF2E7D4F);
@@ -38,7 +41,20 @@ class _WalletScreenState extends State<WalletScreen>
       vsync: this,
       duration: const Duration(seconds: 6),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _showWalletNote());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showWalletNote();
+      _applyCreditedSmartChange();
+    });
+  }
+
+  /// Applies server-credited Smart Change transactions not yet in the
+  /// local ledger (idempotent via txn id) + posts the notification.
+  Future<void> _applyCreditedSmartChange() async {
+    try {
+      await SmartChangeWalletCredit.apply();
+    } catch (_) {
+      // Best-effort — never block the wallet screen when offline.
+    }
   }
 
   @override
@@ -72,25 +88,16 @@ class _WalletScreenState extends State<WalletScreen>
     );
   }
 
+  /// Top-up stays disabled until a real payment gateway is integrated —
+  /// we never credit fake money into the wallet.
   void _add(int amount) {
-    if (amount <= 0) return;
-    WalletStore.instance.add(amount);
-    _amtCtrl.clear();
     FocusScope.of(context).unfocus();
-    showOxroSnack(context, '${Product.inr(amount)} added to wallet');
+    showOxroSnack(context, 'Top-up coming soon — payment integration pending');
   }
 
   void _addCustom() {
-    final v = int.tryParse(_amtCtrl.text.trim()) ?? 0;
-    if (v < 10) {
-      showOxroSnack(context, 'Enter at least ₹10');
-      return;
-    }
-    if (v > 50000) {
-      showOxroSnack(context, 'Max ₹50,000 per top-up in demo');
-      return;
-    }
-    _add(v);
+    FocusScope.of(context).unfocus();
+    showOxroSnack(context, 'Top-up coming soon — payment integration pending');
   }
 
   @override
@@ -125,7 +132,7 @@ class _WalletScreenState extends State<WalletScreen>
                             start: 0,
                             end: 0.5,
                             dy: 16,
-                            child: _balanceCard(context, store.balance),
+                            child: _balanceCard(context, store.balancePaise),
                           ),
                           SizedBox(height: context.rs(14)),
                           _Reveal(
@@ -429,7 +436,7 @@ class _WalletScreenState extends State<WalletScreen>
                           curve: Curves.easeOutCubic,
                           builder: (context, value, _) {
                             return Text(
-                              Product.inr(value.round()),
+                              Money.inr(value.round()),
                               style: TextStyle(
                                 fontSize: context.font(34),
                                 fontWeight: FontWeight.w900,
@@ -791,6 +798,9 @@ class _WalletScreenState extends State<WalletScreen>
 
   Widget _txTile(BuildContext context, WalletTx t) {
     final credit = t.amount >= 0;
+    final amountText = t.amountPaise != null
+        ? Money.inr(t.amountPaise!.abs())
+        : Product.inr(t.amount.abs());
     final accent = credit ? _creditGreen : OxroColors.premiumBurgundy;
     final date =
         '${t.date.day}/${t.date.month} • ${t.date.hour.toString().padLeft(2, '0')}:${t.date.minute.toString().padLeft(2, '0')}';
@@ -858,7 +868,7 @@ class _WalletScreenState extends State<WalletScreen>
           ),
           SizedBox(width: context.rs(8)),
           Text(
-            '${credit ? '+' : '-'}${Product.inr(t.amount.abs())}',
+            '${credit ? '+' : '-'}$amountText',
             style: TextStyle(
               fontSize: context.font(13),
               fontWeight: FontWeight.w900,

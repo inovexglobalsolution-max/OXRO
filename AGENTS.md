@@ -10,6 +10,7 @@
 - Loop until all three are green before saying the task is done.
 
 ## Rules
+- **Don't assume or start work without explicit instruction.** If user shares image/files without saying what to do — ASK first, never jump into unrequested work.
 - **Tests at HEAD are the spec.** When uncommitted WIP breaks a HEAD test, fix `lib/` — don't edit tests (exception: only when the test itself is wrong and that's confirmed).
 - Never commit unless explicitly asked.
 
@@ -27,3 +28,14 @@
 - **Collapsible bill rows:** both bags (`bag_bill_toggle` in `BagBillCard`) and checkout (`checkout_bill_toggle` in `_summaryCard`) start **collapsed** (`_open`/`_billOpen = false`) and expand via `AnimatedSize(220ms)`. Any test asserting bill row text (`Small cart fee`, `Platform fee`, `GST (govt. taxes)`, `Delivery partner fee`, tips…) must tap the toggle first — use the `_expandBill(tester)` helper in `checkout_test.dart` / `pricing_test.dart`. Header (`Bill Summary` + item pill) and the **To pay** footer always stay visible.
 - Premium cream cards: `OxroColors.premiumCream` bg + `premiumChampagne` border + gold pulse — see `_restaurantDetailsCard` (tracking) for the `_ambient` shadow-breathing pattern; always gate with `MediaQuery.disableAnimationsOf(context)` (reduce → static `pulse = 0.5`).
 - Wallet screen title is **"OXRO Money"** (renamed from "OXRO Wallet" — header + profile menu label + `wallet_test.dart` expects).
+
+## Env / secrets
+- Backend secrets live in `backend/.env` (gitignored). Names: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_ACCESS_TOKEN`.
+- Flutter build-time config lives in `env/dev.json` (gitignored): `API_BASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. Run `flutter run --dart-define-from-file=env/dev.json`.
+- `sb_secret_...` / `service_role` is **backend-only** — never in Flutter, tests, memory files, or commits. Values never go in this file.
+
+## Supabase (database)
+- Schema: `backend/db/schema.sql` — 19 tables + indexes + RLS (deny-all for anon; backend secret key only) + seeds. Idempotent (safe to re-run).
+- Scripts (read token from `backend/.env`): `node db/run-schema.js` (apply schema via Management API), `node db/verify-schema.js` (tables/RLS/seed counts), `node db/smoke.js` (27-step E2E: API → Supabase rows → read back).
+- Backend stores are Supabase-backed with in-memory fallback; **tests force in-memory** via `SUPABASE_URL=''` + `SUPABASE_SECRET_KEY=''` at the top of `test/*.test.js` (dotenv won't override). Keep that gate when adding test files.
+- Flutter never talks to Supabase directly; all sync is Flutter → Express → Supabase, gated by `CustomerIdentity.networkEnabled` (off under `FLUTTER_TEST`).

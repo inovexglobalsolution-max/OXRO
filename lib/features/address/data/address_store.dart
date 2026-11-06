@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/repositories/address_repo.dart';
 
 /// Why checkout cannot use the current address yet.
 enum AddressIssue { none, missing, doorMissing, incomplete }
@@ -68,39 +72,147 @@ class AddressStore extends ChangeNotifier {
 
   final Map<String, Address> _items = {};
   String? _defaultId;
+  bool _serverEmpty = false;
 
-  /// Loads persisted addresses (call once at splash).
+  static String _normalizeForSignature(String value) =>
+      value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+  static String _signature(Address a) => [
+    _normalizeForSignature(a.label),
+    _normalizeForSignature(a.name),
+    a.phone.replaceAll(RegExp(r'\D'), ''),
+    _normalizeForSignature(a.line),
+    _normalizeForSignature(a.city),
+    a.pin.trim(),
+  ].join('|');
+
+  static Address _fromMap(Map<String, dynamic> a) => Address(
+    id: (a['id'] as String?) ?? '',
+    label: (a['label'] as String?) ?? 'Home',
+    name: (a['name'] as String?) ?? '',
+    phone: (a['phone'] as String?) ?? '',
+    line: (a['line'] as String?) ?? '',
+    city: (a['city'] as String?) ?? '',
+    pin: (a['pin'] as String?) ?? '',
+  );
+
+  /// Loads addresses (call once at splash). The server wins when reachable;
+  /// SharedPreferences is the offline fallback.
   Future<void> load() async {
+    _serverEmpty = false;
+    if (CustomerIdentity.networkEnabled) {
+      try {
+        final data = await AddressRepo().fetchAddresses();
+        if (data != null) {
+          final items = data['addresses'];
+          if (items is List && items.isNotEmpty) {
+            _items.clear();
+            for (final e in items) {
+              if (e is! Map<String, dynamic>) continue;
+              final a = _fromMap(e);
+              if (a.id.isEmpty) continue;
+              _items[a.id] = a;
+            }
+            final def = data['defaultId'] as String?;
+            _defaultId = def != null && _items.containsKey(def)
+                ? def
+                : (_items.isEmpty ? null : _items.keys.first);
+            await _persist();
+            notifyListeners();
+            return;
+          }
+          // Empty server — seed it from the local cache after it loads.
+          _serverEmpty = true;
+        }
+      } catch (_) {
+        // Offline — use the local cache.
+      }
+    }
     try {
       final p = await SharedPreferences.getInstance();
       final raw = p.getString(_kCache);
-      if (raw == null || raw.isEmpty) return;
-      final m = jsonDecode(raw) as Map<String, dynamic>;
-      final items = (m['items'] as List?) ?? const [];
-      for (final e in items) {
-        final a = e as Map<String, dynamic>;
-        final id = (a['id'] as String?) ?? '';
-        if (id.isEmpty) continue;
-        _items[id] = Address(
-          id: id,
-          label: (a['label'] as String?) ?? 'Home',
-          name: (a['name'] as String?) ?? '',
-          phone: (a['phone'] as String?) ?? '',
-          line: (a['line'] as String?) ?? '',
-          city: (a['city'] as String?) ?? '',
-          pin: (a['pin'] as String?) ?? '',
-        );
+      if (raw != null && raw.isNotEmpty) {
+        final m = jsonDecode(raw) as Map<String, dynamic>;
+        final items = (m['items'] as List?) ?? const [];
+        for (final e in items) {
+          if (e is! Map<String, dynamic>) continue;
+          final a = _fromMap(e);
+          if (a.id.isEmpty) continue;
+          _items[a.id] = a;
+        }
+        final def = m['defaultId'] as String?;
+        if (def != null && _items.containsKey(def)) {
+          _defaultId = def;
+        } else if (_items.isNotEmpty) {
+          _defaultId = _items.keys.first;
+        }
+        notifyListeners();
       }
-      final def = m['defaultId'] as String?;
-      if (def != null && _items.containsKey(def)) {
-        _defaultId = def;
-      } else if (_items.isNotEmpty) {
-        _defaultId = _items.keys.first;
-      }
-      notifyListeners();
     } catch (_) {
       // Best-effort cache only.
     }
+    await _maybeSeedServer();
+  }
+
+  /// Pushes locally cached addresses to an empty server so data saved
+  /// offline lands in the DB instead of being wiped on the next load.
+  Future<void> _maybeSeedServer() async {
+    if (!_serverEmpty || !CustomerIdentity.networkEnabled || _items.isEmpty) {
+      _serverEmpty = false;
+      return;
+    }
+    try {
+      for (final a in _items.values) {
+        await AddressRepo().createAddress(_toMap(a));
+      }
+      final def = _defaultId;
+      if (def != null) {
+        await AddressRepo().selectAddress(def);
+      }
+    } catch (_) {
+      // Local cache remains authoritative; next sync can retry.
+    } finally {
+      _serverEmpty = false;
+    }
+  }
+
+  static void _sync(Future<void> Function() action) {
+    if (!CustomerIdentity.networkEnabled) return;
+    unawaited(action().catchError((_) {}));
+  }
+
+  Map<String, dynamic> _toMap(Address a) => {
+    'id': a.id,
+    'label': a.label,
+    'name': a.name,
+    'phone': a.phone,
+    'line': a.line,
+    'city': a.city,
+    'pin': a.pin,
+  };
+
+  void _pushCreate(Address a) {
+    _sync(() async {
+      await AddressRepo().createAddress(_toMap(a));
+    });
+  }
+
+  void _pushUpdate(Address a) {
+    _sync(() async {
+      await AddressRepo().updateAddress(a.id, _toMap(a));
+    });
+  }
+
+  void _pushSelect(String id) {
+    _sync(() async {
+      await AddressRepo().selectAddress(id);
+    });
+  }
+
+  void _pushDelete(String id) {
+    _sync(() async {
+      await AddressRepo().deleteAddress(id);
+    });
   }
 
   Future<void> _persist() async {
@@ -130,7 +242,11 @@ class AddressStore extends ChangeNotifier {
   }
 
   void _changed() {
-    notifyListeners();
+    try {
+      notifyListeners();
+    } catch (e) {
+      debugPrint('address store notify failed: $e');
+    }
     _persist();
   }
 
@@ -226,14 +342,37 @@ class AddressStore extends ChangeNotifier {
   }
 
   /// Adds a new address (id auto) and selects it when first/valid.
+  /// Exact duplicates are reused instead of being inserted again.
   String add(Address a) {
-    final id = a.id.isEmpty
-        ? DateTime.now().millisecondsSinceEpoch.toString()
-        : a.id;
+    final signature = _signature(a);
+    for (final existing in _items.values) {
+      if (_signature(existing) == signature) {
+        if (isValidAddress(existing) && _defaultId != existing.id) {
+          _defaultId = existing.id;
+          _changed();
+          _pushSelect(existing.id);
+        }
+        return existing.id;
+      }
+    }
+
+    var id = a.id.trim();
+    if (id.isEmpty) {
+      id = DateTime.now().microsecondsSinceEpoch.toString();
+    }
+    if (_items.containsKey(id)) {
+      final requested = id;
+      var suffix = 1;
+      while (_items.containsKey(id)) {
+        id = '${requested}_$suffix';
+        suffix += 1;
+      }
+    }
     _items[id] = a.copyWith(id: id);
     _defaultId ??= id;
     if (isValidAddress(_items[id]!)) _defaultId = id;
     _changed();
+    _pushCreate(_items[id]!);
     return id;
   }
 
@@ -243,16 +382,42 @@ class AddressStore extends ChangeNotifier {
       add(a);
       return;
     }
-    final id = _defaultId ?? _items.keys.first;
-    _items[id] = a.copyWith(id: id);
-    _defaultId = id;
-    _changed();
+    update(_defaultId ?? _items.keys.first, a);
   }
 
   void update(String id, Address a) {
-    if (!_items.containsKey(id)) return;
+    final current = _items[id];
+    if (current == null) {
+      add(a.copyWith(id: id));
+      return;
+    }
+
+    final signature = _signature(a);
+    Address? duplicate;
+    for (final existing in _items.values) {
+      if (existing.id != id && _signature(existing) == signature) {
+        duplicate = existing;
+        break;
+      }
+    }
+    if (duplicate != null) {
+      final merged = duplicate;
+      final duplicateId = merged.id;
+      _items.remove(id);
+      if (_defaultId == id ||
+          _defaultId == null ||
+          !_items.containsKey(_defaultId)) {
+        _defaultId = duplicateId;
+      }
+      _changed();
+      _pushDelete(id);
+      _pushSelect(duplicateId);
+      return;
+    }
+
     _items[id] = a.copyWith(id: id);
     _changed();
+    _pushUpdate(_items[id]!);
   }
 
   /// Switches the default only to a valid address — selecting an
@@ -265,6 +430,7 @@ class AddressStore extends ChangeNotifier {
     if (!isValidAddress(a)) return false;
     _defaultId = id;
     _changed();
+    _pushSelect(id);
     return true;
   }
 
@@ -281,6 +447,7 @@ class AddressStore extends ChangeNotifier {
       _defaultId = firstValid ?? (_items.isEmpty ? null : _items.keys.first);
     }
     _changed();
+    _pushDelete(id);
   }
 
   void clear() {

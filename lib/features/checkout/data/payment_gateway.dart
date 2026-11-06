@@ -40,15 +40,21 @@ class PaymentGateway {
     }
 
     final client = ApiClient();
+    debugPrint('PaymentGateway: baseUrl=${client.baseUrl}');
     try {
       // 1. Create Razorpay order server-side (key_secret never leaves backend).
       final createRes = await client.post(
         '/checkout/razorpay-order',
-        body: {'amountPaise': amountPaise, 'receipt': 'oxro_${DateTime.now().millisecondsSinceEpoch}'},
+        body: {
+          'amountPaise': amountPaise,
+          'receipt': 'oxro_${DateTime.now().millisecondsSinceEpoch}',
+        },
         timeout: const Duration(seconds: 30),
       );
       if (createRes.statusCode != 201) {
-        debugPrint('PaymentGateway: create order HTTP ${createRes.statusCode} ${createRes.body}');
+        debugPrint(
+          'PaymentGateway: create order HTTP ${createRes.statusCode} ${createRes.body}',
+        );
         return false;
       }
       final created = jsonDecode(createRes.body) as Map<String, dynamic>;

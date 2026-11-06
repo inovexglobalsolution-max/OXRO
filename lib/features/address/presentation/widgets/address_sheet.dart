@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
+import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/features/address/data/address_store.dart';
 import 'package:oxro/features/location/data/geo_store.dart';
 
@@ -16,14 +17,12 @@ class AddressSheet extends StatefulWidget {
   final Address? existing;
 
   /// Opens the sheet; true = saved valid address.
-  static Future<bool> open(BuildContext context,
-      {Address? existing}) async {
+  static Future<bool> open(BuildContext context, {Address? existing}) async {
     final ok = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => AddressSheet(existing: existing),
     );
@@ -51,13 +50,11 @@ class _AddressSheetState extends State<AddressSheet> {
   @override
   void initState() {
     super.initState();
-    final a = widget.existing ??
-        AddressStore.instance.address;
+    final a = widget.existing ?? AddressStore.instance.address;
     if (widget.existing == null) {
       // Add mode: keep current default values empty for fresh entry,
       // except when only one address exists (prefill convenience).
-      if (AddressStore.instance.items.length == 1 &&
-          a != null) {
+      if (AddressStore.instance.items.length == 1 && a != null) {
         _name.text = a.name;
         _phone.text = a.phone;
         _line.text = a.line;
@@ -98,8 +95,7 @@ class _AddressSheetState extends State<AddressSheet> {
       counterText: '',
       filled: true,
       fillColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: OxroColors.border),
@@ -110,8 +106,7 @@ class _AddressSheetState extends State<AddressSheet> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-            color: OxroColors.primary, width: 1.5),
+        borderSide: const BorderSide(color: OxroColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -119,8 +114,7 @@ class _AddressSheetState extends State<AddressSheet> {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-            const BorderSide(color: Colors.red, width: 1.5),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
     );
   }
@@ -138,9 +132,20 @@ class _AddressSheetState extends State<AddressSheet> {
         _lineErr != null ||
         _cityErr != null ||
         _pinErr != null) {
+      // Inline errors can be missed — surface the first one too.
+      debugPrint(
+        'addr save: validation failed '
+        'name=$_nameErr phone=$_phoneErr line=$_lineErr '
+        'city=$_cityErr pin=$_pinErr',
+      );
+      showOxroSnack(
+        context,
+        _nameErr ?? _phoneErr ?? _lineErr ?? _cityErr ?? _pinErr!,
+      );
       return;
     }
     FocusScope.of(context).unfocus();
+    final nav = Navigator.of(context);
     final data = Address(
       id: widget.existing?.id ?? '',
       label: _label,
@@ -150,13 +155,35 @@ class _AddressSheetState extends State<AddressSheet> {
       city: _city.text.trim(),
       pin: _pin.text.trim(),
     );
-    if (widget.existing == null) {
-      AddressStore.instance.add(data);
-    } else {
-      AddressStore.instance
-          .update(widget.existing!.id, data);
+    try {
+      if (widget.existing == null) {
+        AddressStore.instance.add(data);
+      } else {
+        AddressStore.instance.update(widget.existing!.id, data);
+      }
+    } catch (e) {
+      debugPrint('addr save: store failed: $e');
+      showOxroSnack(
+        context,
+        'Could not save address on this device — try again',
+      );
+      return;
     }
-    Navigator.of(context).pop(true);
+    debugPrint('addr save: ok, popping');
+    try {
+      nav.pop(true);
+    } catch (e) {
+      debugPrint('addr save: pop failed: $e');
+    }
+    // Safety net: if the modal route didn't tear down, force it.
+    if (mounted) {
+      debugPrint('addr save: still mounted after pop, maybePop');
+      try {
+        nav.maybePop(true);
+      } catch (e) {
+        debugPrint('addr save: maybePop failed: $e');
+      }
+    }
   }
 
   Widget _labelRow() {
@@ -169,34 +196,27 @@ class _AddressSheetState extends State<AddressSheet> {
               onTap: () => setState(() => _label = l),
               behavior: HitTestBehavior.opaque,
               child: AnimatedContainer(
-                duration:
-                    const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 200),
                 alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(
-                    vertical: 9),
+                padding: const EdgeInsets.symmetric(vertical: 9),
                 margin: EdgeInsets.only(
-                    right: l == AddressStore.labels.last
-                        ? 0
-                        : 8),
+                  right: l == AddressStore.labels.last ? 0 : 8,
+                ),
                 decoration: BoxDecoration(
-                  color: _label == l
-                      ? OxroColors.primary
-                      : Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  color: _label == l ? OxroColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: _label == l
-                        ? OxroColors.primary
-                        : OxroColors.border,
+                    color: _label == l ? OxroColors.primary : OxroColors.border,
                   ),
                 ),
-                child: Text(l,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: _label == l
-                            ? Colors.white
-                            : OxroColors.charcoal)),
+                child: Text(
+                  l,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: _label == l ? Colors.white : OxroColors.charcoal,
+                  ),
+                ),
               ),
             ),
           ),
@@ -213,16 +233,13 @@ class _AddressSheetState extends State<AddressSheet> {
         ),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight:
-                MediaQuery.of(context).size.height * 0.9,
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
           ),
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-                context.padX, 8, context.padX, 16),
+            padding: EdgeInsets.fromLTRB(context.padX, 8, context.padX, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Center(
                   child: Container(
@@ -235,29 +252,35 @@ class _AddressSheetState extends State<AddressSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text('Delivery Address',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: OxroColors.charcoal)),
+                const Text(
+                  'Delivery Address',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: OxroColors.charcoal,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                const Text('We deliver across India',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: OxroColors.muted)),
+                const Text(
+                  'We deliver across India',
+                  style: TextStyle(fontSize: 12, color: OxroColors.muted),
+                ),
                 const SizedBox(height: 12),
                 _labelRow(),
                 const SizedBox(height: 12),
                 TextField(
                   key: const ValueKey('addr_name'),
                   controller: _name,
-                  textCapitalization:
-                      TextCapitalization.words,
+                  textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
-                  decoration: _dec('Full name', _nameErr,
-                      prefix: const Icon(
-                          Icons.person_outline,
-                          color: OxroColors.muted)),
+                  decoration: _dec(
+                    'Full name',
+                    _nameErr,
+                    prefix: const Icon(
+                      Icons.person_outline,
+                      color: OxroColors.muted,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
@@ -265,13 +288,16 @@ class _AddressSheetState extends State<AddressSheet> {
                   controller: _phone,
                   keyboardType: TextInputType.phone,
                   maxLength: 10,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly
-                  ],
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   textInputAction: TextInputAction.next,
-                  decoration: _dec('10-digit mobile', _phoneErr,
-                      prefix: const Icon(Icons.call_outlined,
-                          color: OxroColors.muted)),
+                  decoration: _dec(
+                    '10-digit mobile',
+                    _phoneErr,
+                    prefix: const Icon(
+                      Icons.call_outlined,
+                      color: OxroColors.muted,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
@@ -281,10 +307,13 @@ class _AddressSheetState extends State<AddressSheet> {
                   maxLines: 2,
                   minLines: 1,
                   decoration: _dec(
-                      'Flat / street / area', _lineErr,
-                      prefix: const Icon(
-                          Icons.home_outlined,
-                          color: OxroColors.muted)),
+                    'Flat / street / area',
+                    _lineErr,
+                    prefix: const Icon(
+                      Icons.home_outlined,
+                      color: OxroColors.muted,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -293,8 +322,7 @@ class _AddressSheetState extends State<AddressSheet> {
                       child: TextField(
                         key: const ValueKey('addr_city'),
                         controller: _city,
-                        textCapitalization:
-                            TextCapitalization.words,
+                        textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.next,
                         decoration: _dec('City', _cityErr),
                       ),
@@ -307,13 +335,11 @@ class _AddressSheetState extends State<AddressSheet> {
                         keyboardType: TextInputType.number,
                         maxLength: 6,
                         inputFormatters: [
-                          FilteringTextInputFormatter
-                              .digitsOnly
+                          FilteringTextInputFormatter.digitsOnly,
                         ],
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _save(),
-                        decoration:
-                            _dec('Pincode', _pinErr),
+                        decoration: _dec('Pincode', _pinErr),
                       ),
                     ),
                   ],
@@ -326,19 +352,20 @@ class _AddressSheetState extends State<AddressSheet> {
                   child: Container(
                     width: double.infinity,
                     height: context.btnH,
-                    constraints: const BoxConstraints(
-                        minHeight: 48),
+                    constraints: const BoxConstraints(minHeight: 48),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: OxroColors.primary,
-                      borderRadius: BorderRadius.circular(
-                          context.rs(12)),
+                      borderRadius: BorderRadius.circular(context.rs(12)),
                     ),
-                    child: Text('Save & Continue',
-                        style: TextStyle(
-                            fontSize: context.font(16),
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white)),
+                    child: Text(
+                      'Save & Continue',
+                      style: TextStyle(
+                        fontSize: context.font(16),
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ],

@@ -394,160 +394,163 @@ class BagScreen extends StatelessWidget {
     final restaurant = RestaurantRepo.byId(store.restaurantId ?? '');
     var section = 0;
     Widget reveal(Widget child) => BagReveal(index: section++, child: child);
-    return ListView(
+    return SingleChildScrollView(
       key: const ValueKey('bag_lines'),
       clipBehavior: Clip.hardEdge,
       padding: EdgeInsets.fromLTRB(context.padX, 12, context.padX, 16),
-      children: [
-        if (store.savings > 0) ...[
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (store.savings > 0) ...[
+            reveal(
+              _SavingsBanner(
+                key: ValueKey('savepop_${store.savings}'),
+                store: store,
+                lines: lines.length,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           reveal(
-            _SavingsBanner(
-              key: ValueKey('savepop_${store.savings}'),
-              store: store,
-              lines: lines.length,
+            BagPremiumOfferCard(
+              total: store.totalPrice,
+              member: PremiumStore.instance.isMember,
+              onOpen: () => pushScreen(context, const PremiumScreen()),
             ),
           ),
           const SizedBox(height: 10),
-        ],
-        reveal(
-          BagPremiumOfferCard(
-            total: store.totalPrice,
-            member: PremiumStore.instance.isMember,
-            onOpen: () => pushScreen(context, const PremiumScreen()),
-          ),
-        ),
-        const SizedBox(height: 10),
-        if (store.restaurantName != null) ...[
-          Container(
-            key: const ValueKey('bag_restaurant'),
-            padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-            decoration: BoxDecoration(
-              color: OxroColors.pageBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: OxroColors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.restaurant,
-                  size: 18,
-                  color: OxroColors.primary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        store.restaurantName!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: OxroColors.charcoal,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        () {
-                          final r = RestaurantRepo.byId(
-                            store.restaurantId ?? '',
-                          );
-                          if (r == null) return 'Your kitchen';
-                          return '${r.etaLabel}  ·  ${r.distanceLabel}';
-                        }(),
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
-                          color: OxroColors.muted,
-                        ),
-                      ),
-                    ],
+          if (store.restaurantName != null) ...[
+            Container(
+              key: const ValueKey('bag_restaurant'),
+              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+              decoration: BoxDecoration(
+                color: OxroColors.pageBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: OxroColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.restaurant,
+                    size: 18,
+                    color: OxroColors.primary,
                   ),
-                ),
-                TextButton(
-                  key: const ValueKey('bag_clear'),
-                  onPressed: store.clear,
-                  child: const Text(
-                    'Clear',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: OxroColors.primary,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          store.restaurantName!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: OxroColors.charcoal,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          () {
+                            final r = RestaurantRepo.byId(
+                              store.restaurantId ?? '',
+                            );
+                            if (r == null) return 'Your kitchen';
+                            return '${r.etaLabel}  ·  ${r.distanceLabel}';
+                          }(),
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: OxroColors.muted,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
-        for (var i = 0; i < lines.length; i++)
-          _BagStagger(
-            index: i,
-            child: _BagLineCard(line: lines[i]),
-          ),
-        const SizedBox(height: 4),
-        if (store.restaurantId != null) ...[
-          reveal(
-            _BagItemActions(
-              store: store,
-              onAddMore: () => pushScreen(
-                context,
-                RestaurantScreen(restaurantId: store.restaurantId!),
-              ),
-              onNoteTap: () => _editNote(context, store),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const SizedBox(height: 12),
-        ],
-        if (restaurant != null) ...[
-          reveal(BagMealRail(restaurant: restaurant, store: store)),
-          const SizedBox(height: 14),
-        ],
-        reveal(
-          BagCouponCard(
-            store: store,
-            payment: payment,
-            onViewAll: () => pushScreen(context, const CouponsScreen()),
-          ),
-        ),
-        const SizedBox(height: 10),
-        reveal(
-          BagDeliveryAddressCard(
-            address: AddressStore.instance.address,
-            eta: restaurant?.etaRangeLabel,
-            onTap: () => pushScreen(context, const AddressSelectionScreen()),
-          ),
-        ),
-        const SizedBox(height: 10),
-        AnimatedSize(
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 240),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
-          child: quote.smallCartFeePaise > 0
-              ? Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _SmallCartFeeHint(
-                    itemSubtotalPaise: quote.itemSubtotalPaise,
+                  TextButton(
+                    key: const ValueKey('bag_clear'),
+                    onPressed: store.clear,
+                    child: const Text(
+                      'Clear',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: OxroColors.primary,
+                      ),
+                    ),
                   ),
-                )
-              : const SizedBox(width: double.infinity),
-        ),
-        if (CartStore.instance.lines.isNotEmpty) ...[
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          for (var i = 0; i < lines.length; i++)
+            _BagStagger(
+              index: i,
+              child: _BagLineCard(line: lines[i]),
+            ),
+          const SizedBox(height: 4),
+          if (store.restaurantId != null) ...[
+            reveal(
+              _BagItemActions(
+                store: store,
+                onAddMore: () => pushScreen(
+                  context,
+                  RestaurantScreen(restaurantId: store.restaurantId!),
+                ),
+                onNoteTap: () => _editNote(context, store),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const SizedBox(height: 12),
+          ],
+          if (restaurant != null) ...[
+            reveal(BagMealRail(restaurant: restaurant, store: store)),
+            const SizedBox(height: 14),
+          ],
+          reveal(
+            BagCouponCard(
+              store: store,
+              payment: payment,
+              onViewAll: () => pushScreen(context, const CouponsScreen()),
+            ),
+          ),
           const SizedBox(height: 10),
-          BagScheduleCard(schedule: CartStore.instance.bagSchedule),
+          reveal(
+            BagDeliveryAddressCard(
+              address: AddressStore.instance.address,
+              eta: restaurant?.etaRangeLabel,
+              onTap: () => pushScreen(context, const AddressSelectionScreen()),
+            ),
+          ),
           const SizedBox(height: 10),
+          AnimatedSize(
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: quote.smallCartFeePaise > 0
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _SmallCartFeeHint(
+                      itemSubtotalPaise: quote.itemSubtotalPaise,
+                    ),
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
+          if (CartStore.instance.lines.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            BagScheduleCard(schedule: CartStore.instance.bagSchedule),
+            const SizedBox(height: 10),
+          ],
+          BagBillCard(store: store, quote: quote, lines: lines),
+          const SizedBox(height: 10),
+          reveal(const BagCancellationNote()),
         ],
-        BagBillCard(store: store, quote: quote, lines: lines),
-        const SizedBox(height: 10),
-        reveal(const BagCancellationNote()),
-      ],
+      ),
     );
   }
 }

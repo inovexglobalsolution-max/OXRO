@@ -75,7 +75,7 @@ void main() {
     expect(diningIcon.size, 25);
     expect(
       tester.getSize(find.byKey(const ValueKey('nav_cart_button'))).width,
-      58,
+      46,
     );
 
     await tester.tap(find.byKey(const ValueKey('nav_cart')));

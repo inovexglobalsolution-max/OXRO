@@ -133,7 +133,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? OxroColors.green.withOpacity(0.08) : Colors.white,
+          color: selected
+              ? OxroColors.green.withValues(alpha: 0.08)
+              : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selected ? OxroColors.green : OxroColors.border,

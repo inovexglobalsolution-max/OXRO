@@ -47,7 +47,7 @@ class DineoutRepo {
     DineoutRestaurant(
       id: 'd_verandah',
       name: 'The Verandah',
-      imageUrl: FoodMedia.pasta,
+      imageUrl: FoodMedia.dining1,
       cuisines: ['Italian', 'Continental'],
       area: 'Anna Nagar',
       rating: 4.6,
@@ -60,7 +60,7 @@ class DineoutRepo {
     DineoutRestaurant(
       id: 'd_copper_clay',
       name: 'Copper & Clay',
-      imageUrl: FoodMedia.curry,
+      imageUrl: FoodMedia.dining2,
       cuisines: ['North Indian', 'Mughlai'],
       area: 'Nungambakkam',
       rating: 4.5,
@@ -73,7 +73,7 @@ class DineoutRepo {
     DineoutRestaurant(
       id: 'd_miso_street',
       name: 'Miso Street',
-      imageUrl: FoodMedia.chinese,
+      imageUrl: FoodMedia.dining3,
       cuisines: ['Asian', 'Japanese'],
       area: 'Alwarpet',
       rating: 4.4,
@@ -86,7 +86,7 @@ class DineoutRepo {
     DineoutRestaurant(
       id: 'd_filter_room',
       name: 'The Filter Room',
-      imageUrl: FoodMedia.coffee,
+      imageUrl: FoodMedia.dining4,
       cuisines: ['Cafe', 'Bakery'],
       area: 'T. Nagar',
       rating: 4.3,
@@ -100,7 +100,7 @@ class DineoutRepo {
     DineoutRestaurant(
       id: 'd_saffron_house',
       name: 'Saffron House',
-      imageUrl: FoodMedia.thali,
+      imageUrl: FoodMedia.dining5,
       cuisines: ['North Indian', 'Rajasthani'],
       area: 'Adyar',
       rating: 4.7,
@@ -114,7 +114,7 @@ class DineoutRepo {
     DineoutRestaurant(
       id: 'd_basil_bloom',
       name: 'Basil & Bloom',
-      imageUrl: FoodMedia.salad,
+      imageUrl: FoodMedia.dining6,
       cuisines: ['Italian', 'Healthy'],
       area: 'Besant Nagar',
       rating: 4.2,

@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/repositories/profile_repo.dart';
 
 /// OXRO PREMIUM membership (mock, persisted on device).
 /// Backend subscription billing replaces this later.
@@ -31,6 +35,26 @@ class PremiumStore extends ChangeNotifier {
 
   /// Loads persisted membership (call once at splash).
   Future<void> load() async {
+    if (CustomerIdentity.networkEnabled) {
+      try {
+        final remote = await ProfileRepo().fetchPremium();
+        if (remote != null) {
+          final isMember = (remote['isMember'] as bool?) ?? false;
+          if (isMember) {
+            _isMember = true;
+            final joined = remote['joinedAt'];
+            _joinedAt = joined is String
+                ? DateTime.tryParse(joined)
+                : _joinedAt;
+            notifyListeners();
+            await _persist();
+            return;
+          }
+        }
+      } catch (_) {
+        // Offline — the local membership stays authoritative.
+      }
+    }
     try {
       final p = await SharedPreferences.getInstance();
       final raw = p.getString(_kCache);
@@ -66,6 +90,15 @@ class PremiumStore extends ChangeNotifier {
     _joinedAt = DateTime.now();
     notifyListeners();
     _persist();
+    if (CustomerIdentity.networkEnabled) {
+      unawaited(() async {
+        try {
+          await ProfileRepo().joinPremium();
+        } catch (_) {
+          // Best-effort sync only.
+        }
+      }());
+    }
   }
 
   void cancel() {
@@ -74,5 +107,14 @@ class PremiumStore extends ChangeNotifier {
     _joinedAt = null;
     notifyListeners();
     _persist();
+    if (CustomerIdentity.networkEnabled) {
+      unawaited(() async {
+        try {
+          await ProfileRepo().cancelPremium();
+        } catch (_) {
+          // Best-effort sync only.
+        }
+      }());
+    }
   }
 }

@@ -321,8 +321,8 @@ void main() {
 
     // item 799 + 1999*2 = 4797 ; grand total 507885 paise with delivery/platform/GST.
     await _expandBill(tester);
-    await _scrollTo(tester, find.byKey(const ValueKey('bag_total_507885')));
-    expect(find.byKey(const ValueKey('bag_total_507885')), findsOneWidget);
+    await _scrollTo(tester, find.byKey(const ValueKey('bag_total_508385')));
+    expect(find.byKey(const ValueKey('bag_total_508385')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('billflash_delivery_4000')),
       findsOneWidget,
@@ -354,7 +354,7 @@ void main() {
     final toggle = await _revealBill(tester);
     expect(toggle, findsOneWidget);
     expect(find.byKey(const ValueKey('bag_bill_details')), findsNothing);
-    expect(find.byKey(const ValueKey('bag_total_507885')), findsNothing);
+    expect(find.byKey(const ValueKey('bag_total_508385')), findsNothing);
     expect(find.byKey(const ValueKey('bag_bill_saved')), findsOneWidget);
 
     await _expandBill(tester);
@@ -362,13 +362,13 @@ void main() {
     expect(find.byKey(ValueKey('bag_bill_dish_${_p1.id}')), findsOneWidget);
     expect(find.byKey(ValueKey('bag_bill_dish_${_p2.id}')), findsOneWidget);
     expect(find.byKey(ValueKey('billflash_items_479700')), findsOneWidget);
-    expect(find.byKey(const ValueKey('bag_total_507885')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bag_total_508385')), findsOneWidget);
     expect(find.text('To Pay'), findsWidgets);
 
     await tester.tap(toggle);
     await _settle(tester);
     expect(find.byKey(const ValueKey('bag_bill_details')), findsNothing);
-    expect(find.byKey(const ValueKey('bag_total_507885')), findsNothing);
+    expect(find.byKey(const ValueKey('bag_total_508385')), findsNothing);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -652,9 +652,9 @@ void main() {
 
     expect(find.byKey(const ValueKey('bag_premium_active')), findsOneWidget);
     await _expandBill(tester);
-    await _scrollTo(tester, find.byKey(const ValueKey('bag_total_293990')));
+    await _scrollTo(tester, find.byKey(const ValueKey('bag_total_294490')));
     expect(find.byKey(const ValueKey('billflash_delivery_0')), findsOneWidget);
-    expect(find.byKey(const ValueKey('bag_total_293990')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bag_total_294490')), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -672,8 +672,8 @@ void main() {
 
     expect(PaymentStore.instance.coupon, 'WELCOME10');
     await _expandBill(tester);
-    await _scrollTo(tester, find.byKey(const ValueKey('bag_total_269990')));
-    expect(find.byKey(const ValueKey('bag_total_269990')), findsOneWidget);
+    await _scrollTo(tester, find.byKey(const ValueKey('bag_total_270490')));
+    expect(find.byKey(const ValueKey('bag_total_270490')), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
@@ -846,24 +846,24 @@ void main() {
     await _settle(tester);
 
     await _expandBill(tester);
-    await _scrollTo(tester, find.byKey(const ValueKey('bag_total_297990')));
+    await _scrollTo(tester, find.byKey(const ValueKey('bag_total_298490')));
     // item 799 + 1999 = 2798 ; grand total 297990 paise with delivery/platform/GST.
     expect(find.byKey(const ValueKey('bag_bill_count_2')), findsOneWidget);
     expect(find.byKey(ValueKey('billflash_items_279800')), findsOneWidget);
     expect(find.byKey(ValueKey('billflash_delivery_4000')), findsOneWidget);
     expect(find.byKey(ValueKey('billflash_platform_700')), findsOneWidget);
     expect(find.byKey(ValueKey('billflash_tax_13990')), findsOneWidget);
-    expect(find.byKey(const ValueKey('bag_total_297990')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bag_total_298490')), findsOneWidget);
     expect(find.byKey(const ValueKey('bag_bill_saved')), findsOneWidget);
 
     await _toTop(tester);
     await tester.tap(find.byKey(ValueKey('bag_inc_${_p1.id}')));
     await _settle(tester);
     await _expandBill(tester);
-    await _scrollTo(tester, find.byKey(const ValueKey('bag_total_381885')));
+    await _scrollTo(tester, find.byKey(const ValueKey('bag_total_382385')));
     // item 799*2 + 1999 = 3597 ; grand total 381885 paise; rows re-key + tick.
     expect(find.byKey(const ValueKey('bag_bill_count_3')), findsOneWidget);
-    expect(find.byKey(const ValueKey('bag_total_381885')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bag_total_382385')), findsOneWidget);
     expect(find.byKey(const ValueKey('bag_bill_saved')), findsOneWidget);
 
     await _toTop(tester);

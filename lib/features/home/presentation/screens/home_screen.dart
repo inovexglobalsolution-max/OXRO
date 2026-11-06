@@ -2166,7 +2166,7 @@ class _CartBarState extends State<_CartBar> {
                       context.padX,
                       0,
                       context.padX,
-                      10,
+                      12,
                     ),
                     child: GestureDetector(
                       key: const ValueKey('cart_bar'),

@@ -6,8 +6,10 @@ import 'package:oxro/app/widgets/filter_chip_row.dart';
 import 'package:oxro/app/widgets/food_image.dart';
 import 'package:oxro/app/widgets/rating_chip.dart';
 import 'package:oxro/features/dineout/data/dineout_repo.dart';
-import 'package:oxro/features/checkout/presentation/screens/checkout_screen.dart';
 import 'package:oxro_pricing/oxro_pricing.dart';
+import 'package:oxro/app/repositories/coupon_repo.dart';
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/widgets/oxro_snack.dart';
 
 class DineoutDetailScreen extends StatefulWidget {
   const DineoutDetailScreen({super.key, required this.restaurantId});
@@ -21,6 +23,7 @@ class DineoutDetailScreen extends StatefulWidget {
 class _DineoutDetailScreenState extends State<DineoutDetailScreen> {
   int _guests = 2;
   late String _slot;
+  bool _booking = false;
 
   DineoutRestaurant? get _restaurant => DineoutRepo.byId(widget.restaurantId);
 
@@ -81,10 +84,44 @@ class _DineoutDetailScreenState extends State<DineoutDetailScreen> {
     );
   }
 
-  void _book(DineoutRestaurant restaurant) {
-    Navigator.push(
+  Future<void> _pickCustomSlot() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked == null) return;
+    final formatted =
+        '${picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod}:${picked.minute.toString().padLeft(2, '0')} ${picked.period == DayPeriod.am ? 'AM' : 'PM'}';
+    setState(() => _slot = formatted);
+  }
+
+  Future<void> _book(DineoutRestaurant restaurant) async {
+    if (_booking) return;
+    if (!CustomerIdentity.networkEnabled) {
+      showOxroSnack(
+        context,
+        'Table request sent for $_guests at $_slot — we’ll confirm soon',
+      );
+      return;
+    }
+    setState(() => _booking = true);
+    final sync = await BookingRepo().create(
+      restaurantId: restaurant.id,
+      guests: _guests,
+      slot: _slot,
+    );
+    if (!mounted) return;
+    setState(() => _booking = false);
+    if (!sync) {
+      showOxroSnack(
+        context,
+        'Couldn’t send the booking — check connection and try again',
+      );
+      return;
+    }
+    showOxroSnack(
       context,
-      MaterialPageRoute(builder: (_) => const CheckoutScreen()),
+      'Table request sent for $_guests at $_slot — we’ll confirm soon',
     );
   }
 
@@ -236,6 +273,14 @@ class _DineoutDetailScreenState extends State<DineoutDetailScreen> {
                           selected: _slot == slot,
                           onTap: () => setState(() => _slot = slot),
                         ),
+                      OxroFilterChip(
+                        key: const ValueKey('dineout_slot_custom'),
+                        label: restaurant.slots.contains(_slot)
+                            ? 'Custom'
+                            : _slot,
+                        selected: !restaurant.slots.contains(_slot),
+                        onTap: _pickCustomSlot,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 22),
@@ -333,7 +378,7 @@ class _DineoutDetailScreenState extends State<DineoutDetailScreen> {
                 behavior: HitTestBehavior.opaque,
                 child: Container(
                   height: context.rs(46),
-                  padding: EdgeInsets.symmetric(horizontal: context.rs(20)),
+                  padding: EdgeInsets.symmetric(horizontal: context.rs(12)),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     gradient: OxroColors.gradient,

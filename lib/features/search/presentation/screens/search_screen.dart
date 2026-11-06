@@ -69,6 +69,7 @@ class _SearchScreenState extends State<SearchScreen>
       Future.delayed(const Duration(milliseconds: 350), () {
         if (!mounted) return;
         _applyFiltersTo(SearchRepo.searchProducts(seed));
+        _refineRemote(seed);
       });
     }
   }
@@ -113,12 +114,33 @@ class _SearchScreenState extends State<SearchScreen>
     _debounce = Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
       _applyFiltersTo(SearchRepo.searchProducts(v));
+      _refineRemote(v);
+    });
+  }
+
+  /// Local results render instantly; the server list replaces them if it
+  /// returns matches for the same (still-current) query.
+  Future<void> _refineRemote(String query) async {
+    final remote = await SearchRepo.searchRemote(query);
+    if (!mounted || remote.isEmpty) return;
+    if (_lastQuery.trim().toLowerCase() != query.trim().toLowerCase()) return;
+    if (!mounted) return;
+    setState(() {
+      _results = SearchRepo.applyFilters(
+        remote,
+        sort: _sort,
+        minRating: _minRating,
+        minOff: _minOff,
+      );
+      _searching = false;
+      _submitted = true;
     });
   }
 
   void _refilter() {
     if (_lastQuery.trim().isEmpty) return;
     _applyFiltersTo(SearchRepo.searchProducts(_lastQuery));
+    _refineRemote(_lastQuery);
   }
 
   Future<void> _pickSort() async {
@@ -283,11 +305,13 @@ class _SearchScreenState extends State<SearchScreen>
                                                     fontSize: 14,
                                                     color: OxroColors.muted,
                                                   ),
-                                                  emphasisStyle: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: OxroColors.dark,
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
+                                                  emphasisStyle:
+                                                      const TextStyle(
+                                                        fontSize: 14,
+                                                        color: OxroColors.dark,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                      ),
                                                 ),
                                               ),
                                             ),

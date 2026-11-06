@@ -38,8 +38,14 @@ class PaymentStore extends ChangeNotifier {
   @visibleForTesting
   static void resetForTests() {
     instance._method = PaymentMethod.upi;
+    instance._paymentLabel = paymentLabels[PaymentMethod.upi]!;
     instance._coupon = '';
     instance._tipPaise = 0;
+    instance._codCashAmount = null;
+    instance._codChangePreference = null;
+    instance._codTxnId = null;
+    instance._codWalletCreditPaise = 0;
+    instance._codConsentAmountPaise = 0;
     PricingConfigStore.instance.resetToInitial();
     instance.notifyListeners();
   }
@@ -55,6 +61,21 @@ class PaymentStore extends ChangeNotifier {
 
   /// Customer tip in paise (100% passed to the delivery partner).
   int _tipPaise = 0;
+
+  /// Smart Change: cash amount entered by customer for COD (rupees).
+  double? _codCashAmount;
+
+  /// Smart Change: preference for extra cash ('wallet' or 'physical').
+  String? _codChangePreference;
+
+  /// Smart Change: server transaction id after successful activation.
+  String? _codTxnId;
+
+  /// Smart Change: confirmed wallet credit for the consent (paise).
+  int _codWalletCreditPaise = 0;
+
+  /// Smart Change: order amount (paise) the consent was granted against.
+  int _codConsentAmountPaise = 0;
 
   static const _kCoupon = 'oxro_coupon_v1';
 
@@ -93,6 +114,25 @@ class PaymentStore extends ChangeNotifier {
   String get coupon => _coupon;
   int get tipPaise => _tipPaise;
 
+  /// Smart Change: cash amount entered by customer for COD (rupees).
+  double? get codCashAmount => _codCashAmount;
+
+  /// Smart Change: preference for extra cash ('wallet' or 'physical').
+  String? get codChangePreference => _codChangePreference;
+
+  /// Smart Change: server txn id (non-null = consent activated).
+  String? get codTxnId => _codTxnId;
+
+  /// Smart Change: confirmed wallet credit (paise).
+  int get codWalletCreditPaise => _codWalletCreditPaise;
+
+  /// Smart Change: order amount the consent was granted for (paise).
+  int get codConsentAmountPaise => _codConsentAmountPaise;
+
+  /// True once Smart Change consent is activated for the current COD flow.
+  bool get hasCodSmartChange =>
+      _codTxnId != null && _codCashAmount != null && _codCashAmount! > 0;
+
   Coupon? get _applied => _coupon.isEmpty ? null : CouponStore.byCode(_coupon);
 
   /// Live discount for the current cart (0 when below minOrder).
@@ -127,12 +167,60 @@ class PaymentStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setCodCashAmount(double? amount) {
+    if (amount == _codCashAmount) return;
+    _codCashAmount = amount;
+    notifyListeners();
+  }
+
+  void setCodChangePreference(String? preference) {
+    if (preference == _codChangePreference) return;
+    _codChangePreference = preference;
+    notifyListeners();
+  }
+
+  /// Saves a successfully activated Smart Change consent (server-confirmed).
+  void setCodSmartChange({
+    required String txnId,
+    required double cashAmount,
+    required int walletCreditPaise,
+    required int consentAmountPaise,
+  }) {
+    _codTxnId = txnId;
+    _codCashAmount = cashAmount;
+    _codWalletCreditPaise = walletCreditPaise;
+    _codConsentAmountPaise = consentAmountPaise;
+    _codChangePreference = 'wallet';
+    notifyListeners();
+  }
+
+  void clearCodSmartChange() {
+    if (_codCashAmount == null &&
+        _codChangePreference == null &&
+        _codTxnId == null) {
+      return;
+    }
+    _codCashAmount = null;
+    _codChangePreference = null;
+    _codTxnId = null;
+    _codWalletCreditPaise = 0;
+    _codConsentAmountPaise = 0;
+    notifyListeners();
+  }
+
   void select(PaymentMethod m, {String? label}) {
     _method = m;
     if (label != null) {
       _paymentLabel = label;
     } else {
       _paymentLabel = paymentLabels[m] ?? _paymentLabel;
+    }
+    if (m != PaymentMethod.cod) {
+      _codCashAmount = null;
+      _codChangePreference = null;
+      _codTxnId = null;
+      _codWalletCreditPaise = 0;
+      _codConsentAmountPaise = 0;
     }
     notifyListeners();
   }

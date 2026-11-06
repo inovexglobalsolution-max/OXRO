@@ -1058,7 +1058,14 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                     ? (_bannerCtrl.page ?? fallbackPage)
                     : fallbackPage;
                 final delta = (page - i).abs().clamp(0.0, 1.0);
-                final child = banner.videoUrl != null
+                final child = banner.style == BannerStyle.premium
+                    ? _PremiumPromoBanner(
+                        banner: banner,
+                        index: real,
+                        ambient: _ambient,
+                        onTap: () => _openBanner(real),
+                      )
+                    : banner.videoUrl != null
                     ? VideoHeroBanner(
                         banner: banner,
                         index: real,
@@ -1066,12 +1073,6 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                         onTap: () => _openBanner(real),
                       )
                     : switch (banner.style) {
-                        BannerStyle.premium => _PremiumPromoBanner(
-                          banner: banner,
-                          index: real,
-                          ambient: _ambient,
-                          onTap: () => _openBanner(real),
-                        ),
                         BannerStyle.sale => AnimatedSaleBanner(
                           banner: banner,
                           index: real,

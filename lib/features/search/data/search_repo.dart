@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/repositories/search_repo.dart';
 import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/listing/data/product_repo.dart';
 
@@ -46,6 +48,24 @@ class SearchRepo {
 
   /// Loads persisted recents (call in SearchScreen init).
   static Future<void> loadRecents() async {
+    if (CustomerIdentity.networkEnabled) {
+      try {
+        final remote = await ApiSearchRepo().fetchRecents();
+        if (remote != null && remote.isNotEmpty) {
+          recents
+            ..clear()
+            ..addAll(
+              [
+                for (final q in remote)
+                  if (q is String && q.isNotEmpty) q,
+              ].take(maxRecents),
+            );
+          return;
+        }
+      } catch (_) {
+        // Offline — prefs stay authoritative.
+      }
+    }
     try {
       final p = await SharedPreferences.getInstance();
       final saved = p.getStringList(_kRecents) ?? const [];
@@ -55,6 +75,17 @@ class SearchRepo {
     } catch (_) {
       // Prefs unavailable (older installs) — stay in-memory.
     }
+  }
+
+  static void _sync(Future<bool> Function() action) {
+    if (!CustomerIdentity.networkEnabled) return;
+    unawaited(() async {
+      try {
+        await action();
+      } catch (_) {
+        // Best-effort sync only.
+      }
+    }());
   }
 
   static Future<void> _persist() async {
@@ -79,18 +110,21 @@ class SearchRepo {
       recents.removeRange(maxRecents, recents.length);
     }
     _persistRecents();
+    _sync(() => ApiSearchRepo().pushRecent(query));
   }
 
   static void removeRecentAt(int i) {
     if (i < 0 || i >= recents.length) return;
-    recents.removeAt(i);
+    final q = recents.removeAt(i);
     _persistRecents();
+    _sync(() => ApiSearchRepo().removeRecent(q));
   }
 
   static void clearRecents() {
     if (recents.isEmpty) return;
     recents.clear();
     _persistRecents();
+    _sync(() => ApiSearchRepo().clearRecents());
   }
 
   /// Fixed trending queries mixing kitchens + dishes.
@@ -177,6 +211,33 @@ class SearchRepo {
     }
     _pool = out;
     return out;
+  }
+
+  /// Server catalogue search. Empty under `flutter test` / offline so the
+  /// local index above stays the reliable fallback.
+  static Future<List<Product>> searchRemote(
+    String query, {
+    int limit = 60,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty || !CustomerIdentity.networkEnabled) return const [];
+    try {
+      final data = await ApiSearchRepo().search(q, limit: limit);
+      final results = data?['results'];
+      if (results is! List) return const [];
+      final out = <Product>[];
+      for (final e in results) {
+        if (e is! Map<String, dynamic>) continue;
+        try {
+          out.add(Product.fromJson(e));
+        } catch (_) {
+          // Skip malformed catalogue rows.
+        }
+      }
+      return out;
+    } catch (_) {
+      return const [];
+    }
   }
 
   /// Case-insensitive substring search, capped at 60 hits.

@@ -4,4 +4,8 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Debug builds talk to the local OXRO backend over plain HTTP
+         (10.0.2.2 emulator / LAN IP). Release builds keep the default. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

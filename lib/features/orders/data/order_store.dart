@@ -10,6 +10,7 @@ import 'package:oxro/features/orders/data/order_pricing.dart';
 import 'package:oxro/features/restaurants/data/restaurant.dart';
 import 'package:oxro/features/restaurants/data/restaurant_repo.dart';
 import 'package:oxro/app/repositories/order_repo.dart';
+import 'package:oxro/app/api/customer_identity.dart';
 
 /// Order status buckets: active vs past.
 enum OrderStatus { processing, shipped, outForDelivery, delivered, cancelled }
@@ -96,6 +97,43 @@ class TrackingStep {
   final IconData icon;
 }
 
+MockOrder? _orderFromMap(Map<String, dynamic> m) {
+  final products = [
+    for (final v in (m['products'] is List ? m['products'] as List : const []))
+      if (v is Map) Product.fromJson(Map<String, dynamic>.from(v)),
+  ];
+  if (products.isEmpty) return null;
+
+  final statusName = m['status'] as String?;
+  final status = OrderStatus.values.cast<OrderStatus?>().firstWhere(
+    (s) => s?.name == statusName,
+    orElse: () => null,
+  );
+  if (status == null) return null;
+
+  DateTime? deliveredAt;
+  final delivered = m['deliveredAt'] ?? m['delivered_at'];
+  if (delivered is String) deliveredAt = DateTime.tryParse(delivered);
+
+  final bill = m['bill'];
+  return MockOrder(
+    id: (m['id'] as String?) ?? '',
+    date: (m['date'] as String?) ?? 'Today',
+    status: status,
+    products: List<Product>.unmodifiable(products),
+    restaurantId:
+        (m['restaurantId'] as String?) ?? m['restaurant_id'] as String?,
+    restaurantName:
+        (m['restaurantName'] as String?) ?? m['restaurant_name'] as String?,
+    instructions: m['instructions'] as String?,
+    cutleryOptIn: (m['cutleryOptIn'] as bool?) ?? m['cutlery_opt_in'] as bool?,
+    deliveredAt: deliveredAt,
+    bill: bill is Map
+        ? OrderBill.fromJson(Map<String, dynamic>.from(bill))
+        : null,
+  );
+}
+
 /// App-wide orders (mock, in-memory).
 /// Checkout place appends here later; seeded with ref-like history.
 class OrderStore extends ChangeNotifier {
@@ -116,14 +154,27 @@ class OrderStore extends ChangeNotifier {
   }
 
   /// Loads persisted orders incl. user-placed ones (call at splash).
-  /// No cache → keeps the seeded history.
-  /// Backend sync attempted first.
+  /// Server wins when reachable; SharedPreferences/seeded history is the
+  /// offline fallback.
   Future<void> load() async {
-    try {
-      final repo = OrderRepo();
-      await repo.fetchOrders();
-    } catch (_) {
-      // Best-effort backend sync only.
+    if (CustomerIdentity.networkEnabled) {
+      try {
+        final remote = await OrderRepo().fetchOrders();
+        if (remote != null) {
+          final remoteOrders = [
+            for (final e in remote)
+              if (e is Map) _orderFromMap(Map<String, dynamic>.from(e)),
+          ];
+          _orders
+            ..clear()
+            ..addAll(remoteOrders.whereType<MockOrder>());
+          await _persist();
+          notifyListeners();
+          return;
+        }
+      } catch (_) {
+        // Offline — use the local cache below.
+      }
     }
     try {
       final p = await SharedPreferences.getInstance();
@@ -132,38 +183,9 @@ class OrderStore extends ChangeNotifier {
       final list = jsonDecode(raw) as List;
       final out = <MockOrder>[];
       for (final e in list) {
-        final m = e as Map<String, dynamic>;
-        final products = [
-          for (final v
-              in (m['products'] is List ? m['products'] as List : const []))
-            Product.fromJson(v as Map<String, dynamic>),
-        ];
-        if (products.isEmpty) continue;
-        final statusName = m['status'] as String?;
-        final status = OrderStatus.values.cast<OrderStatus?>().firstWhere(
-          (s) => s?.name == statusName,
-          orElse: () => null,
-        );
-        if (status == null) continue;
-        DateTime? deliveredAt;
-        final d = m['deliveredAt'];
-        if (d is String) deliveredAt = DateTime.tryParse(d);
-        out.add(
-          MockOrder(
-            id: (m['id'] as String?) ?? '',
-            date: (m['date'] as String?) ?? 'Today',
-            status: status,
-            products: List<Product>.unmodifiable(products),
-            restaurantId: m['restaurantId'] as String?,
-            restaurantName: m['restaurantName'] as String?,
-            instructions: m['instructions'] as String?,
-            cutleryOptIn: m['cutleryOptIn'] as bool?,
-            deliveredAt: deliveredAt,
-            bill: m['bill'] is Map<String, dynamic>
-                ? OrderBill.fromJson(m['bill'] as Map<String, dynamic>)
-                : null,
-          ),
-        );
+        if (e is! Map) continue;
+        final order = _orderFromMap(Map<String, dynamic>.from(e));
+        if (order != null) out.add(order);
       }
       if (out.isNotEmpty) {
         _orders
@@ -337,6 +359,17 @@ class OrderStore extends ChangeNotifier {
       n++;
     }
     return n;
+  }
+
+  /// Applies an order returned/read by the backend. If an order with the
+  /// same id exists, it is replaced. Returns false when it cannot be decoded.
+  bool applyServerOrder(Map<String, dynamic> raw) {
+    final order = _orderFromMap(raw);
+    if (order == null || order.id.isEmpty) return false;
+    _orders.removeWhere((o) => o.id == order.id);
+    _orders.insert(0, order);
+    _changed();
+    return true;
   }
 
   /// Persists a just-placed order snapshot (qty-expanded products).

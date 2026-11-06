@@ -26,7 +26,7 @@ class OxroBottomNav extends StatelessWidget {
   static const double _lift = 12;
   static const double _shadowPad = 2;
   static const double _stackH = _barH + _lift + _shadowPad;
-  static const double _cartSize = 50;
+  static const double _cartSize = 46;
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +149,7 @@ class _NavItem extends StatelessWidget {
                   ),
                 ),
                 alignment: Alignment.center,
-                child: Icon(icon, size: 20, color: const Color(0xFFFFA500)),
+                child: Icon(icon, size: 25, color: const Color(0xFFFFA500)),
               ),
             ),
             const SizedBox(height: 2),

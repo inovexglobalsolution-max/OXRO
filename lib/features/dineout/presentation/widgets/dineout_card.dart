@@ -44,7 +44,7 @@ class DineoutCard extends StatelessWidget {
                   FoodImage(
                     imageUrl: restaurant.imageUrl,
                     colors: const [Color(0xFFFFE3CB), Color(0xFFFFC79B)],
-                    icon: Icons.restaurant_outlined,
+                    icon: Icons.table_restaurant_outlined,
                     width: double.infinity,
                     height: context.isSmallPhone ? 132 : 156,
                     radius: 0,

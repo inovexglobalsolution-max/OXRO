@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/repositories/profile_repo.dart';
 
 /// Logged-in profile persisted on device (Supabase auth replaces later).
 class ProfileStore extends ChangeNotifier {
@@ -30,8 +34,15 @@ class ProfileStore extends ChangeNotifier {
     instance._seenOnboarding = false;
     instance._welcomeShown = false;
     instance._loaded = false;
+    instance._lastRemoteSyncResult = null;
     instance.notifyListeners();
   }
+
+  bool? _lastRemoteSyncResult;
+
+  /// True when the last profile write reached the backend; false when it
+  /// could not. Null before any network-backed sync attempt.
+  bool? get lastRemoteSyncResult => _lastRemoteSyncResult;
 
   String? _name;
   String? _email;
@@ -93,6 +104,87 @@ class ProfileStore extends ChangeNotifier {
     _avatarBytes = _decodeAvatar(p.getString(_kAvatar));
     _loaded = true;
     notifyListeners();
+    if (!CustomerIdentity.networkEnabled) return;
+    // Fire-and-forget so a slow/unreachable backend never blocks the splash
+    // (the local profile stays authoritative offline).
+    unawaited(() async {
+      try {
+        final remote = await ProfileRepo().fetchProfile();
+        final remoteEmpty =
+            remote == null ||
+            (((remote['name'] as String?) ?? '').trim().isEmpty &&
+                ((remote['email'] as String?) ?? '').trim().isEmpty &&
+                ((remote['phone'] as String?) ?? '').trim().isEmpty);
+        if (remoteEmpty) {
+          // Server has no profile yet — push the local snapshot so details
+          // saved offline land in the DB instead of staying device-only.
+          final hasLocal =
+              ((_name ?? '').trim().isNotEmpty) ||
+              ((_email ?? '').trim().isNotEmpty) ||
+              ((_phone ?? '').trim().isNotEmpty);
+          if (hasLocal) {
+            await _pushProfile({
+              'name': _name,
+              'email': _email,
+              'phone': _phone,
+            });
+          }
+          return;
+        }
+        final n = remote['name'];
+        final e = remote['email'];
+        final ph = remote['phone'];
+        var changed = false;
+        if (n is String && n.trim().isNotEmpty) {
+          final next = n.trim();
+          if (_name != next) {
+            _name = next;
+            await p.setString(_kName, next);
+            changed = true;
+          }
+        }
+        if (e is String && e.trim().isNotEmpty) {
+          final next = e.trim();
+          if (_email != next) {
+            _email = next;
+            await p.setString(_kEmail, next);
+            changed = true;
+          }
+        }
+        if (ph is String && ph.trim().isNotEmpty) {
+          final next = ph.trim();
+          if (_phone != next) {
+            _phone = next;
+            await p.setString(_kPhone, next);
+            changed = true;
+          }
+        }
+        if (changed) notifyListeners();
+      } catch (_) {
+        // Offline — the local profile stays authoritative.
+      }
+    }());
+  }
+
+  static Future<bool> _pushProfile(Map<String, dynamic> data) async {
+    if (!CustomerIdentity.networkEnabled) return true;
+    try {
+      return await ProfileRepo().updateProfile(data);
+    } catch (_) {
+      // Best-effort sync only; caller decides whether to surface the result.
+      return false;
+    }
+  }
+
+  /// Retries the current local profile snapshot against the backend.
+  Future<bool> retryProfileSync() async {
+    final ok = await _pushProfile({
+      'name': _name,
+      'email': _email,
+      'phone': _phone,
+    });
+    _lastRemoteSyncResult = ok;
+    return ok;
   }
 
   static Uint8List? _decodeAvatar(String? encoded) {
@@ -142,8 +234,7 @@ class ProfileStore extends ChangeNotifier {
   /// Email and phone are independent identities — pass whichever
   /// the OTP was sent to (never store a phone number in the email
   /// field). Empty values clear that identity.
-  Future<void> save(
-      {String? email, String? name, String? phone}) async {
+  Future<void> save({String? email, String? name, String? phone}) async {
     final p = await SharedPreferences.getInstance();
     if (email != null) {
       final e = email.trim();
@@ -166,6 +257,7 @@ class ProfileStore extends ChangeNotifier {
       await p.setString(_kPhone, _phone!);
     }
     notifyListeners();
+    unawaited(_pushProfile({'name': _name, 'email': _email, 'phone': _phone}));
   }
 
   /// Updates display name (edit profile).
@@ -175,6 +267,7 @@ class ProfileStore extends ChangeNotifier {
     _name = name.trim();
     await p.setString(_kName, _name!);
     notifyListeners();
+    unawaited(_pushProfile({'name': _name, 'email': _email, 'phone': _phone}));
     return true;
   }
 
@@ -190,13 +283,16 @@ class ProfileStore extends ChangeNotifier {
       await p.setString(_kPhone, _phone!);
     }
     notifyListeners();
+    unawaited(_pushProfile({'name': _name, 'email': _email, 'phone': _phone}));
     return true;
   }
 
   /// Updates name + phone together (edit screen save).
   /// Returns error string or null on success.
-  Future<String?> updateProfile(
-      {required String name, required String phone}) async {
+  Future<String?> updateProfile({
+    required String name,
+    required String phone,
+  }) async {
     final nameErr = validateName(name);
     if (nameErr != null) return nameErr;
     final phoneErr = validatePhone(phone);
@@ -212,6 +308,11 @@ class ProfileStore extends ChangeNotifier {
       await p.setString(_kPhone, _phone!);
     }
     notifyListeners();
+    _lastRemoteSyncResult = await _pushProfile({
+      'name': _name,
+      'email': _email,
+      'phone': _phone,
+    });
     return null;
   }
 

@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/app/repositories/support_repo.dart';
 
 enum SupportSource { order, bag }
 
@@ -77,6 +81,7 @@ class SupportStore extends ChangeNotifier {
   static const _kCache = 'oxro_support_v1';
 
   final List<SupportTicket> _tickets = [];
+  bool _serverEmpty = false;
 
   @visibleForTesting
   static void resetForTests() {
@@ -84,11 +89,65 @@ class SupportStore extends ChangeNotifier {
     instance.notifyListeners();
   }
 
+  Future<void> _maybeSeedServer() async {
+    if (!_serverEmpty || !CustomerIdentity.networkEnabled || _tickets.isEmpty) {
+      _serverEmpty = false;
+      return;
+    }
+    try {
+      for (final t in _tickets) {
+        await SupportRepo().create({
+          'id': t.id,
+          'source': t.source.name,
+          'categoryId': t.categoryId,
+          'categoryLabel': t.categoryLabel,
+          'orderId': t.orderId,
+          'restaurantName': t.restaurantName,
+          'items': t.items,
+          'note': t.note,
+        });
+      }
+    } catch (_) {
+      // Local cache remains authoritative; the next sync can retry.
+    } finally {
+      _serverEmpty = false;
+    }
+  }
+
   Future<void> load() async {
+    _serverEmpty = false;
+    if (CustomerIdentity.networkEnabled) {
+      try {
+        final remote = await SupportRepo().list();
+        if (remote != null && remote.isNotEmpty) {
+          final loaded = <SupportTicket>[];
+          for (final e in remote) {
+            if (e is Map<String, dynamic>) {
+              final t = SupportTicket.fromJson(e);
+              if (t.id.isNotEmpty) loaded.add(t);
+            }
+          }
+          if (loaded.isNotEmpty) {
+            _tickets
+              ..clear()
+              ..addAll(loaded);
+            notifyListeners();
+            await _persist();
+            return;
+          }
+        }
+        if (remote != null) _serverEmpty = true;
+      } catch (_) {
+        // Offline — the local cache stays authoritative.
+      }
+    }
     try {
       final p = await SharedPreferences.getInstance();
       final raw = p.getString(_kCache);
-      if (raw == null || raw.isEmpty) return;
+      if (raw == null || raw.isEmpty) {
+        await _maybeSeedServer();
+        return;
+      }
       final list = jsonDecode(raw) as List;
       final loaded = <SupportTicket>[];
       for (final e in list) {
@@ -97,14 +156,19 @@ class SupportStore extends ChangeNotifier {
           if (t.id.isNotEmpty) loaded.add(t);
         }
       }
-      if (loaded.isEmpty) return;
+      if (loaded.isEmpty) {
+        await _maybeSeedServer();
+        return;
+      }
       _tickets
         ..clear()
         ..addAll(loaded);
       notifyListeners();
     } catch (_) {
+      await _maybeSeedServer();
       return;
     }
+    await _maybeSeedServer();
   }
 
   Future<void> _persist() async {
@@ -142,6 +206,24 @@ class SupportStore extends ChangeNotifier {
     _tickets.insert(0, ticket);
     notifyListeners();
     _persist();
+    if (CustomerIdentity.networkEnabled) {
+      unawaited(() async {
+        try {
+          await SupportRepo().create({
+            'id': ticket.id,
+            'source': ticket.source.name,
+            'categoryId': ticket.categoryId,
+            'categoryLabel': ticket.categoryLabel,
+            'orderId': ticket.orderId,
+            'restaurantName': ticket.restaurantName,
+            'items': ticket.items,
+            'note': ticket.note,
+          });
+        } catch (_) {
+          // Best-effort sync only.
+        }
+      }());
+    }
     return ticket;
   }
 
