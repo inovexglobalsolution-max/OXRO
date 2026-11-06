@@ -1,5 +1,6 @@
-'use strict';
+ï»¿'use strict';
 
+const crypto = require('crypto');
 const orderStore = require('../services/orderStore');
 const cartStore = require('../services/cartStore');
 const walletStore = require('../services/walletStore');
@@ -141,12 +142,61 @@ const checkoutController = {
     return res.status(201).json({ order: created.order || order });
   },
 
-  /** Razorpay verification is not integrated yet — never fake success. */
+  /** Create a Razorpay order (server-side, keeps key_secret secret). */
+  createRazorpayOrder: async (req, res) => {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keyId || !keySecret) {
+      return res.status(500).json({ error: 'Razorpay is not configured on the server' });
+    }
+    const amount = Number(req.body && req.body.amountPaise);
+    if (!Number.isInteger(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'amountPaise must be a positive integer' });
+    }
+    const receipt = String((req.body && req.body.receipt) || `rcpt_${Date.now()}`);
+    const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+    try {
+      const r = await fetch('https://api.razorpay.com/v1/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${auth}`,
+        },
+        body: JSON.stringify({
+          amount,
+          currency: 'INR',
+          receipt,
+          payment_capture: 1,
+        }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        return res.status(r.status).json({ error: (data && data.error && data.error.description) ? data.error.description : 'Razorpay order creation failed' });
+      }
+      return res.status(201).json({ razorpayOrderId: data.id, amount: data.amount, currency: data.currency, keyId });
+    } catch (e) {
+      return res.status(502).json({ error: 'Could not reach Razorpay' });
+    }
+  },
+
+  /** Verifies Razorpay payment signature (HMAC-SHA256). */
   verify: (req, res) => {
-    res.status(501).json({
-      error: 'Payment verification is not available until Razorpay is integrated.',
-      code: 'payment_not_integrated',
-    });
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keySecret) {
+      return res.status(500).json({ error: 'Razorpay is not configured on the server' });
+    }
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body || {};
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return res.status(400).json({ error: 'razorpayOrderId, razorpayPaymentId and razorpaySignature are required' });
+    }
+    const expected = crypto
+      .createHmac('sha256', keySecret)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest('hex');
+    if (expected !== String(razorpaySignature)) {
+      return res.status(400).json({ error: 'Payment signature verification failed', code: 'payment_verification_failed' });
+    }
+    return res.status(200).json({ verified: true });
   },
 };
 

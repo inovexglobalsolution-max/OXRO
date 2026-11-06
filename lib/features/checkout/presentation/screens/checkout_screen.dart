@@ -150,6 +150,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         final paid = await PaymentGateway.instance.charge(
           method,
           pay.toPayPaise,
+          context: context,
         );
         if (!paid) {
           if (!mounted) return;
