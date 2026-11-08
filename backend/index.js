@@ -66,10 +66,13 @@ app.use((req, res) => {
 // Centralized error handler (must be last)
 app.use(errorHandler);
 
+const { supabaseEnabled } = require('./config/supabase');
+
 // Listen only when run directly (tests import `app` on an ephemeral port).
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`OXRO backend running on port ${PORT}`);
+    console.log(`Supabase persistence: ${supabaseEnabled() ? 'ENABLED' : 'DISABLED (in-memory fallback)'}`);
   });
 }
 
