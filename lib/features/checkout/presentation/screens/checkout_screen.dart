@@ -926,11 +926,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                     ? OxroColors.green
                                     : null,
                               ),
-                              _billRow(
-                                'GST (govt. taxes)',
-                                Money.inr(quote.taxPaise),
-                              ),
-                              if (quote.tipPaise > 0)
+                               if (quote.tipPaise > 0)
                                 _billRow(
                                   'Delivery partner tip',
                                   Money.inr(quote.tipPaise),

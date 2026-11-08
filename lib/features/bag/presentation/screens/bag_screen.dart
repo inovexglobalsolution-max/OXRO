@@ -5,7 +5,6 @@ import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/app/widgets/food_image.dart';
-import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/app/widgets/press_scale.dart';
 import 'package:oxro/app/widgets/veg_mark.dart';
 import 'package:oxro/features/address/data/address_store.dart';
@@ -66,9 +65,6 @@ class BagScreen extends StatelessWidget {
             final quote = PaymentStore.instance.quoteForItemsTotal(
               store.totalPrice,
             );
-            final restaurant = RestaurantRepo.byId(store.restaurantId ?? '');
-            final minOrder = restaurant?.minOrder ?? 0;
-            final belowMin = minOrder > 0 && store.totalPrice < minOrder;
             return Column(
               children: [
                 // Header.
@@ -186,25 +182,6 @@ class BagScreen extends StatelessWidget {
                   ),
                 ),
                 // Sticky order bar.
-                if (lines.isNotEmpty && belowMin)
-                  Container(
-                    key: const ValueKey('bag_min_order'),
-                    width: double.infinity,
-                    color: OxroColors.primary.withValues(alpha: 0.08),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: context.padX,
-                      vertical: 7,
-                    ),
-                    child: Text(
-                      'Add ${Product.inr(minOrder - store.totalPrice)} more to place your order',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: OxroColors.primary,
-                      ),
-                    ),
-                  ),
                 if (lines.isNotEmpty)
                   SafeArea(
                     child: Container(
@@ -277,13 +254,6 @@ class BagScreen extends StatelessWidget {
                                       const AddressSelectionScreen(),
                                     );
                                   }
-                                  return;
-                                }
-                                if (belowMin) {
-                                  showOxroSnack(
-                                    context,
-                                    'Add ${Product.inr(minOrder - store.totalPrice)} more to place your order',
-                                  );
                                   return;
                                 }
                                 if (!context.mounted) return;

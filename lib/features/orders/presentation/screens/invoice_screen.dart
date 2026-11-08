@@ -202,7 +202,6 @@ class InvoiceScreen extends StatelessWidget {
                         ? 'FREE'
                         : Money.inr(bill.platformFeePaise),
                   ),
-                  _row('Taxes (5% GST)', Money.inr(bill.taxPaise)),
                   if (bill.tipPaise > 0)
                     _row(
                       'Delivery tip (100% to rider)',

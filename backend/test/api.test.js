@@ -72,10 +72,10 @@ function bps(paise, rate) {
 
 function billFor(itemSubtotalPaise, overrides = {}) {
   const packagingPaise = 0;
-  const deliveryPaise = 4000;
+  const deliveryPaise = itemSubtotalPaise > 19900 ? 0 : 4000;
   const platformFeePaise = 700;
   const smallCartFeePaise = itemSubtotalPaise < 9900 ? 1000 : 0;
-  const taxPaise = bps(itemSubtotalPaise, 500);
+  const taxPaise = 0;
   const tipPaise = 0;
   const discountPaise = 0;
   const bill = {

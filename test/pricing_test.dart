@@ -123,7 +123,7 @@ void main() {
         const MaterialApp(home: CheckoutScreen()));
     await _frames(tester);
     expect(find.text('Platform fee'), findsOneWidget);
-    expect(find.text('GST (govt. taxes)'), findsOneWidget);
+    expect(find.text('GST (govt. taxes)'), findsNothing);
     expect(find.text('Delivery partner fee'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

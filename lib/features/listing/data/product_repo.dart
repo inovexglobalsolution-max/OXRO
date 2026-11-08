@@ -183,7 +183,7 @@ class ProductRepo {
       final dup = i ~/ _styles.length;
       final name = dup == 0 ? '$style $leaf' : '$style $leaf ${dup + 1}';
       final price = ((49 + next(560)) ~/ 10) * 10 + 9;
-      final off = 10 + next(50);
+      final off = 10 + next(41);
       final mrp = price + (price * off ~/ (100 - off));
       final tile = _tiles[next(_tiles.length)];
       // Keep consuming the pseudo-random sequence in the same order so

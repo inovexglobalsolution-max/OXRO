@@ -5,7 +5,27 @@ const orderStore = require('../services/orderStore');
 const cartStore = require('../services/cartStore');
 const walletStore = require('../services/walletStore');
 const smartChangeStore = require('../services/smartChangeStore');
+const pricingStore = require('../services/pricingStore');
 const { customerIdFrom } = require('../utils/request');
+
+function smallCartFeePaiseFor(itemSubtotalPaise) {
+  if (itemSubtotalPaise <= 0) return 0;
+  if (itemSubtotalPaise < 5000) return 2000;
+  if (itemSubtotalPaise < 7000) return 1500;
+  if (itemSubtotalPaise < 9900) return 1000;
+  return 0;
+}
+
+async function computeServerBill(itemSubtotalPaise) {
+  const cfg = await pricingStore.get();
+  const platformFeePaise = Number(cfg.platformFeePaise || 0);
+  const packagingPaise = Number(cfg.customerPackagingFeePaise || 0);
+  const deliveryPaise =
+    itemSubtotalPaise > 19900 ? 0 : Number(cfg.customerDeliveryFeePaise || 0);
+  const taxPaise = 0; // GST included in dish prices; not charged separately
+  const smallCartFeePaise = smallCartFeePaiseFor(itemSubtotalPaise);
+  return { platformFeePaise, packagingPaise, deliveryPaise, taxPaise, smallCartFeePaise };
+}
 const { newOrderId, safeId, nowIso } = require('../utils/ids');
 
 const METHODS = new Set(['upi', 'card', 'wallet', 'cod']);
@@ -14,7 +34,7 @@ function isNonNegInt(v) {
   return Number.isInteger(v) && v >= 0;
 }
 
-function validateBill(bill, itemSubtotalPaise) {
+function validateBill(bill, itemSubtotalPaise, serverFees) {
   if (!bill || typeof bill !== 'object') return 'bill snapshot is required';
   const keys = [
     'itemSubtotalPaise',
@@ -33,13 +53,28 @@ function validateBill(bill, itemSubtotalPaise) {
   if (bill.itemSubtotalPaise !== itemSubtotalPaise) {
     return 'Bill item subtotal does not match the ordered items';
   }
+  // Server-authoritative fee checks.
+  if (bill.packagingPaise !== serverFees.packagingPaise) {
+    return 'Bill packaging fee mismatch';
+  }
+  if (bill.deliveryPaise !== serverFees.deliveryPaise) {
+    return 'Bill delivery fee mismatch';
+  }
+  if (bill.platformFeePaise !== serverFees.platformFeePaise) {
+    return 'Bill platform fee mismatch';
+  }
+  if (bill.smallCartFeePaise !== serverFees.smallCartFeePaise) {
+    return 'Bill small cart fee mismatch';
+  }
+  if (bill.taxPaise !== serverFees.taxPaise) {
+    return 'Bill tax mismatch';
+  }
   const expected =
     bill.itemSubtotalPaise +
     bill.packagingPaise +
     bill.deliveryPaise +
     bill.platformFeePaise +
     bill.smallCartFeePaise +
-    bill.taxPaise +
     bill.tipPaise -
     bill.discountPaise;
   if (expected !== bill.grandTotalPaise) {
@@ -70,8 +105,9 @@ const checkoutController = {
       (sum, p) => sum + Number(p.price) * 100,
       0,
     );
+    const serverFees = await computeServerBill(itemSubtotalPaise);
     const bill = body.bill;
-    const billError = validateBill(bill, itemSubtotalPaise);
+    const billError = validateBill(bill, itemSubtotalPaise, serverFees);
     if (billError) return res.status(400).json({ error: billError });
 
     const orderId = body.orderId ? safeId(body.orderId, 'OXRO') : newOrderId();

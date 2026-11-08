@@ -9,10 +9,17 @@ function fromRow(r) {
   return {
     id: r.id,
     restaurantId: r.restaurant_id,
+    customerName: r.customer_name || null,
+    customerPhone: r.customer_phone || null,
     guests: r.guests,
     slot: r.slot,
+    bookingDate: r.booking_date || null,
+    bookingTime: r.booking_time || null,
+    bookingStatus: r.booking_status || 'confirmed',
+    specialRequest: r.special_request || r.note || null,
     note: r.note,
     createdAt: r.created_at,
+    updatedAt: r.updated_at || null,
   };
 }
 
@@ -41,8 +48,14 @@ async function create(customerId, data = {}) {
   const record = {
     id: safeId(data.id, 'bkg'),
     restaurantId,
+    customerName: String(data.customerName || data.customer_name || '').trim() || null,
+    customerPhone: String(data.customerPhone || data.customer_phone || '').trim() || null,
     guests,
     slot,
+    bookingDate: data.bookingDate || data.booking_date || null,
+    bookingTime: data.bookingTime || data.booking_time || null,
+    bookingStatus: String(data.bookingStatus || data.booking_status || 'confirmed').trim(),
+    specialRequest: String(data.specialRequest || data.special_request || data.note || '').slice(0, 300) || null,
     note: String(data.note || '').slice(0, 300) || null,
     createdAt: nowIso(),
   };
@@ -61,8 +74,14 @@ async function create(customerId, data = {}) {
       id: record.id,
       customer_id: customerId,
       restaurant_id: record.restaurantId,
+      customer_name: record.customerName,
+      customer_phone: record.customerPhone,
       guests: record.guests,
       slot: record.slot,
+      booking_date: record.bookingDate,
+      booking_time: record.bookingTime,
+      booking_status: record.bookingStatus,
+      special_request: record.specialRequest,
       note: record.note,
     })
     .select('*')

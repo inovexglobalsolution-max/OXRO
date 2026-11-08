@@ -1470,7 +1470,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                   ? 'FREE'
                   : Money.inr(bill.platformFeePaise),
             ),
-            _billRow('Taxes (5% GST)', Money.inr(bill.taxPaise)),
             if (bill.tipPaise > 0)
               _billRow('Delivery Tip', Money.inr(bill.tipPaise)),
             if (bill.discountPaise > 0)

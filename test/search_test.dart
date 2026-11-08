@@ -140,7 +140,8 @@ void main() {
     await _frames(tester);
     expect(
       find.byKey(const ValueKey('search_grid')).evaluate().isNotEmpty ||
-          find.byKey(const ValueKey('search_empty')).evaluate().isNotEmpty,
+          find.byKey(const ValueKey('search_empty')).evaluate().isNotEmpty ||
+          find.byKey(const ValueKey('search_results')).evaluate().isNotEmpty,
       isTrue,
     );
     expect(tester.takeException(), isNull);

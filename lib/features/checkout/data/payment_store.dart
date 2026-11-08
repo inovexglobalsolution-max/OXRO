@@ -148,10 +148,11 @@ class PaymentStore extends ChangeNotifier {
   /// PREMIUM members get free delivery above the membership threshold.
   bool get premiumFreeDelivery =>
       PremiumStore.instance.isMember &&
-      itemsTotal >= PremiumStore.freeDeliveryMinOrder;
+      itemsTotal > PremiumStore.freeDeliveryMinOrder;
 
   /// Delivery fee after FREESHIP or the PREMIUM benefit (rupees).
-  int get deliveryFee => freeShip || premiumFreeDelivery ? 0 : shippingFee;
+  int get deliveryFee =>
+      (itemsTotal > 199 || freeShip || premiumFreeDelivery) ? 0 : shippingFee;
 
   /// Customer platform fee in rupees (₹0 during a promo).
   int get platformFee =>
@@ -263,6 +264,7 @@ class PaymentStore extends ChangeNotifier {
   OrderQuote quoteForItemsTotal(int itemsTotalRupees) {
     final total = itemsTotalRupees < 0 ? 0 : itemsTotalRupees;
     final cfg = PricingConfigStore.instance.config;
+    final taxCfg = cfg.copyWith(customerGstBps: 0);
     final discountPaise = discount * 100;
     final sub = SubOrderInput(
       restaurantId: 'oxro',
@@ -273,7 +275,7 @@ class PaymentStore extends ChangeNotifier {
       tipPaise: _tipPaise,
     );
     final platformFee = PricingConfigStore.instance.effectivePlatformFeePaise;
-    final quote = PricingEngine(cfg).quoteOrder(
+    final quote = PricingEngine(taxCfg).quoteOrder(
       OrderQuoteInput(subOrders: [sub], platformFeeOverridePaise: platformFee),
     );
     if (total == 0 || quote.grandTotalPaise > 0 || discountPaise > 0) {
@@ -281,7 +283,7 @@ class PaymentStore extends ChangeNotifier {
     }
     final itemSubtotal = total * 100;
     final smallCartFee = PricingEngine.smallCartFeePaiseFor(itemSubtotal);
-    final tax = Money.applyBps(itemSubtotal, cfg.customerGstBps);
+    final tax = 0; // GST included in dish prices
     return OrderQuote(
       itemSubtotalPaise: itemSubtotal,
       packagingPaise: cfg.customerPackagingFeePaise,

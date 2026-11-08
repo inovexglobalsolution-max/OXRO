@@ -248,7 +248,7 @@ class OrderStore extends ChangeNotifier {
     const packaging = 2000;
     final delivery = subtotal >= 49900 ? 0 : 3000;
     const platform = 500;
-    final tax = (subtotal * 5 / 100).round();
+    final tax = 0; // GST included in dish prices
     return OrderBill(
       itemSubtotalPaise: subtotal,
       packagingPaise: packaging,

@@ -336,3 +336,74 @@ insert into dishes (id, restaurant_id, name, brand, price, mrp, rating, reviews,
   (900061, 'r_cake_corner', 'Chocolate Truffle Cake', 'Cake Corner', 449, 549, 4.3, 120, 58732, '{4294967295,4294928896}', true, ''),
   (900062, 'r_cake_corner', 'Red Velvet Pastry', 'Cake Corner', 129, 159, 4.3, 120, 58732, '{4294967295,4294928896}', true, '')
 on conflict (id) do nothing;
+
+
+-- ============================================================ SAFE MIGRATION: ADD missing columns (idempotent, non-destructive)
+-- Adds only genuinely-missing fields. Existing data preserved. No drops.
+
+-- customers
+alter table customers add column if not exists profile_image_url text;
+alter table customers add column if not exists account_status text not null default 'active';
+alter table customers add column if not exists email_verified_at timestamptz;
+alter table customers add column if not exists phone_verified_at timestamptz;
+
+-- addresses
+alter table addresses add column if not exists state text not null default '';
+alter table addresses add column if not exists landmark text not null default '';
+alter table addresses add column if not exists latitude double precision;
+alter table addresses add column if not exists longitude double precision;
+alter table addresses add column if not exists address_type text not null default 'home';
+alter table addresses add column if not exists is_default boolean not null default false;
+
+-- orders
+alter table orders add column if not exists subtotal_paise integer;
+alter table orders add column if not exists delivery_fee_paise integer;
+alter table orders add column if not exists discount_paise integer;
+alter table orders add column if not exists total_paise integer;
+alter table orders add column if not exists delivery_address_snapshot jsonb;
+
+-- carts
+alter table carts add column if not exists status text not null default 'active';
+
+-- cart_lines
+alter table cart_lines add column if not exists cart_id text;
+alter table cart_lines add column if not exists unit_price_paise integer;
+alter table cart_lines add column if not exists subtotal_paise integer;
+
+-- wallets
+alter table wallets add column if not exists currency text not null default 'INR';
+
+-- wallet_transactions
+alter table wallet_transactions add column if not exists wallet_id text;
+alter table wallet_transactions add column if not exists transaction_type text;
+alter table wallet_transactions add column if not exists transaction_status text not null default 'completed';
+
+-- smart_change_transactions
+alter table smart_change_transactions add column if not exists approval_status text not null default 'granted';
+
+-- notifications
+alter table notifications add column if not exists read_at timestamptz;
+
+-- restaurants
+alter table restaurants add column if not exists address text not null default '';
+alter table restaurants add column if not exists phone_number text not null default '';
+alter table restaurants add column if not exists opening_hours text not null default '';
+alter table restaurants add column if not exists is_active boolean not null default true;
+
+-- dishes
+alter table dishes add column if not exists category_id text;
+alter table dishes add column if not exists availability_status text not null default 'available';
+
+-- dineout_bookings
+alter table dineout_bookings add column if not exists booking_date date;
+alter table dineout_bookings add column if not exists booking_time time;
+alter table dineout_bookings add column if not exists customer_name text not null default '';
+alter table dineout_bookings add column if not exists customer_phone text not null default '';
+alter table dineout_bookings add column if not exists booking_status text not null default 'confirmed';
+alter table dineout_bookings add column if not exists special_request text;
+alter table dineout_bookings add column if not exists updated_at timestamptz not null default now();
+
+-- orders pricing breakdown
+alter table orders add column if not exists small_cart_fee_paise integer;
+alter table orders add column if not exists tax_paise integer;
+alter table orders add column if not exists free_delivery_applied boolean not null default false;

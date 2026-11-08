@@ -286,15 +286,7 @@ class _BagBillCardState extends State<BagBillCard> {
                                       : null,
                                   'platform_${quote.platformFeePaise}',
                                 ),
-                                const SizedBox(height: 2),
-                                _billRow(
-                                  context,
-                                  'GST (5%)',
-                                  Money.inr(quote.taxPaise),
-                                  null,
-                                  'tax_${quote.taxPaise}',
-                                ),
-                                if (quote.tipPaise > 0) ...[
+                                 if (quote.tipPaise > 0) ...[
                                   const SizedBox(height: 2),
                                   _billRow(
                                     context,

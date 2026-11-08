@@ -24,7 +24,7 @@ class Restaurant {
     this.offerText = '',
     this.pureVeg = false,
     this.isOpen = true,
-    this.minOrder = 199,
+    this.minOrder = 0,
   });
 
   final String id;
