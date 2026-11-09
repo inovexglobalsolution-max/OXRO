@@ -4,6 +4,7 @@ import 'package:oxro_pricing/oxro_pricing.dart';
 
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
+import 'package:oxro/app/repositories/support_repo.dart';
 import 'package:oxro/features/help/data/support_store.dart';
 import 'package:oxro/features/orders/data/order_store.dart';
 
@@ -44,6 +45,25 @@ class _SupportRequestScreenState extends State<SupportRequestScreen> {
   _IssueCategory? _selected;
   final Set<String> _items = {};
   SupportTicket? _ticket;
+  List<Map<String, dynamic>> _faqs = const [];
+  int? _openFaq;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFaqs();
+  }
+
+  Future<void> _loadFaqs() async {
+    final raw = await SupportRepo().faqs(role: 'customer');
+    if (!mounted) return;
+    setState(() {
+      _faqs = [
+        for (final f in raw)
+          if (f is Map<String, dynamic>) f,
+      ];
+    });
+  }
 
   static const _active = [
     _IssueCategory('delayed', 'Order delayed', Icons.schedule),
@@ -234,6 +254,74 @@ class _SupportRequestScreenState extends State<SupportRequestScreen> {
     );
   }
 
+  Widget _faqSection(BuildContext context) {
+    return Column(
+      key: const ValueKey('issue_faqs'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick answers',
+          style: TextStyle(
+            fontSize: context.font(14),
+            fontWeight: FontWeight.w800,
+            color: OxroColors.charcoal,
+          ),
+        ),
+        SizedBox(height: context.rs(8)),
+        for (var i = 0; i < _faqs.length; i++) _faqTile(context, i),
+      ],
+    );
+  }
+
+  Widget _faqTile(BuildContext context, int i) {
+    final faq = _faqs[i];
+    final open = _openFaq == i;
+    return Container(
+      key: ValueKey('issue_faq_${faq['id']}'),
+      margin: EdgeInsets.only(bottom: context.rs(6)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: OxroColors.border.withValues(alpha: 0.6)),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: open,
+          onExpansionChanged: (v) => setState(() => _openFaq = v ? i : null),
+          tilePadding: EdgeInsets.symmetric(horizontal: context.rs(12)),
+          childrenPadding: EdgeInsets.fromLTRB(
+            context.rs(12),
+            0,
+            context.rs(12),
+            context.rs(10),
+          ),
+          title: Text(
+            '${faq['question'] ?? ''}',
+            style: TextStyle(
+              fontSize: context.font(12.5),
+              fontWeight: FontWeight.w700,
+              color: OxroColors.charcoal,
+            ),
+          ),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${faq['answer'] ?? ''}',
+                style: TextStyle(
+                  fontSize: context.font(12),
+                  color: OxroColors.muted,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _form(BuildContext context) {
     final categories = _categories;
     return Column(
@@ -244,6 +332,10 @@ class _SupportRequestScreenState extends State<SupportRequestScreen> {
             padding: EdgeInsets.fromLTRB(context.padX, 4, context.padX, 16),
             children: [
               _contextCard(context),
+              if (_faqs.isNotEmpty) ...[
+                SizedBox(height: context.rs(16)),
+                _faqSection(context),
+              ],
               SizedBox(height: context.rs(16)),
               Text(
                 'What went wrong?',

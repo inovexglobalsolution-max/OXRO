@@ -1,10 +1,15 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 import 'package:oxro_pricing/oxro_pricing.dart';
 
+import 'package:oxro/app/api/api_client.dart';
+import 'package:oxro/app/api/customer_identity.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/app/widgets/oxro_snack.dart';
@@ -92,12 +97,84 @@ class _WalletScreenState extends State<WalletScreen>
   /// we never credit fake money into the wallet.
   void _add(int amount) {
     FocusScope.of(context).unfocus();
-    showOxroSnack(context, 'Top-up coming soon — payment integration pending');
+    _pay(amount);
   }
 
   void _addCustom() {
     FocusScope.of(context).unfocus();
-    showOxroSnack(context, 'Top-up coming soon — payment integration pending');
+    final v = int.tryParse(_amtCtrl.text.trim());
+    if (v == null || v <= 0) return;
+    _pay(v);
+  }
+
+  Future<void> _pay(int amount) async {
+    if (!CustomerIdentity.networkEnabled) {
+      return;
+    }
+    final client = ApiClient();
+    try {
+      final createRes = await client.post(
+        '/wallet/create-order',
+        body: {'amountPaise': amount * 100},
+      );
+      if (createRes.statusCode != 201) return;
+      final created = jsonDecode(createRes.body) as Map<String, dynamic>;
+      final keyId = created['keyId'] as String?;
+      final orderId = created['razorpayOrderId'] as String?;
+      if (keyId == null || orderId == null) return;
+      final completer = Completer<Map<String, dynamic>?>();
+      final razorpay = Razorpay();
+      razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, (PaymentSuccessResponse r) {
+        if (!completer.isCompleted) {
+          completer.complete({
+            'paymentId': r.paymentId,
+            'orderId': r.orderId,
+            'signature': r.signature,
+          });
+        }
+      });
+      razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, (_) {
+        if (!completer.isCompleted) completer.complete(null);
+      });
+      razorpay.open({
+        'key': keyId,
+        'amount': amount * 100,
+        'currency': 'INR',
+        'name': 'OXRO',
+        'description': 'Wallet top-up',
+        'order_id': orderId,
+      });
+      final result = await completer.future.timeout(
+        const Duration(seconds: 120),
+        onTimeout: () => null,
+      );
+      razorpay.clear();
+      if (result == null) {
+        if (mounted) showOxroSnack(context, 'Payment Failed');
+        return;
+      }
+      final verifyRes = await client.post(
+        '/wallet/verify-payment',
+        body: {
+          'razorpayOrderId': result['orderId'],
+          'razorpayPaymentId': result['paymentId'],
+          'razorpaySignature': result['signature'],
+          'amountPaise': amount * 100,
+        },
+      );
+      if (verifyRes.statusCode == 200) {
+        WalletStore.instance.addPaise(
+          amount * 100,
+          label: 'Wallet top-up',
+          txnId: result['paymentId'] as String,
+        );
+        if (mounted) showOxroSnack(context, 'Payment Successful');
+      } else {
+        if (mounted) showOxroSnack(context, 'Payment Failed');
+      }
+    } catch (_) {
+      if (mounted) showOxroSnack(context, 'Payment Failed');
+    }
   }
 
   @override
@@ -530,11 +607,18 @@ class _WalletScreenState extends State<WalletScreen>
   }
 
   Widget _quickAmounts(BuildContext context) {
-    const amounts = [100, 500, 1000];
-    return Row(
+    const amounts = [100, 200, 500, 1000, 2000];
+    return Wrap(
+      spacing: context.rs(8),
+      runSpacing: context.rs(8),
       children: [
-        for (var i = 0; i < amounts.length; i++) ...[
-          Expanded(
+        for (var i = 0; i < amounts.length; i++)
+          SizedBox(
+            width:
+                (MediaQuery.of(context).size.width -
+                    context.padX * 2 -
+                    context.rs(8) * 2) /
+                3,
             child: _Pressable(
               key: ValueKey('wallet_add_${amounts[i]}'),
               onTap: () => _add(amounts[i]),
@@ -546,38 +630,20 @@ class _WalletScreenState extends State<WalletScreen>
                   border: Border.all(
                     color: OxroColors.premiumChampagne.withValues(alpha: 0.8),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: OxroColors.premiumDeep.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_rounded,
-                      size: context.rs(15),
+                child: Center(
+                  child: Text(
+                    'Rs ${amounts[i]}',
+                    style: TextStyle(
+                      fontSize: context.font(12.5),
+                      fontWeight: FontWeight.w900,
                       color: OxroColors.premiumBurgundy,
                     ),
-                    SizedBox(width: context.rs(2)),
-                    Text(
-                      Product.inr(amounts[i]),
-                      style: TextStyle(
-                        fontSize: context.font(12.5),
-                        fontWeight: FontWeight.w900,
-                        color: OxroColors.premiumBurgundy,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-          if (i != amounts.length - 1) SizedBox(width: context.rs(8)),
-        ],
       ],
     );
   }

@@ -407,3 +407,35 @@ alter table dineout_bookings add column if not exists updated_at timestamptz not
 alter table orders add column if not exists small_cart_fee_paise integer;
 alter table orders add column if not exists tax_paise integer;
 alter table orders add column if not exists free_delivery_applied boolean not null default false;
+
+
+-- ============================================================ support tickets v2 (chatbot phase 1)
+alter table support_tickets add column if not exists role text not null default 'customer';
+alter table support_tickets add column if not exists priority text not null default 'normal';
+alter table support_tickets add column if not exists assigned_team text;
+alter table support_tickets add column if not exists updated_at timestamptz not null default now();
+alter table support_tickets add column if not exists resolution_notes text;
+
+-- ============================================================ knowledge base / FAQs
+create table if not exists faqs (
+  id text primary key,
+  role text not null default 'customer' check (role in ('customer', 'restaurant', 'delivery')),
+  category text not null default 'general',
+  question text not null,
+  answer text not null,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_faqs_role_active on faqs (role, active);
+alter table faqs enable row level security;
+
+insert into faqs (id, role, category, question, answer) values
+  ('faq_c_order_track', 'customer', 'orders', 'How do I track my order?', 'Open Orders from the Account menu to see live status and delivery progress.'),
+  ('faq_c_refund', 'customer', 'payments', 'How do refunds work?', 'Eligible refunds are returned to the original payment method; timing depends on your bank or payment provider.'),
+  ('faq_c_fees', 'customer', 'payments', 'What is the small cart fee?', 'A small cart fee applies below Rs 99 of eligible cart value and is shown separately at checkout.'),
+  ('faq_r_onboard', 'restaurant', 'onboarding', 'How do I register my restaurant?', 'Partner onboarding starts with KYC and FSSAI document upload; our team verifies before activation.'),
+  ('faq_r_payout', 'restaurant', 'finance', 'When do I get my settlement?', 'Settlements follow your configured payout cycle after deducting applicable commission.'),
+  ('faq_d_earn', 'delivery', 'earnings', 'How are delivery earnings calculated?', 'Earnings include distance-based payout plus any eligible incentives and customer tips.'),
+  ('faq_d_docs', 'delivery', 'onboarding', 'Which documents are needed?', 'A valid driving licence, vehicle documents and bank details are required for verification.')
+on conflict (id) do nothing;

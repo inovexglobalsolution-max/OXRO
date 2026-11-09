@@ -109,10 +109,9 @@ void main() {
     final q = PaymentStore.instance.quote;
     expect(q.itemSubtotalPaise, 30000);
     expect(q.platformFeePaise, 700);
-    expect(q.taxPaise, 1500);
+    expect(q.taxPaise, 0); // GST removed in billing overhaul
     expect(q.commissionPaise, 1500);
-    expect(q.grandTotalPaise,
-        30000 + 4000 + 700 + 1500);
+    expect(q.grandTotalPaise, 30000 + 0 + 700 + 0); // free delivery >199, no GST
   });
 
   testWidgets('checkout shows platform fee + GST rows',

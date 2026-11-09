@@ -25,4 +25,18 @@ class SupportRepo {
     );
     return res.statusCode == 201;
   }
+
+  /// Role-scoped FAQ knowledge base (chatbot phase 1).
+  Future<List<dynamic>> faqs({String role = 'customer'}) async {
+    if (!CustomerIdentity.networkEnabled) return const [];
+    try {
+      final res = await _client.get('/support/faqs?role=$role');
+      if (res.statusCode != 200) return const [];
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map<String, dynamic>) return const [];
+      return decoded['faqs'] is List ? decoded['faqs'] as List : const [];
+    } catch (_) {
+      return const [];
+    }
+  }
 }

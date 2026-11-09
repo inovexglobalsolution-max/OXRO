@@ -12,6 +12,9 @@ const PORT = config.port;
 // Security middleware
 app.use(helmet());
 app.use(cors());
+// Razorpay webhook needs the raw body for signature verification.
+app.use('/wallet/razorpay-webhook', express.raw({ type: '*/*' }));
+app.use('/api/wallet/razorpay-webhook', express.raw({ type: '*/*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -46,7 +49,7 @@ app.use('/restaurants', restaurantRoutes);
 app.use('/auth', authRoutes);
 app.use('/profile', profileRoutes);
 app.use('/wallet', walletRoutes);
-app.use('/addresses', addressRoutes);
+app.use('/api/wallet', walletRoutes);app.use('/addresses', addressRoutes);
 app.use('/pricing', pricingRoutes);
 app.use('/checkout', checkoutRoutes);
 app.use('/search', searchRoutes);

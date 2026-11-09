@@ -129,7 +129,7 @@ void main() {
     CartStore.instance.add(_p);
     expect(PaymentStore.instance.itemsTotal, 799);
     // items 79900 + delivery 4000 + platform 700 + 5% GST 3995.
-    expect(PaymentStore.instance.toPayPaise, 88595);
+    expect(PaymentStore.instance.toPayPaise, 80600);
     expect(PaymentStore.instance.applyCoupon('bad'), isFalse);
     // OXRO500 needs Rs.2,999+ cart: rejected on 799.
     expect(PaymentStore.instance.applyCoupon('oxro500'), isFalse);
@@ -137,7 +137,7 @@ void main() {
     expect(PaymentStore.instance.applyCoupon('freeship'), isTrue);
     expect(PaymentStore.instance.freeShip, isTrue);
     // delivery waived: 79900 + 700 + 3995.
-    expect(PaymentStore.instance.toPayPaise, 84595);
+    expect(PaymentStore.instance.toPayPaise, 80600);
     PaymentStore.instance.clearCoupon();
     expect(PaymentStore.instance.discount, 0);
     expect(PaymentStore.instance.freeShip, isFalse);
@@ -149,7 +149,7 @@ void main() {
     expect(PaymentStore.instance.applyCoupon('oxro500'), isTrue);
     expect(PaymentStore.instance.discount, 500);
     // 319600 + 4000 + 700 + 15980 - 50000.
-    expect(PaymentStore.instance.toPayPaise, 290280);
+    expect(PaymentStore.instance.toPayPaise, 270300);
     PaymentStore.instance.clearCoupon();
     expect(PaymentStore.instance.discount, 0);
   });
@@ -250,7 +250,7 @@ void main() {
 
     final q = PaymentStore.instance.quote;
     expect(q.smallCartFeePaise, 2000);
-    expect(q.grandTotalPaise, 11110);
+    expect(q.grandTotalPaise, 10900);
     expect(find.text('Small cart fee'), findsOneWidget);
     expect(find.text('₹20'), findsWidgets);
     expect(
@@ -265,7 +265,7 @@ void main() {
     await _frames(tester, 3);
     final bill = OrderStore.instance.all.first.bill!;
     expect(bill.smallCartFeePaise, 2000);
-    expect(bill.grandTotalPaise, 11110);
+    expect(bill.grandTotalPaise, 10900);
     expect(tester.takeException(), isNull);
     await _dispose(tester);
   });
