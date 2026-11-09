@@ -319,6 +319,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     if (instructions != null) body['instructions'] = instructions;
     if (cutleryOptIn != null) body['cutleryOptIn'] = cutleryOptIn;
     if (smartChangeTxnId != null) body['smartChangeTxnId'] = smartChangeTxnId;
+    final deliveryAddress = AddressStore.instance.address;
+    if (deliveryAddress != null && deliveryAddress.hasCoordinates) {
+      body['deliveryAddressSnapshot'] = deliveryAddress.toOrderSnapshot();
+    }
 
     try {
       final placed = await OrderRepo().placeOrder(body);
@@ -926,7 +930,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                     ? OxroColors.green
                                     : null,
                               ),
-                               if (quote.tipPaise > 0)
+                              if (quote.tipPaise > 0)
                                 _billRow(
                                   'Delivery partner tip',
                                   Money.inr(quote.tipPaise),

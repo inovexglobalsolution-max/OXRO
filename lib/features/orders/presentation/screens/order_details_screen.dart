@@ -1460,10 +1460,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
               bill.deliveryPaise == 0 ? 'FREE' : Money.inr(bill.deliveryPaise),
             ),
             if (bill.smallCartFeePaise > 0)
-              _billRow(
-                'Small Cart Fee',
-                Money.inr(bill.smallCartFeePaise),
-              ),
+              _billRow('Small Cart Fee', Money.inr(bill.smallCartFeePaise)),
             _billRow(
               'Platform Fee',
               bill.platformFeePaise == 0

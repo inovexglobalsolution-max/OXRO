@@ -26,6 +26,8 @@ const healthRoutes = require('./routes/health');
 const ordersRoutes = require('./routes/orders');
 const cartRoutes = require('./routes/cart');
 const restaurantRoutes = require('./routes/restaurant');
+const deliveryPartnerRoutes = require('./routes/deliveryPartners');
+const trackingRoutes = require('./routes/tracking');
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const walletRoutes = require('./routes/wallet');
@@ -60,6 +62,9 @@ app.use('/support', supportRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/coupons', couponRoutes);
 app.use('/dineout', dineoutRoutes);
+// order tracking endpoints — orders/:id/tracking, messages, instructions, assignment
+app.use('/', trackingRoutes);
+app.use('/delivery-partners', deliveryPartnerRoutes);
 
 // 404 handler
 app.use((req, res) => {

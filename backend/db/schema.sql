@@ -402,6 +402,10 @@ alter table dineout_bookings add column if not exists customer_phone text not nu
 alter table dineout_bookings add column if not exists booking_status text not null default 'confirmed';
 alter table dineout_bookings add column if not exists special_request text;
 alter table dineout_bookings add column if not exists updated_at timestamptz not null default now();
+-- Reservation platform fee payment (₹7.00) — required for confirmation.
+alter table dineout_bookings add column if not exists payment_id text unique;
+alter table dineout_bookings add column if not exists payment_status text not null default 'pending';
+alter table dineout_bookings add column if not exists amount_paise integer;
 
 -- orders pricing breakdown
 alter table orders add column if not exists small_cart_fee_paise integer;
@@ -415,6 +419,61 @@ alter table support_tickets add column if not exists priority text not null defa
 alter table support_tickets add column if not exists assigned_team text;
 alter table support_tickets add column if not exists updated_at timestamptz not null default now();
 alter table support_tickets add column if not exists resolution_notes text;
+
+-- ============================================================ delivery partners
+alter table orders add column if not exists delivery_partner_id text;
+
+create table if not exists delivery_partners (
+  id text primary key,
+  name text not null,
+  phone text,
+  photo_url text,
+  rating numeric(3,1) default 4.5,
+  completed_deliveries integer not null default 0,
+  vehicle_type text,
+  vehicle_number text,
+  verified boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_delivery_partners_verified on delivery_partners (verified);
+alter table delivery_partners enable row level security;
+
+create table if not exists delivery_partner_locations (
+  partner_id text primary key references delivery_partners (id) on delete cascade,
+  latitude double precision not null,
+  longitude double precision not null,
+  accuracy_m double precision,
+  updated_at timestamptz not null default now()
+);
+alter table delivery_partner_locations enable row level security;
+
+create table if not exists order_delivery_assignments (
+  order_id text primary key references orders (id) on delete cascade,
+  partner_id text not null references delivery_partners (id),
+  assigned_at timestamptz not null default now(),
+  picked_up_at timestamptz,
+  delivered_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_assignments_partner on order_delivery_assignments (partner_id);
+alter table order_delivery_assignments enable row level security;
+
+create table if not exists order_messages (
+  id text primary key,
+  order_id text not null references orders (id) on delete cascade,
+  sender_role text not null check (sender_role in ('customer', 'partner')),
+  body text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_order_messages_order on order_messages (order_id, created_at asc);
+alter table order_messages enable row level security;
+
+-- Seed one verified demo partner (un-assigned) so the app can render a real
+-- driver once ops assigns an order to them. Never auto-assigned in code.
+insert into delivery_partners (id, name, phone, rating, completed_deliveries, vehicle_type, vehicle_number, verified) values
+  ('DP001', 'Rahul Kumar', '9876543210', 4.8, 1243, 'Motorcycle', 'TN 09 AB 1234', true)
+on conflict (id) do nothing;
 
 -- ============================================================ knowledge base / FAQs
 create table if not exists faqs (

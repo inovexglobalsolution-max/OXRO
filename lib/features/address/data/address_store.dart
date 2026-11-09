@@ -10,7 +10,9 @@ import 'package:oxro/app/repositories/address_repo.dart';
 /// Why checkout cannot use the current address yet.
 enum AddressIssue { none, missing, doorMissing, incomplete }
 
-/// Delivery address model (14 multi-address: Home/Office/Other).
+/// Delivery address model (multi-address: Home/Office/Other).
+/// Includes coordinates captured from the customer's GPS pin —
+/// never hardcoded, always from the location picker.
 class Address {
   const Address({
     required this.id,
@@ -20,6 +22,10 @@ class Address {
     required this.line,
     required this.city,
     required this.pin,
+    this.state,
+    this.landmark,
+    this.latitude,
+    this.longitude,
   });
 
   final String id;
@@ -29,6 +35,33 @@ class Address {
   final String line;
   final String city;
   final String pin;
+  final String? state;
+  final String? landmark;
+  final double? latitude;
+  final double? longitude;
+
+  bool get hasCoordinates =>
+      latitude != null &&
+      longitude != null &&
+      latitude! >= -90 &&
+      latitude! <= 90 &&
+      longitude! >= -180 &&
+      longitude! <= 180;
+
+  /// Snapshot stored on the order at placement time.
+  Map<String, dynamic> toOrderSnapshot() => {
+    'id': id,
+    'label': label,
+    'name': name,
+    'phone': phone,
+    'line': line,
+    'city': city,
+    if (state != null) 'state': state,
+    if (landmark != null) 'landmark': landmark,
+    'pin': pin,
+    if (latitude != null) 'latitude': latitude,
+    if (longitude != null) 'longitude': longitude,
+  };
 
   Address copyWith({
     String? id,
@@ -38,6 +71,10 @@ class Address {
     String? line,
     String? city,
     String? pin,
+    String? state,
+    String? landmark,
+    double? latitude,
+    double? longitude,
   }) {
     return Address(
       id: id ?? this.id,
@@ -47,6 +84,10 @@ class Address {
       line: line ?? this.line,
       city: city ?? this.city,
       pin: pin ?? this.pin,
+      state: state ?? this.state,
+      landmark: landmark ?? this.landmark,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 }
@@ -84,17 +125,36 @@ class AddressStore extends ChangeNotifier {
     _normalizeForSignature(a.line),
     _normalizeForSignature(a.city),
     a.pin.trim(),
+    // Coordinates disambiguate same-text addresses on a different door/pin.
+    a.latitude?.toStringAsFixed(4) ?? '',
+    a.longitude?.toStringAsFixed(4) ?? '',
   ].join('|');
 
-  static Address _fromMap(Map<String, dynamic> a) => Address(
-    id: (a['id'] as String?) ?? '',
-    label: (a['label'] as String?) ?? 'Home',
-    name: (a['name'] as String?) ?? '',
-    phone: (a['phone'] as String?) ?? '',
-    line: (a['line'] as String?) ?? '',
-    city: (a['city'] as String?) ?? '',
-    pin: (a['pin'] as String?) ?? '',
-  );
+  static double? _toDouble(Object? v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString().trim());
+  }
+
+  static Address _fromMap(Map<String, dynamic> a) {
+    return Address(
+      id: (a['id'] as String?) ?? '',
+      label: (a['label'] as String?) ?? 'Home',
+      name: (a['name'] as String?) ?? '',
+      phone: (a['phone'] as String?) ?? '',
+      line: (a['line'] as String?) ?? '',
+      city: (a['city'] as String?) ?? '',
+      pin: (a['pin'] as String?) ?? '',
+      state: (a['state'] as String?)?.trim().isEmpty == true
+          ? null
+          : (a['state'] as String?)?.trim(),
+      landmark: (a['landmark'] as String?)?.trim().isEmpty == true
+          ? null
+          : (a['landmark'] as String?)?.trim(),
+      latitude: _toDouble(a['latitude']),
+      longitude: _toDouble(a['longitude']),
+    );
+  }
 
   /// Loads addresses (call once at splash). The server wins when reachable;
   /// SharedPreferences is the offline fallback.
@@ -189,6 +249,10 @@ class AddressStore extends ChangeNotifier {
     'line': a.line,
     'city': a.city,
     'pin': a.pin,
+    if (a.state != null) 'state': a.state,
+    if (a.landmark != null) 'landmark': a.landmark,
+    if (a.latitude != null) 'latitude': a.latitude,
+    if (a.longitude != null) 'longitude': a.longitude,
   };
 
   void _pushCreate(Address a) {
@@ -232,6 +296,10 @@ class AddressStore extends ChangeNotifier {
                 'line': a.line,
                 'city': a.city,
                 'pin': a.pin,
+                'state': a.state,
+                'landmark': a.landmark,
+                'latitude': a.latitude,
+                'longitude': a.longitude,
               },
           ],
         }),
@@ -338,7 +406,11 @@ class AddressStore extends ChangeNotifier {
   String get displayLine {
     final a = _default ?? _firstOrNull;
     if (a == null) return '';
-    return '${a.name} • ${a.phone}\n${a.line}, ${a.city} — ${a.pin}';
+    final tail = [
+      if (a.state != null && a.state!.trim().isNotEmpty) ', ${a.state!.trim()}',
+      ' — ${a.pin}',
+    ].join();
+    return '${a.name} • ${a.phone}\n${a.line}, ${a.city}$tail';
   }
 
   /// Adds a new address (id auto) and selects it when first/valid.

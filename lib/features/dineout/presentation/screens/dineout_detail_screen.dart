@@ -7,8 +7,8 @@ import 'package:oxro/app/widgets/food_image.dart';
 import 'package:oxro/app/widgets/rating_chip.dart';
 import 'package:oxro/features/dineout/data/dineout_repo.dart';
 import 'package:oxro_pricing/oxro_pricing.dart';
-import 'package:oxro/app/repositories/coupon_repo.dart';
-import 'package:oxro/app/api/customer_identity.dart';
+import 'package:oxro/features/dineout/data/reservation_payment.dart';
+import 'package:oxro/features/dineout/presentation/screens/reservation_payment_screen.dart';
 import 'package:oxro/app/widgets/oxro_snack.dart';
 
 class DineoutDetailScreen extends StatefulWidget {
@@ -97,7 +97,7 @@ class _DineoutDetailScreenState extends State<DineoutDetailScreen> {
 
   Future<void> _book(DineoutRestaurant restaurant) async {
     if (_booking) return;
-    if (!CustomerIdentity.networkEnabled) {
+    if (!ReservationPayment.canAttemptPayment) {
       showOxroSnack(
         context,
         'Table request sent for $_guests at $_slot — we’ll confirm soon',
@@ -105,24 +105,20 @@ class _DineoutDetailScreenState extends State<DineoutDetailScreen> {
       return;
     }
     setState(() => _booking = true);
-    final sync = await BookingRepo().create(
-      restaurantId: restaurant.id,
-      guests: _guests,
-      slot: _slot,
-    );
-    if (!mounted) return;
-    setState(() => _booking = false);
-    if (!sync) {
-      showOxroSnack(
-        context,
-        'Couldn’t send the booking — check connection and try again',
+    try {
+      await Navigator.of(context).push<ReservationPaymentResult>(
+        MaterialPageRoute(
+          builder: (_) => ReservationPaymentScreen(
+            restaurantId: restaurant.id,
+            restaurantName: restaurant.name,
+            guests: _guests,
+            slot: _slot,
+          ),
+        ),
       );
-      return;
+    } finally {
+      if (mounted) setState(() => _booking = false);
     }
-    showOxroSnack(
-      context,
-      'Table request sent for $_guests at $_slot — we’ll confirm soon',
-    );
   }
 
   @override
@@ -365,7 +361,9 @@ class _DineoutDetailScreenState extends State<DineoutDetailScreen> {
                     ),
                     const SizedBox(height: 2),
                     const Text(
-                      'No prepayment needed',
+                      '₹7 fee · online only',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 10, color: OxroColors.muted),
                     ),
                   ],

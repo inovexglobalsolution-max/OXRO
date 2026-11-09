@@ -192,10 +192,7 @@ class InvoiceScreen extends StatelessWidget {
                         : Money.inr(bill.deliveryPaise),
                   ),
                   if (bill.smallCartFeePaise > 0)
-                    _row(
-                      'Small cart fee',
-                      Money.inr(bill.smallCartFeePaise),
-                    ),
+                    _row('Small cart fee', Money.inr(bill.smallCartFeePaise)),
                   _row(
                     'Platform fee',
                     bill.platformFeePaise == 0

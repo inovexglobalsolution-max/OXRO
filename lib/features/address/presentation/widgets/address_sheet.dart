@@ -6,6 +6,7 @@ import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/features/address/data/address_store.dart';
 import 'package:oxro/features/location/data/geo_store.dart';
+import 'package:oxro/features/location/presentation/screens/location_picker_screen.dart';
 
 /// Bottom-sheet address form (add + edit).
 /// Returns true when a valid address is saved, false/null on dismiss.
@@ -39,6 +40,10 @@ class _AddressSheetState extends State<AddressSheet> {
   final _line = TextEditingController();
   final _city = TextEditingController();
   final _pin = TextEditingController();
+  final _state = TextEditingController();
+  final _landmark = TextEditingController();
+  double? _latitude;
+  double? _longitude;
   String _label = AddressStore.labels.first;
 
   String? _nameErr;
@@ -46,6 +51,19 @@ class _AddressSheetState extends State<AddressSheet> {
   String? _lineErr;
   String? _cityErr;
   String? _pinErr;
+
+  void _fill(Address a) {
+    _name.text = a.name;
+    _phone.text = a.phone;
+    _line.text = a.line;
+    _city.text = a.city;
+    _pin.text = a.pin;
+    _state.text = a.state ?? '';
+    _landmark.text = a.landmark ?? '';
+    _latitude = a.latitude;
+    _longitude = a.longitude;
+    _label = a.label;
+  }
 
   @override
   void initState() {
@@ -55,24 +73,14 @@ class _AddressSheetState extends State<AddressSheet> {
       // Add mode: keep current default values empty for fresh entry,
       // except when only one address exists (prefill convenience).
       if (AddressStore.instance.items.length == 1 && a != null) {
-        _name.text = a.name;
-        _phone.text = a.phone;
-        _line.text = a.line;
-        _city.text = a.city;
-        _pin.text = a.pin;
-        _label = a.label;
+        _fill(a);
       } else {
         // Fresh entry: prefill detected city (GPS/IP, India-only).
         final detected = GeoStore.instance.city?.trim() ?? '';
         if (detected.isNotEmpty) _city.text = detected;
       }
     } else {
-      _name.text = a!.name;
-      _phone.text = a.phone;
-      _line.text = a.line;
-      _city.text = a.city;
-      _pin.text = a.pin;
-      _label = a.label;
+      _fill(a!);
     }
   }
 
@@ -83,6 +91,8 @@ class _AddressSheetState extends State<AddressSheet> {
     _line.dispose();
     _city.dispose();
     _pin.dispose();
+    _state.dispose();
+    _landmark.dispose();
     super.dispose();
   }
 
@@ -154,6 +164,10 @@ class _AddressSheetState extends State<AddressSheet> {
       line: _line.text.trim(),
       city: _city.text.trim(),
       pin: _pin.text.trim(),
+      state: _state.text.trim().isEmpty ? null : _state.text.trim(),
+      landmark: _landmark.text.trim().isEmpty ? null : _landmark.text.trim(),
+      latitude: _latitude,
+      longitude: _longitude,
     );
     try {
       if (widget.existing == null) {
@@ -184,6 +198,73 @@ class _AddressSheetState extends State<AddressSheet> {
         debugPrint('addr save: maybePop failed: $e');
       }
     }
+  }
+
+  Widget _pickRow() {
+    final hasPin = _latitude != null && _longitude != null;
+    return GestureDetector(
+      key: const ValueKey('addr_pick_map'),
+      onTap: _pickOnMap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF6EC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: OxroColors.primary.withValues(alpha: 0.55)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.map_rounded, color: OxroColors.primary, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                hasPin
+                    ? 'Update delivery pin on map'
+                    : 'Select delivery pin on map (GPS)',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: OxroColors.charcoal,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: OxroColors.primary,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickOnMap() async {
+    FocusScope.of(context).unfocus();
+    final pick = await Navigator.of(context).push<LocationPick>(
+      MaterialPageRoute<LocationPick>(builder: (_) => LocationPickerScreen()),
+    );
+    if (pick == null || !mounted) return;
+    setState(() {
+      final line = pick.line?.trim() ?? '';
+      if (line.isNotEmpty) {
+        _line.text = line;
+      } else if ((pick.displayName?.trim() ?? '').isNotEmpty) {
+        _line.text = pick.displayName!.trim();
+      }
+      if ((pick.city?.trim() ?? '').isNotEmpty) _city.text = pick.city!.trim();
+      if ((pick.state?.trim() ?? '').isNotEmpty) {
+        _state.text = pick.state!.trim();
+      }
+      if ((pick.pin?.trim() ?? '').isNotEmpty) _pin.text = pick.pin!.trim();
+      if ((pick.landmark?.trim() ?? '').isNotEmpty) {
+        _landmark.text = pick.landmark!.trim();
+      }
+      _latitude = pick.latitude;
+      _longitude = pick.longitude;
+    });
   }
 
   Widget _labelRow() {
@@ -268,6 +349,37 @@ class _AddressSheetState extends State<AddressSheet> {
                 const SizedBox(height: 12),
                 _labelRow(),
                 const SizedBox(height: 12),
+                _pickRow(),
+                if (_latitude != null && _longitude != null) ...[
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.pin_drop_rounded,
+                          size: 14,
+                          color: OxroColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Delivery pin: '
+                            '${_latitude!.toStringAsFixed(6)}, '
+                            '${_longitude!.toStringAsFixed(6)}',
+                            key: const ValueKey('addr_coords'),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: OxroColors.muted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
                 TextField(
                   key: const ValueKey('addr_name'),
                   controller: _name,
@@ -343,6 +455,29 @@ class _AddressSheetState extends State<AddressSheet> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  key: const ValueKey('addr_state'),
+                  controller: _state,
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.next,
+                  decoration: _dec('State (optional)', null),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  key: const ValueKey('addr_landmark'),
+                  controller: _landmark,
+                  textCapitalization: TextCapitalization.sentences,
+                  textInputAction: TextInputAction.done,
+                  decoration: _dec(
+                    'Landmark (optional) — e.g. Near Apollo Hospital',
+                    null,
+                    prefix: const Icon(
+                      Icons.place_outlined,
+                      color: OxroColors.muted,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 GestureDetector(

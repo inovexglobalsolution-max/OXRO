@@ -34,6 +34,46 @@ function isNonNegInt(v) {
   return Number.isInteger(v) && v >= 0;
 }
 
+function sanitizeDeliverySnapshot(body) {
+  const raw = body.deliveryAddressSnapshot;
+  if (raw === undefined || raw === null) return { snapshot: null, error: null };
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    return { snapshot: null, error: 'deliveryAddressSnapshot must be an object' };
+  }
+  const str = (v, max = 400) =>
+    v === null || v === undefined ? null : String(v).trim().slice(0, max);
+  const num = (v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const lat = num(raw.latitude);
+  const lng = num(raw.longitude);
+  if (lat === null && lng === null) {
+    return { snapshot: null, error: 'deliveryAddressSnapshot coordinates are required' };
+  }
+  if (lat === null) return { snapshot: null, error: 'deliveryAddressSnapshot latitude is invalid' };
+  if (lng === null) return { snapshot: null, error: 'deliveryAddressSnapshot longitude is invalid' };
+  if (lat < -90 || lat > 90) return { snapshot: null, error: 'deliveryAddressSnapshot latitude out of range' };
+  if (lng < -180 || lng > 180) return { snapshot: null, error: 'deliveryAddressSnapshot longitude out of range' };
+  return {
+    snapshot: {
+      id: str(raw.id, 64),
+      label: str(raw.label, 32),
+      name: str(raw.name, 120),
+      phone: str(raw.phone, 20),
+      line: str(raw.line, 300),
+      city: str(raw.city, 120),
+      state: str(raw.state, 120),
+      landmark: str(raw.landmark, 140),
+      pin: str(raw.pin, 12),
+      latitude: lat,
+      longitude: lng,
+    },
+    error: null,
+  };
+}
+
 function validateBill(bill, itemSubtotalPaise, serverFees) {
   if (!bill || typeof bill !== 'object') return 'bill snapshot is required';
   const keys = [
@@ -87,6 +127,12 @@ const checkoutController = {
   place: async (req, res) => {
     const body = req.body || {};
     const customerId = customerIdFrom(req);
+    const delivery = sanitizeDeliverySnapshot(body);
+    if (delivery.error) {
+      return res
+        .status(400)
+        .json({ error: delivery.error, code: 'invalid_delivery_snapshot' });
+    }
     const products = Array.isArray(body.products) ? body.products : [];
     if (products.length === 0) {
       return res.status(400).json({ error: 'products must not be empty' });
@@ -160,6 +206,7 @@ const checkoutController = {
       paymentMethod,
       paymentStatus: paymentMethod === 'wallet' ? 'paid' : 'pending',
       smartChangeTxnId,
+      deliveryAddressSnapshot: delivery.snapshot,
     };
 
     const created = await orderStore.create(order);

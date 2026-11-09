@@ -28,36 +28,28 @@ class OrderBill {
   final int configVersion;
 
   Map<String, dynamic> toJson() => {
-        'itemSubtotalPaise': itemSubtotalPaise,
-        'packagingPaise': packagingPaise,
-        'deliveryPaise': deliveryPaise,
-        'platformFeePaise': platformFeePaise,
-        'smallCartFeePaise': smallCartFeePaise,
-        'taxPaise': taxPaise,
-        'tipPaise': tipPaise,
-        'discountPaise': discountPaise,
-        'grandTotalPaise': grandTotalPaise,
-        'configVersion': configVersion,
-      };
+    'itemSubtotalPaise': itemSubtotalPaise,
+    'packagingPaise': packagingPaise,
+    'deliveryPaise': deliveryPaise,
+    'platformFeePaise': platformFeePaise,
+    'smallCartFeePaise': smallCartFeePaise,
+    'taxPaise': taxPaise,
+    'tipPaise': tipPaise,
+    'discountPaise': discountPaise,
+    'grandTotalPaise': grandTotalPaise,
+    'configVersion': configVersion,
+  };
 
   static OrderBill fromJson(Map<String, dynamic> m) => OrderBill(
-        itemSubtotalPaise:
-            (m['itemSubtotalPaise'] as num?)?.toInt() ?? 0,
-        packagingPaise:
-            (m['packagingPaise'] as num?)?.toInt() ?? 0,
-        deliveryPaise:
-            (m['deliveryPaise'] as num?)?.toInt() ?? 0,
-        platformFeePaise:
-            (m['platformFeePaise'] as num?)?.toInt() ?? 0,
-        smallCartFeePaise:
-            (m['smallCartFeePaise'] as num?)?.toInt() ?? 0,
-        taxPaise: (m['taxPaise'] as num?)?.toInt() ?? 0,
-        tipPaise: (m['tipPaise'] as num?)?.toInt() ?? 0,
-        discountPaise:
-            (m['discountPaise'] as num?)?.toInt() ?? 0,
-        grandTotalPaise:
-            (m['grandTotalPaise'] as num?)?.toInt() ?? 0,
-        configVersion:
-            (m['configVersion'] as num?)?.toInt() ?? 1,
-      );
+    itemSubtotalPaise: (m['itemSubtotalPaise'] as num?)?.toInt() ?? 0,
+    packagingPaise: (m['packagingPaise'] as num?)?.toInt() ?? 0,
+    deliveryPaise: (m['deliveryPaise'] as num?)?.toInt() ?? 0,
+    platformFeePaise: (m['platformFeePaise'] as num?)?.toInt() ?? 0,
+    smallCartFeePaise: (m['smallCartFeePaise'] as num?)?.toInt() ?? 0,
+    taxPaise: (m['taxPaise'] as num?)?.toInt() ?? 0,
+    tipPaise: (m['tipPaise'] as num?)?.toInt() ?? 0,
+    discountPaise: (m['discountPaise'] as num?)?.toInt() ?? 0,
+    grandTotalPaise: (m['grandTotalPaise'] as num?)?.toInt() ?? 0,
+    configVersion: (m['configVersion'] as num?)?.toInt() ?? 1,
+  );
 }

@@ -32,6 +32,13 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Google Maps API key for the delivery tracking map.
+             Create at https://console.cloud.google.com → APIs & Services →
+             Credentials → API key (restrict to Maps SDK for Android + Directions API).
+             Paste the key below; the tracking map stays blank without it. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_GOOGLE_MAPS_API_KEY" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

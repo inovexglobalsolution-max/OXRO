@@ -14,6 +14,57 @@ function book(customerId) {
   return b;
 }
 
+const ADDRESS_TYPES = new Set(['Home', 'Work', 'Other']);
+
+function toNumOrNull(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function validLat(n) {
+  return Number.isFinite(n) && n >= -90 && n <= 90;
+}
+
+function validLng(n) {
+  return Number.isFinite(n) && n >= -180 && n <= 180;
+}
+
+function normalize(data = {}, { partial = false } = {}) {
+  const out = {};
+  const str = (v) => String(v || '').trim();
+  const lat = toNumOrNull(data.latitude);
+  const lng = toNumOrNull(data.longitude);
+  const type = ADDRESS_TYPES.has(String(data.address_type || ''))
+    ? String(data.address_type).trim()
+    : undefined;
+  if (partial) {
+    for (const key of ['label', 'name', 'phone', 'line', 'city', 'pin', 'state', 'landmark']) {
+      if (data[key] !== undefined) out[key] = str(data[key]);
+    }
+    if (out.label === '') out.label = 'Home';
+    if (data.address_type !== undefined) out.address_type = type;
+  } else {
+    out.label = str(data.label || 'Home') || 'Home';
+    out.name = str(data.name);
+    out.phone = str(data.phone);
+    out.line = str(data.line);
+    out.city = str(data.city);
+    out.pin = str(data.pin);
+    if (data.state !== undefined) out.state = str(data.state);
+    if (data.landmark !== undefined) out.landmark = str(data.landmark);
+    if (data.address_type !== undefined) out.address_type = type;
+  }
+  // Only overwrite coordinates when the caller actually sent them.
+  if (data.latitude !== undefined && lat !== null && validLat(lat)) {
+    out.latitude = lat;
+  }
+  if (data.longitude !== undefined && lng !== null && validLng(lng)) {
+    out.longitude = lng;
+  }
+  return out;
+}
+
 function view(a) {
   return {
     id: a.id,
@@ -23,10 +74,16 @@ function view(a) {
     line: a.line,
     city: a.city,
     pin: a.pin,
+    state: a.state,
+    landmark: a.landmark,
+    latitude: a.latitude,
+    longitude: a.longitude,
+    address_type: a.address_type,
   };
 }
 
 function fromRow(r) {
+  if (!r) return null;
   return {
     id: r.id,
     label: r.label,
@@ -35,17 +92,11 @@ function fromRow(r) {
     line: r.line,
     city: r.city,
     pin: r.pin,
-  };
-}
-
-function normalize(data = {}) {
-  return {
-    label: String(data.label || 'Home').trim() || 'Home',
-    name: String(data.name || '').trim(),
-    phone: String(data.phone || '').trim(),
-    line: String(data.line || '').trim(),
-    city: String(data.city || '').trim(),
-    pin: String(data.pin || '').trim(),
+    state: r.state,
+    landmark: r.landmark,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    address_type: r.address_type,
   };
 }
 
@@ -124,13 +175,13 @@ async function update(customerId, id, data = {}) {
     const b = book(customerId);
     const prev = b.items.get(id);
     if (!prev) return { error: 'Address not found', code: 404 };
-    const next = { id, ...normalize({ ...prev, ...data }) };
+    const next = { ...prev, ...normalize(data, { partial: true }), id };
     b.items.set(id, next);
     return { address: next };
   }
   const { data: row, error } = await sb
     .from('addresses')
-    .update(normalize(data))
+    .update(normalize(data, { partial: true }))
     .eq('customer_id', customerId)
     .eq('id', id)
     .select('*')

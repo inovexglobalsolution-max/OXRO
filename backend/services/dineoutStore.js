@@ -18,9 +18,28 @@ function fromRow(r) {
     bookingStatus: r.booking_status || 'confirmed',
     specialRequest: r.special_request || r.note || null,
     note: r.note,
+    paymentId: r.payment_id || null,
+    paymentStatus: r.payment_status || 'pending',
+    amountPaise: r.amount_paise ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at || null,
   };
+}
+
+async function findByPayment(customerId, paymentId) {
+  const sb = getSupabase();
+  if (!sb) {
+    const list0 = bookings.get(customerId) || [];
+    return list0.find((b) => b.paymentId === paymentId) || null;
+  }
+  const { data, error } = await sb
+    .from('dineout_bookings')
+    .select('*')
+    .eq('payment_id', paymentId)
+    .eq('customer_id', customerId)
+    .maybeSingle();
+  if (error) throw dbError(error, 'dineout.findByPayment');
+  return data ? fromRow(data) : null;
 }
 
 async function list(customerId) {
@@ -45,6 +64,18 @@ async function create(customerId, data = {}) {
   }
   const slot = String(data.slot || '').trim();
   if (!slot) return { error: 'slot is required', code: 400 };
+
+  const paymentId = String(data.paymentId || data.payment_id || '').trim();
+  if (paymentId) {
+    const existing = await findByPayment(customerId, paymentId);
+    if (existing) return { booking: existing, duplicate: true };
+  }
+  const paymentStatus = String(data.paymentStatus || data.payment_status || 'pending').trim();
+  const rawAmount = data.amountPaise ?? data.amount_paise;
+  const amountPaise = Number.isFinite(Number(rawAmount)) && Number(rawAmount) > 0
+    ? Math.trunc(Number(rawAmount))
+    : null;
+
   const record = {
     id: safeId(data.id, 'bkg'),
     restaurantId,
@@ -57,6 +88,9 @@ async function create(customerId, data = {}) {
     bookingStatus: String(data.bookingStatus || data.booking_status || 'confirmed').trim(),
     specialRequest: String(data.specialRequest || data.special_request || data.note || '').slice(0, 300) || null,
     note: String(data.note || '').slice(0, 300) || null,
+    paymentId: paymentId || null,
+    paymentStatus,
+    amountPaise,
     createdAt: nowIso(),
   };
 
@@ -83,10 +117,20 @@ async function create(customerId, data = {}) {
       booking_status: record.bookingStatus,
       special_request: record.specialRequest,
       note: record.note,
+      payment_id: record.paymentId,
+      payment_status: record.paymentStatus,
+      amount_paise: record.amountPaise,
     })
     .select('*')
     .single();
-  if (error) throw dbError(error, 'dineout.create');
+  if (error) {
+    // Unique violation on payment_id → return the existing booking (idempotent).
+    if (paymentId && (String(error.code) === '23505' || /duplicate key/i.test(String(error.message || '')))) {
+      const existing = await findByPayment(customerId, paymentId);
+      if (existing) return { booking: existing, duplicate: true };
+    }
+    throw dbError(error, 'dineout.create');
+  }
   return { booking: fromRow(row) };
 }
 
@@ -94,4 +138,4 @@ function resetForTests() {
   bookings.clear();
 }
 
-module.exports = { list, create, resetForTests };
+module.exports = { list, create, resetForTests, findByPayment };

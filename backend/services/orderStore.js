@@ -40,6 +40,7 @@ function fromRow(r) {
     paymentMethod: r.payment_method,
     paymentStatus: r.payment_status,
     smartChangeTxnId: r.smart_change_txn_id,
+    deliveryAddressSnapshot: r.delivery_address_snapshot ?? null,
   };
 }
 
@@ -59,6 +60,7 @@ function toRow(o) {
     payment_method: o.paymentMethod || null,
     payment_status: o.paymentStatus || null,
     smart_change_txn_id: o.smartChangeTxnId || null,
+    delivery_address_snapshot: o.deliveryAddressSnapshot || null,
     created_at: o.createdAt || nowIso(),
     updated_at: o.updatedAt || nowIso(),
   };
@@ -81,11 +83,22 @@ async function create(order) {
     .maybeSingle();
   if (dErr) throw dbError(dErr, 'order.exists');
   if (dup) return { error: 'Order already exists', code: 409 };
-  const { data, error } = await sb
+  let { data, error } = await sb
     .from('orders')
     .insert(toRow(order))
     .select('*')
     .single();
+  // Live DB missing the jsonb snapshot column — retry without it so checkout
+  // never breaks; snapshot is additive.
+  if (error && /delivery_address_snapshot/.test(error.message || '')) {
+    const rowNoSnapshot = toRow(order);
+    delete rowNoSnapshot.delivery_address_snapshot;
+    ({ data, error } = await sb
+      .from('orders')
+      .insert(rowNoSnapshot)
+      .select('*')
+      .single());
+  }
   if (error) throw dbError(error, 'order.create');
   return { order: fromRow(data) };
 }
@@ -191,6 +204,40 @@ async function cancel(id) {
   return { order: fromRow(data) };
 }
 
+/** Whitelist a field update — only known-safe keys are accepted. */
+const PATCHABLE = new Set(['instructions', 'restaurantName']);
+
+async function update(id, patch = {}) {
+  const safe = {};
+  for (const [key, value] of Object.entries(patch)) {
+    if (PATCHABLE.has(key)) safe[key] = value;
+  }
+  if (Object.keys(safe).length === 0) {
+    return { error: 'No updatable fields provided', code: 400 };
+  }
+  const sb = getSupabase();
+  const now = nowIso();
+  if (!sb) {
+    const o = orders.get(id);
+    if (!o) return { error: 'Order not found', code: 404 };
+    Object.assign(o, safe, { updatedAt: now });
+    return { order: o };
+  }
+  const row = {};
+  if (safe.instructions !== undefined) row.instructions = safe.instructions;
+  if (safe.restaurantName !== undefined) row.restaurant_name = safe.restaurantName;
+  row.updated_at = now;
+  const { data, error } = await sb
+    .from('orders')
+    .update(row)
+    .eq('id', id)
+    .select('*')
+    .maybeSingle();
+  if (error) throw dbError(error, 'order.update');
+  if (!data) return { error: 'Order not found', code: 404 };
+  return { order: fromRow(data) };
+}
+
 /** Five-step timeline derived from the stored status. */
 async function trackingSteps(id) {
   const o = await get(id);
@@ -212,6 +259,7 @@ module.exports = {
   listByCustomer,
   all,
   updateStatus,
+  update,
   cancel,
   trackingSteps,
   resetForTests,

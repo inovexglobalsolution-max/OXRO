@@ -43,6 +43,7 @@ class MockOrder {
     this.cutleryOptIn,
     this.deliveredAt,
     this.bill,
+    this.paymentStatus,
   });
 
   final String id;
@@ -77,6 +78,9 @@ class MockOrder {
 
   /// Frozen bill snapshot; null on legacy/seeded orders.
   final OrderBill? bill;
+
+  /// Payment state from the server ('paid' | 'pending'); null on mocks.
+  final String? paymentStatus;
 
   int get total => products.fold(0, (s, p) => s + p.price);
 
@@ -131,6 +135,8 @@ MockOrder? _orderFromMap(Map<String, dynamic> m) {
     bill: bill is Map
         ? OrderBill.fromJson(Map<String, dynamic>.from(bill))
         : null,
+    paymentStatus:
+        (m['paymentStatus'] as String?) ?? m['payment_status'] as String?,
   );
 }
 
@@ -216,6 +222,7 @@ class OrderStore extends ChangeNotifier {
               'products': [for (final pr in o.products) pr.toJson()],
               'deliveredAt': o.deliveredAt?.toIso8601String(),
               if (o.bill != null) 'bill': o.bill!.toJson(),
+              if (o.paymentStatus != null) 'paymentStatus': o.paymentStatus,
             },
         ]),
       );
