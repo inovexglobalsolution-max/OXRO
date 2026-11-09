@@ -1,14 +1,10 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 import 'package:oxro_pricing/oxro_pricing.dart';
 
-import 'package:oxro/app/api/api_client.dart';
 import 'package:oxro/app/api/customer_identity.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
@@ -16,6 +12,7 @@ import 'package:oxro/app/widgets/oxro_snack.dart';
 import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/wallet/data/smart_change_credit.dart';
 import 'package:oxro/features/wallet/data/wallet_store.dart';
+import 'package:oxro/features/wallet/data/wallet_topup.dart';
 
 const _creditGreen = Color(0xFF2E7D4F);
 
@@ -34,6 +31,10 @@ class _WalletScreenState extends State<WalletScreen>
   late final AnimationController _intro;
   late final AnimationController _ambient;
   bool? _reduceMotion;
+
+  /// True while a top-up request is in flight — the Add button and preset
+  /// chips are disabled so a payment can never be started twice.
+  bool _processing = false;
 
   @override
   void initState() {
@@ -93,87 +94,69 @@ class _WalletScreenState extends State<WalletScreen>
     );
   }
 
-  /// Top-up stays disabled until a real payment gateway is integrated —
-  /// we never credit fake money into the wallet.
   void _add(int amount) {
+    if (_processing) return;
     FocusScope.of(context).unfocus();
     _pay(amount);
   }
 
   void _addCustom() {
+    if (_processing) return;
     FocusScope.of(context).unfocus();
     final v = int.tryParse(_amtCtrl.text.trim());
-    if (v == null || v <= 0) return;
+    if (v == null || v <= 0) {
+      showOxroSnack(context, 'Enter a valid amount');
+      return;
+    }
     _pay(v);
   }
 
+  /// Razorpay top-up: validate → create order → open checkout → verify
+  /// server-side → refresh balance + history. The wallet is never credited
+  /// before the backend has verified the payment.
   Future<void> _pay(int amount) async {
-    if (!CustomerIdentity.networkEnabled) {
+    if (_processing) return;
+    final validationError = WalletTopUp.validationError(amount);
+    if (validationError != null) {
+      showOxroSnack(context, validationError);
       return;
     }
-    final client = ApiClient();
+    // Offline / widget tests: no fake credits — the test seam above still
+    // lets deterministic tests drive the full flow.
+    if (!WalletTopUp.canAttemptPayment) return;
+    setState(() => _processing = true);
     try {
-      final createRes = await client.post(
-        '/wallet/create-order',
-        body: {'amountPaise': amount * 100},
-      );
-      if (createRes.statusCode != 201) return;
-      final created = jsonDecode(createRes.body) as Map<String, dynamic>;
-      final keyId = created['keyId'] as String?;
-      final orderId = created['razorpayOrderId'] as String?;
-      if (keyId == null || orderId == null) return;
-      final completer = Completer<Map<String, dynamic>?>();
-      final razorpay = Razorpay();
-      razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, (PaymentSuccessResponse r) {
-        if (!completer.isCompleted) {
-          completer.complete({
-            'paymentId': r.paymentId,
-            'orderId': r.orderId,
-            'signature': r.signature,
-          });
+      final result = await WalletTopUp.run(amount);
+      if (!mounted) return;
+      if (result.status == WalletTopUpStatus.offline) return;
+      if (result.status == WalletTopUpStatus.success) {
+        if (!result.duplicate && result.paymentId != null) {
+          WalletStore.instance.addPaise(
+            result.creditedPaise ?? amount * 100,
+            label: 'Wallet top-up',
+            txnId: result.paymentId,
+          );
         }
-      });
-      razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, (_) {
-        if (!completer.isCompleted) completer.complete(null);
-      });
-      razorpay.open({
-        'key': keyId,
-        'amount': amount * 100,
-        'currency': 'INR',
-        'name': 'OXRO',
-        'description': 'Wallet top-up',
-        'order_id': orderId,
-      });
-      final result = await completer.future.timeout(
-        const Duration(seconds: 120),
-        onTimeout: () => null,
-      );
-      razorpay.clear();
-      if (result == null) {
-        if (mounted) showOxroSnack(context, 'Payment Failed');
+        // Server is authoritative — pull the fresh balance + history.
+        if (CustomerIdentity.networkEnabled) {
+          await WalletStore.instance.load();
+        }
+        if (mounted) showOxroSnack(context, 'Payment Successful');
         return;
       }
-      final verifyRes = await client.post(
-        '/wallet/verify-payment',
-        body: {
-          'razorpayOrderId': result['orderId'],
-          'razorpayPaymentId': result['paymentId'],
-          'razorpaySignature': result['signature'],
-          'amountPaise': amount * 100,
-        },
-      );
-      if (verifyRes.statusCode == 200) {
-        WalletStore.instance.addPaise(
-          amount * 100,
-          label: 'Wallet top-up',
-          txnId: result['paymentId'] as String,
-        );
-        if (mounted) showOxroSnack(context, 'Payment Successful');
-      } else {
-        if (mounted) showOxroSnack(context, 'Payment Failed');
+      if (result.status == WalletTopUpStatus.cancelled) {
+        showOxroSnack(context, 'Payment cancelled');
+        return;
       }
-    } catch (_) {
-      if (mounted) showOxroSnack(context, 'Payment Failed');
+      showOxroSnack(
+        context,
+        result.message ??
+            (result.status == WalletTopUpStatus.pending
+                ? 'Payment is being confirmed'
+                : 'Payment Failed'),
+      );
+    } finally {
+      if (mounted) setState(() => _processing = false);
     }
   }
 
@@ -718,14 +701,24 @@ class _WalletScreenState extends State<WalletScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.add_rounded,
-                  size: context.rs(16),
-                  color: OxroColors.premiumChampagne,
-                ),
+                if (_processing)
+                  SizedBox(
+                    width: context.rs(16),
+                    height: context.rs(16),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: OxroColors.premiumChampagne,
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.add_rounded,
+                    size: context.rs(16),
+                    color: OxroColors.premiumChampagne,
+                  ),
                 SizedBox(width: context.rs(4)),
                 Text(
-                  'Add',
+                  _processing ? 'Adding\u2026' : 'Add',
                   style: TextStyle(
                     fontSize: context.font(13),
                     fontWeight: FontWeight.w900,

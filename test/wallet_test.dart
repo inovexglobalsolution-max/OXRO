@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,6 +11,7 @@ import 'package:oxro/features/checkout/presentation/screens/checkout_screen.dart
 import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/home/presentation/screens/home_screen.dart';
 import 'package:oxro/features/wallet/data/wallet_store.dart';
+import 'package:oxro/features/wallet/data/wallet_topup.dart';
 import 'package:oxro/features/wallet/presentation/screens/wallet_screen.dart';
 
 const _p = Product(
@@ -33,12 +36,23 @@ Future<void> _dispose(WidgetTester tester) async {
   await tester.pumpWidget(Container());
 }
 
+/// Pumps the wallet screen and dismisses the one-time note dialog.
+Future<void> _openWallet(WidgetTester tester) async {
+  await tester.pumpWidget(const MaterialApp(home: WalletScreen()));
+  await _settle(tester);
+  if (find.text('OXRO Money Note').evaluate().isNotEmpty) {
+    await tester.tap(find.text('Agree'));
+    await _settle(tester);
+  }
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     WalletStore.resetForTests();
     CartStore.resetForTests();
     PaymentStore.resetForTests();
+    WalletTopUp.debugFlowOverride = null;
   });
 
   test('add/deduct/insufficient', () {
@@ -140,5 +154,219 @@ void main() {
       await _dispose(tester);
     }
     WalletStore.resetForTests();
+  });
+
+  test('top-up amount bounds are ₹10–₹50,000', () {
+    expect(WalletTopUp.validationError(0), isNotNull);
+    expect(WalletTopUp.validationError(9), isNotNull);
+    expect(WalletTopUp.validationError(10), isNull);
+    expect(WalletTopUp.validationError(50000), isNull);
+    expect(WalletTopUp.validationError(50001), isNotNull);
+    expect(WalletTopUp.validationError(999999), isNotNull);
+  });
+
+  testWidgets('Custom amount below minimum shows validation error', (
+    tester,
+  ) async {
+    await _openWallet(tester);
+    await tester.enterText(find.byKey(const ValueKey('wallet_amount')), '5');
+    await tester.tap(find.byKey(const ValueKey('wallet_add_custom')));
+    await _settle(tester);
+    expect(find.text('Minimum top-up is ₹10'), findsOneWidget);
+    expect(WalletStore.instance.balance, 0);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
+  testWidgets('Custom amount above maximum shows validation error', (
+    tester,
+  ) async {
+    await _openWallet(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('wallet_amount')),
+      '999999',
+    );
+    await tester.tap(find.byKey(const ValueKey('wallet_add_custom')));
+    await _settle(tester);
+    expect(find.text('Maximum top-up is ₹50,000'), findsOneWidget);
+    expect(WalletStore.instance.balance, 0);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
+  for (final amount in [100, 200, 500]) {
+    testWidgets('₹$amount preset top-up credits after verification', (
+      tester,
+    ) async {
+      WalletTopUp.debugFlowOverride = (amountPaise) async {
+        expect(amountPaise, amount * 100);
+        return WalletTopUpResult(
+          status: WalletTopUpStatus.success,
+          paymentId: 'pay_$amount',
+          creditedPaise: amountPaise,
+          balancePaise: amountPaise,
+        );
+      };
+      await _openWallet(tester);
+      await tester.tap(find.byKey(ValueKey('wallet_add_$amount')));
+      await _settle(tester);
+      expect(WalletStore.instance.balancePaise, amount * 100);
+      expect(find.byKey(ValueKey('wallet_tx_pay_$amount')), findsOneWidget);
+      expect(find.text('Payment Successful'), findsOneWidget);
+      expect(find.byKey(const ValueKey('wallet_empty')), findsNothing);
+      expect(
+        find.textContaining('₹${amount.toStringAsFixed(0)}'),
+        findsWidgets,
+      );
+      expect(tester.takeException(), isNull);
+      await _dispose(tester);
+    });
+  }
+
+  testWidgets('Custom amount top-up credits exact paise', (tester) async {
+    WalletTopUp.debugFlowOverride = (amountPaise) async {
+      expect(amountPaise, 77700);
+      return WalletTopUpResult(
+        status: WalletTopUpStatus.success,
+        paymentId: 'pay_custom',
+        creditedPaise: amountPaise,
+        balancePaise: amountPaise,
+      );
+    };
+    await _openWallet(tester);
+    await tester.enterText(find.byKey(const ValueKey('wallet_amount')), '777');
+    await tester.tap(find.byKey(const ValueKey('wallet_add_custom')));
+    await _settle(tester);
+    expect(WalletStore.instance.balancePaise, 77700);
+    expect(find.byKey(const ValueKey('wallet_tx_pay_custom')), findsOneWidget);
+    expect(find.text('Payment Successful'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
+  testWidgets('Payment cancellation never credits the wallet', (tester) async {
+    WalletTopUp.debugFlowOverride = (amountPaise) async {
+      return const WalletTopUpResult(status: WalletTopUpStatus.cancelled);
+    };
+    await _openWallet(tester);
+    await tester.tap(find.byKey(const ValueKey('wallet_add_500')));
+    await _settle(tester);
+    expect(WalletStore.instance.balance, 0);
+    expect(find.byKey(const ValueKey('wallet_empty')), findsOneWidget);
+    expect(find.text('Payment cancelled'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
+  testWidgets('Payment failure shows the message and credits nothing', (
+    tester,
+  ) async {
+    WalletTopUp.debugFlowOverride = (amountPaise) async {
+      return const WalletTopUpResult(
+        status: WalletTopUpStatus.failed,
+        message: 'Payment failed',
+      );
+    };
+    await _openWallet(tester);
+    await tester.tap(find.byKey(const ValueKey('wallet_add_200')));
+    await _settle(tester);
+    expect(WalletStore.instance.balance, 0);
+    expect(find.byKey(const ValueKey('wallet_empty')), findsOneWidget);
+    expect(find.text('Payment failed'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
+  testWidgets('Pending payment is not credited', (tester) async {
+    WalletTopUp.debugFlowOverride = (amountPaise) async {
+      return const WalletTopUpResult(status: WalletTopUpStatus.pending);
+    };
+    await _openWallet(tester);
+    await tester.tap(find.byKey(const ValueKey('wallet_add_100')));
+    await _settle(tester);
+    expect(WalletStore.instance.balance, 0);
+    expect(find.text('Payment is being confirmed'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
+  testWidgets('Server error message is surfaced, no credit', (tester) async {
+    WalletTopUp.debugFlowOverride = (amountPaise) async {
+      return const WalletTopUpResult(
+        status: WalletTopUpStatus.error,
+        message: 'Could not start payment',
+      );
+    };
+    await _openWallet(tester);
+    await tester.tap(find.byKey(const ValueKey('wallet_add_100')));
+    await _settle(tester);
+    expect(WalletStore.instance.balance, 0);
+    expect(find.text('Could not start payment'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
+  testWidgets('Add button is disabled while a payment is processing', (
+    tester,
+  ) async {
+    final completer = Completer<WalletTopUpResult>();
+    var calls = 0;
+    WalletTopUp.debugFlowOverride = (amountPaise) {
+      calls += 1;
+      return completer.future;
+    };
+    await _openWallet(tester);
+
+    await tester.tap(find.byKey(const ValueKey('wallet_add_100')));
+    await _settle(tester);
+    expect(calls, 1);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    // Repeated taps while in flight are ignored.
+    await tester.tap(find.byKey(const ValueKey('wallet_add_200')));
+    await _settle(tester);
+    await tester.tap(find.byKey(const ValueKey('wallet_add_500')));
+    await _settle(tester);
+    await tester.tap(find.byKey(const ValueKey('wallet_add_custom')));
+    await _settle(tester);
+    expect(calls, 1);
+    expect(WalletStore.instance.balance, 0);
+
+    completer.complete(
+      const WalletTopUpResult(status: WalletTopUpStatus.cancelled),
+    );
+    await _settle(tester);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Payment cancelled'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
+  });
+
+  testWidgets('Duplicate callback never double-credits', (tester) async {
+    var calls = 0;
+    WalletTopUp.debugFlowOverride = (amountPaise) async {
+      calls += 1;
+      return WalletTopUpResult(
+        status: WalletTopUpStatus.success,
+        paymentId: 'pay_dup',
+        creditedPaise: amountPaise,
+        balancePaise: amountPaise,
+        duplicate: calls > 1,
+      );
+    };
+    await _openWallet(tester);
+
+    await tester.tap(find.byKey(const ValueKey('wallet_add_100')));
+    await _settle(tester);
+    expect(WalletStore.instance.balancePaise, 10000);
+    expect(WalletStore.instance.txs.length, 1);
+
+    await tester.tap(find.byKey(const ValueKey('wallet_add_100')));
+    await _settle(tester);
+    expect(calls, 2);
+    expect(WalletStore.instance.balancePaise, 10000);
+    expect(WalletStore.instance.txs.length, 1);
+    expect(tester.takeException(), isNull);
+    await _dispose(tester);
   });
 }
