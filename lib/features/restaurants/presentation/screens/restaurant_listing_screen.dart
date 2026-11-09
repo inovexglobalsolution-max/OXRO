@@ -49,6 +49,32 @@ class _RestaurantListingScreenState extends State<RestaurantListingScreen> {
   RestaurantSort _sort = RestaurantSort.relevance;
   String? _tab;
 
+  @override
+  void initState() {
+    super.initState();
+    _filters = _filters.copyWith(
+      foodPreference: FoodPreferenceStore.instance.activeFilter,
+      clearFoodPreference: FoodPreferenceStore.instance.activeFilter == null,
+    );
+    FoodPreferenceStore.instance.addListener(_onPreferenceChanged);
+  }
+
+  @override
+  void dispose() {
+    FoodPreferenceStore.instance.removeListener(_onPreferenceChanged);
+    super.dispose();
+  }
+
+  void _onPreferenceChanged() {
+    if (!mounted) return;
+    setState(() {
+      _filters = _filters.copyWith(
+        foodPreference: FoodPreferenceStore.instance.activeFilter,
+        clearFoodPreference: FoodPreferenceStore.instance.activeFilter == null,
+      );
+    });
+  }
+
   List<Restaurant> get _baseResults {
     final cuisine = widget.cuisine;
     var base = cuisine == null
@@ -78,17 +104,16 @@ class _RestaurantListingScreenState extends State<RestaurantListingScreen> {
     return [
       for (final r in base)
         if (r.menu.any(
-          (section) => section.dishes.any(
-            (d) => d.name.toLowerCase().contains(q),
-          ),
+          (section) =>
+              section.dishes.any((d) => d.name.toLowerCase().contains(q)),
         ))
           r,
     ];
   }
 
-  List<Product> get _allDishes => [
-    for (final r in _baseResults) ...r.dishes,
-  ]..sort((a, b) => b.reviews.compareTo(a.reviews));
+  List<Product> get _allDishes =>
+      [for (final r in _baseResults) ...r.dishes]
+        ..sort((a, b) => b.reviews.compareTo(a.reviews));
 
   List<_ListingTab> _tabsFor(List<Product> pool) {
     final cuisine = widget.cuisine;

@@ -203,10 +203,13 @@ class _FoodHomeTabState extends State<FoodHomeTab>
   }
 
   List<Product> get _repeatItems {
+    final preference = FoodPreferenceStore.instance.activeFilter;
     final out = <Product>[];
     for (final order in OrderStore.instance.all) {
       for (final p in order.products) {
         if (p.restaurantName == null && p.restaurantId == null) continue;
+        if (preference == FoodPreference.veg && !p.veg) continue;
+        if (preference == FoodPreference.nonVeg && p.veg) continue;
         out.add(p);
       }
     }
@@ -877,136 +880,133 @@ class _FoodHomeTabState extends State<FoodHomeTab>
           final thumb = (itemWidth * 0.88).clamp(44.0, 56.0);
           return SizedBox(
             height: 84,
-            child: Row(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(left: context.padX, right: gap),
-                  child: _BestOffersTile(onTap: _openOffers),
-                ),
-                _Under250Tile(onTap: () => _openBudget(250)),
-                const SizedBox(width: gap),
-                Expanded(
-                  child: ListView.separated(
-                    key: const ValueKey('home_quick_cats'),
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.only(right: context.padX),
-                    itemCount: _cuisineStops.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: gap),
-                    itemBuilder: (context, i) {
-                      final stop = _cuisineStops[i];
-                      final selected = _activeStop == stop.label;
-                      return Semantics(
-                        selected: selected,
-                        button: true,
-                        label: stop.label,
-                        child: GestureDetector(
-                          key: ValueKey('food_cuisine_$i'),
-                          onTap: () => _onCuisineTap(stop),
-                          behavior: HitTestBehavior.opaque,
-                          child: AnimatedScale(
-                            scale: selected ? 1.045 : 1,
-                            duration: const Duration(milliseconds: 240),
-                            curve: Curves.easeOutBack,
-                            alignment: Alignment.topCenter,
-                            child: SizedBox(
-                              width: itemWidth,
-                              child: Column(
-                                children: [
-                                  AnimatedContainer(
-                                    duration: const Duration(milliseconds: 180),
-                                    width: thumb,
-                                    height: thumb,
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: selected
-                                            ? OxroColors.coral
-                                            : OxroColors.border,
-                                        width: selected ? 2 : 1,
-                                      ),
-                                      boxShadow: selected
-                                          ? [
-                                              BoxShadow(
-                                                color: OxroColors.coral
-                                                    .withValues(alpha: 0.36),
-                                                blurRadius: 12,
-                                                spreadRadius: 1.5,
-                                              ),
-                                              BoxShadow(
-                                                color: OxroColors.coral
-                                                    .withValues(alpha: 0.16),
-                                                blurRadius: 20,
-                                                spreadRadius: 4,
-                                              ),
-                                            ]
-                                          : const [
-                                              BoxShadow(
-                                                color: Color(0x14075F70),
-                                                blurRadius: 9,
-                                                offset: Offset(0, 4),
-                                              ),
-                                            ],
-                                    ),
-                                    child: FoodImage(
-                                      imageUrl: stop.image,
-                                      colors: const [
-                                        Color(0xFFF7F2E8),
-                                        Color(0xFFEFE6D8),
+            child: ListView.separated(
+              key: const ValueKey('home_quick_cats'),
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: context.padX),
+              itemCount: 2 + _cuisineStops.length,
+              separatorBuilder: (_, _) => const SizedBox(width: gap),
+              itemBuilder: (context, i) {
+                if (i == 0) {
+                  return _BestOffersTile(onTap: _openOffers);
+                }
+                if (i == 1) {
+                  return _Under250Tile(onTap: () => _openBudget(250));
+                }
+                final stop = _cuisineStops[i - 2];
+                final selected = _activeStop == stop.label;
+                return Semantics(
+                  selected: selected,
+                  button: true,
+                  label: stop.label,
+                  child: GestureDetector(
+                    key: ValueKey('food_cuisine_${i - 2}'),
+                    onTap: () => _onCuisineTap(stop),
+                    behavior: HitTestBehavior.opaque,
+                    child: AnimatedScale(
+                      scale: selected ? 1.045 : 1,
+                      duration: const Duration(milliseconds: 240),
+                      curve: Curves.easeOutBack,
+                      alignment: Alignment.topCenter,
+                      child: SizedBox(
+                        width: itemWidth,
+                        child: Column(
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: thumb,
+                              height: thumb,
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: selected
+                                      ? OxroColors.coral
+                                      : OxroColors.border,
+                                  width: selected ? 2 : 1,
+                                ),
+                                boxShadow: selected
+                                    ? [
+                                        BoxShadow(
+                                          color: OxroColors.coral.withValues(
+                                            alpha: 0.36,
+                                          ),
+                                          blurRadius: 12,
+                                          spreadRadius: 1.5,
+                                        ),
+                                        BoxShadow(
+                                          color: OxroColors.coral.withValues(
+                                            alpha: 0.16,
+                                          ),
+                                          blurRadius: 20,
+                                          spreadRadius: 4,
+                                        ),
+                                      ]
+                                    : const [
+                                        BoxShadow(
+                                          color: Color(0x14075F70),
+                                          blurRadius: 9,
+                                          offset: Offset(0, 4),
+                                        ),
                                       ],
-                                      icon: stop.icon,
-                                      width: thumb - 4,
-                                      height: thumb - 4,
-                                      radius: thumb,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    stop.label,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: selected
-                                          ? FontWeight.w800
-                                          : FontWeight.w600,
-                                      color: selected
-                                          ? OxroColors.coral
-                                          : OxroColors.charcoal,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  AnimatedContainer(
-                                    key: ValueKey('food_cuisine_underline_$i'),
-                                    duration: const Duration(milliseconds: 180),
-                                    width: selected ? 26 : 0,
-                                    height: 3,
-                                    decoration: BoxDecoration(
-                                      color: OxroColors.coral,
-                                      borderRadius: BorderRadius.circular(2),
-                                      boxShadow: selected
-                                          ? [
-                                              BoxShadow(
-                                                color: OxroColors.coral
-                                                    .withValues(alpha: 0.45),
-                                                blurRadius: 6,
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                  ),
+                              ),
+                              child: FoodImage(
+                                imageUrl: stop.image,
+                                colors: const [
+                                  Color(0xFFF7F2E8),
+                                  Color(0xFFEFE6D8),
                                 ],
+                                icon: stop.icon,
+                                width: thumb - 4,
+                                height: thumb - 4,
+                                radius: thumb,
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 5),
+                            Text(
+                              stop.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: selected
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                color: selected
+                                    ? OxroColors.coral
+                                    : OxroColors.charcoal,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            AnimatedContainer(
+                              key: ValueKey('food_cuisine_underline_${i - 2}'),
+                              duration: const Duration(milliseconds: 180),
+                              width: selected ? 26 : 0,
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: OxroColors.coral,
+                                borderRadius: BorderRadius.circular(2),
+                                boxShadow: selected
+                                    ? [
+                                        BoxShadow(
+                                          color: OxroColors.coral.withValues(
+                                            alpha: 0.45,
+                                          ),
+                                          blurRadius: 6,
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                );
+              },
             ),
           );
         },

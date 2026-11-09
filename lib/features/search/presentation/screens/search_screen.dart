@@ -15,6 +15,7 @@ import 'package:oxro/app/widgets/section_header.dart';
 import 'package:oxro/app/widgets/shimmer.dart';
 import 'package:oxro/features/bag/presentation/screens/bag_screen.dart';
 import 'package:oxro/features/detail/presentation/screens/product_detail_screen.dart';
+import 'package:oxro/features/home/data/food_preference_store.dart';
 import 'package:oxro/features/home/data/home_data.dart';
 import 'package:oxro/features/restaurants/data/restaurant.dart';
 import 'package:oxro/features/restaurants/data/restaurant_repo.dart';
@@ -49,6 +50,26 @@ class _SearchScreenState extends State<SearchScreen>
   int _minOff = 0;
   late final AnimationController _entry;
 
+  bool get _keepVegOnly => FoodPreferenceStore.instance.vegOnly;
+  bool get _keepNonVegOnly => FoodPreferenceStore.instance.nonVegOnly;
+
+  bool _productMatchesPreference(Product p) {
+    if (_keepVegOnly) return p.veg;
+    if (_keepNonVegOnly) return !p.veg;
+    return true;
+  }
+
+  bool _restaurantMatchesPreference(Restaurant r) {
+    if (_keepVegOnly) return r.hasVegDish;
+    if (_keepNonVegOnly) return r.hasNonVegDish;
+    return true;
+  }
+
+  List<Product> _preferenceFiltered(List<Product> inList) => [
+    for (final p in inList)
+      if (_productMatchesPreference(p)) p,
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +78,7 @@ class _SearchScreenState extends State<SearchScreen>
       duration: const Duration(milliseconds: 500),
     )..forward();
     _focus.addListener(_onFocusChanged);
+    FoodPreferenceStore.instance.addListener(_onPreferenceChanged);
     SearchRepo.loadRecents().then((_) {
       if (mounted) setState(() {});
     });
@@ -78,6 +100,7 @@ class _SearchScreenState extends State<SearchScreen>
   void dispose() {
     _debounce?.cancel();
     _focus.removeListener(_onFocusChanged);
+    FoodPreferenceStore.instance.removeListener(_onPreferenceChanged);
     _ctrl.dispose();
     _focus.dispose();
     _entry.dispose();
@@ -85,13 +108,24 @@ class _SearchScreenState extends State<SearchScreen>
     super.dispose();
   }
 
+  void _onPreferenceChanged() {
+    if (!mounted) return;
+    if (_lastQuery.trim().isEmpty) {
+      setState(() {});
+      return;
+    }
+    _refilter();
+  }
+
   void _applyFiltersTo(List<Product> raw) {
     setState(() {
-      _results = SearchRepo.applyFilters(
-        raw,
-        sort: _sort,
-        minRating: _minRating,
-        minOff: _minOff,
+      _results = _preferenceFiltered(
+        SearchRepo.applyFilters(
+          raw,
+          sort: _sort,
+          minRating: _minRating,
+          minOff: _minOff,
+        ),
       );
       _searching = false;
       _submitted = true;
@@ -126,11 +160,13 @@ class _SearchScreenState extends State<SearchScreen>
     if (_lastQuery.trim().toLowerCase() != query.trim().toLowerCase()) return;
     if (!mounted) return;
     setState(() {
-      _results = SearchRepo.applyFilters(
-        remote,
-        sort: _sort,
-        minRating: _minRating,
-        minOff: _minOff,
+      _results = _preferenceFiltered(
+        SearchRepo.applyFilters(
+          remote,
+          sort: _sort,
+          minRating: _minRating,
+          minOff: _minOff,
+        ),
       );
       _searching = false;
       _submitted = true;
@@ -944,7 +980,9 @@ class _SearchScreenState extends State<SearchScreen>
   List<Restaurant> get _restaurantMatches {
     final q = _lastQuery.trim();
     if (q.isEmpty) return const [];
-    return RestaurantRepo.search(q).take(4).toList();
+    return RestaurantRepo.search(
+      q,
+    ).where(_restaurantMatchesPreference).take(4).toList();
   }
 
   Widget _resultsView(int cols) {

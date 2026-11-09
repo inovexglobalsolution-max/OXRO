@@ -137,13 +137,17 @@ class _ReservationPaymentScreenState extends State<ReservationPaymentScreen> {
                           color: OxroColors.royalBlue,
                         ),
                         const SizedBox(width: 10),
-                        Text(
-                          '${widget.guests} guests • ${widget.slot}',
-                          key: const ValueKey('reservation_guests_slot'),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: OxroColors.charcoal,
+                        Expanded(
+                          child: Text(
+                            '${widget.guests} guests • ${widget.slot}',
+                            key: const ValueKey('reservation_guests_slot'),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: OxroColors.charcoal,
+                            ),
                           ),
                         ),
                       ],
@@ -179,17 +183,21 @@ class _ReservationPaymentScreenState extends State<ReservationPaymentScreen> {
               const SizedBox(height: 24),
               const Spacer(),
               // Online payment methods only — COD never shown.
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              const Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 4,
+                key: ValueKey('reservation_payment_methods'),
                 children: [
                   Icon(
                     Icons.shield_outlined,
                     size: 13,
                     color: OxroColors.muted,
                   ),
-                  SizedBox(width: 6),
                   Text(
                     'Online payment only — GPay · PhonePe · UPI · Cards · NetBanking',
+                    textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11, color: OxroColors.muted),
                   ),
                 ],

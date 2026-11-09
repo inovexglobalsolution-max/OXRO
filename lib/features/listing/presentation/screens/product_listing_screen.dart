@@ -11,6 +11,7 @@ import 'package:oxro/features/bag/presentation/screens/bag_screen.dart';
 import 'package:oxro/features/detail/presentation/screens/product_detail_screen.dart';
 import 'package:oxro/features/search/presentation/screens/search_screen.dart';
 import 'package:oxro/features/home/data/home_data.dart';
+import 'package:oxro/features/home/data/food_preference_store.dart';
 import 'package:oxro/features/listing/data/product_repo.dart';
 
 /// 08 Product Listing — 2-col infinite grid + leaf chips + sort.
@@ -54,6 +55,7 @@ class _ProductListingScreenState extends State<ProductListingScreen>
     super.initState();
     _selected = widget.initialLeaf ?? _all;
     _scroll.addListener(_onScroll);
+    FoodPreferenceStore.instance.addListener(_onPreferenceChanged);
     _initialLoad();
   }
 
@@ -61,12 +63,27 @@ class _ProductListingScreenState extends State<ProductListingScreen>
   void dispose() {
     _scroll.dispose();
     cancelNavTimer();
+    FoodPreferenceStore.instance.removeListener(_onPreferenceChanged);
     super.dispose();
   }
 
-  List<Product> get _pool => _selected == _all
-      ? ProductRepo.allMixed(widget.title, widget.leafs, widget.icon)
-      : ProductRepo.allFor(widget.title, _selected, icon: widget.icon);
+  void _onPreferenceChanged() {
+    if (!mounted || _firstLoad) return;
+    _reload();
+  }
+
+  bool get _keepVegOnly => FoodPreferenceStore.instance.vegOnly;
+  bool get _keepNonVegOnly => FoodPreferenceStore.instance.nonVegOnly;
+
+  List<Product> get _pool {
+    final raw = _selected == _all
+        ? ProductRepo.allMixed(widget.title, widget.leafs, widget.icon)
+        : ProductRepo.allFor(widget.title, _selected, icon: widget.icon);
+    return [
+      for (final p in raw)
+        if (_keepVegOnly ? p.veg : (_keepNonVegOnly ? !p.veg : true)) p,
+    ];
+  }
 
   Future<void> _initialLoad() async {
     await Future.delayed(const Duration(milliseconds: 600));

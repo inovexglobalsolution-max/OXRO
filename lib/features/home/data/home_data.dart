@@ -258,13 +258,13 @@ final homeBanners = [
   ),
   HomeBanner(
     title: 'Chai & Snacks',
-    sub: 'Evening combos from ₹49',
+    sub: 'Evening combos from ₹149',
     cta: 'Sip Now',
     colors: [const Color(0xFFD97706), const Color(0xFF78350F)],
     icon: Icons.coffee_outlined,
     imageUrl: FoodMedia.coffee,
-    videoUrl: 'assets/videos/food_banners/banner_chai.mp4',
-    tag: 'FROM ₹49',
+    videoUrl: null,
+    tag: 'FROM ₹149',
   ),
   HomeBanner(
     title: 'BBQ & Grills',
