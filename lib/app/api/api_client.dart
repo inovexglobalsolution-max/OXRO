@@ -4,9 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiClient {
-  /// Request timeout so an unreachable backend fails fast instead of
-  /// hanging the UI forever.
-  static const Duration timeout = Duration(seconds: 8);
+  /// Request timeout — 20s so a cold-starting free-tier backend (Render
+  /// spins down after idle, ~30-60s warm-up) still answers instead of
+  /// failing fast on a phone.
+  static const Duration timeout = Duration(seconds: 20);
 
   /// Test hook — overrides the resolved base URL.
   @visibleForTesting
