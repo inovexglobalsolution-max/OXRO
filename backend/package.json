@@ -7,7 +7,8 @@
     "start": "node index.js",
     "dev": "node index.js",
     "test": "node --test test/*.test.js",
-    "test:smart-change": "node --test test/smartChange.test.js"
+    "test:smart-change": "node --test test/smartChange.test.js",
+    "auth:configure": "node db/configure-auth-email.js"
   },
   "keywords": [],
   "author": "",

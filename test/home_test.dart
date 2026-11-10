@@ -235,10 +235,11 @@ void main() {
     expect(find.text('Dining'), findsOneWidget);
     expect(find.byKey(const ValueKey('nav_cart')), findsOneWidget);
     expect(find.byKey(const ValueKey('nav_under250')), findsNothing);
-    expect(find.byKey(const ValueKey('home_under250')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_offer_selector')), findsOneWidget);
     expect(find.byKey(const ValueKey('nav_account')), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('home_under250')));
+    await tester.pump(const Duration(milliseconds: 1100));
+    await tester.tap(find.byKey(const ValueKey('home_offer_selector')));
     await _settle(tester);
     expect(find.byKey(const ValueKey('restaurant_list')), findsOneWidget);
     expect(find.text('Under ₹250'), findsWidgets);
@@ -288,7 +289,7 @@ void main() {
         const MaterialApp(home: HomeScreen(welcomeName: 'Priya')),
       );
       await _settle(tester);
-      final visible = size.width < 340 ? 3 : 4;
+      final visible = size.width < 400 ? 2 : 3;
       for (var i = 0; i < visible; i++) {
         final item = find.byKey(ValueKey('food_cuisine_$i'));
         expect(item, findsOneWidget, reason: 'cuisine $i at $size');
@@ -299,23 +300,12 @@ void main() {
         );
       }
 
-      final bestOffers = find.byKey(const ValueKey('home_best_offers'));
-      final under250 = find.byKey(const ValueKey('home_under250'));
+      final selector = find.byKey(const ValueKey('home_offer_selector'));
       final firstCuisine = find.byKey(const ValueKey('food_cuisine_0'));
       expect(
-        tester.getCenter(bestOffers).dx,
+        tester.getCenter(selector).dx,
         lessThan(tester.getCenter(firstCuisine).dx),
-        reason: 'Best Offers stays on the left at $size',
-      );
-      expect(
-        tester.getCenter(under250).dx,
-        lessThan(tester.getCenter(firstCuisine).dx),
-        reason: 'Under ₹250 sits at left end at $size',
-      );
-      expect(
-        tester.getRect(under250).left,
-        lessThan(tester.getRect(firstCuisine).left),
-        reason: 'Under ₹250 stays on the left rail at $size',
+        reason: 'Offer selector stays on the left at $size',
       );
       expect(tester.takeException(), isNull, reason: 'overflow at $size');
       await _dispose(tester);

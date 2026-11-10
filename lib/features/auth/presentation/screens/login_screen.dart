@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:oxro/app/repositories/auth_repo.dart';
 import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
@@ -30,6 +32,8 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _referralCtrl = TextEditingController();
+  final _repo = AuthRepo();
+  bool _sending = false;
 
   String? _emailError;
   String? _nameError;
@@ -79,6 +83,7 @@ class _LoginScreenState extends State<LoginScreen>
   void _fail() => _shake.forward(from: 0);
 
   void _submit() {
+    if (_sending) return;
     final emailOk = _validEmail;
     setState(() {
       _emailError = emailOk
@@ -111,13 +116,24 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
     FocusScope.of(context).unfocus();
+    unawaited(_sendAndContinue());
+  }
+
+  Future<void> _sendAndContinue() async {
+    final email = _emailCtrl.text.trim();
+    final name = _isSignup ? _nameCtrl.text.trim() : null;
+    final isSignup = _isSignup;
+    setState(() => _sending = true);
+    final error = await _repo.sendOtp(email);
+    if (!mounted) return;
+    setState(() => _sending = false);
+    if (error != null) {
+      showOxroSnack(context, error);
+      return;
+    }
     pushScreen(
       context,
-      OtpScreen(
-        contact: _emailCtrl.text.trim(),
-        name: _isSignup ? _nameCtrl.text.trim() : null,
-        isNewUser: _isSignup,
-      ),
+      OtpScreen(contact: email, name: name, isNewUser: isSignup),
     );
   }
 
@@ -667,7 +683,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
         SizedBox(height: context.rs(12)),
-        OxroButton(label: 'Continue', onTap: _submit),
+        OxroButton(label: _sending ? 'Sending…' : 'Continue', onTap: _submit),
       ],
     );
   }
@@ -714,7 +730,10 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
         SizedBox(height: context.rs(12)),
-        OxroButton(label: 'Create Account', onTap: _submit),
+        OxroButton(
+          label: _sending ? 'Sending…' : 'Create Account',
+          onTap: _submit,
+        ),
       ],
     );
   }

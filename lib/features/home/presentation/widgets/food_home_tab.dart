@@ -81,6 +81,108 @@ class _FoodHomeTabState extends State<FoodHomeTab>
       image: FoodMedia.biryani,
     ),
     _CuisineStop(
+      label: 'Dosa',
+      cuisine: 'South Indian',
+      icon: Icons.breakfast_dining_outlined,
+      image: FoodMedia.dosa,
+    ),
+    _CuisineStop(
+      label: 'Idli',
+      cuisine: 'South Indian',
+      icon: Icons.free_breakfast_outlined,
+      image: FoodMedia.heroSouthIndian,
+    ),
+    _CuisineStop(
+      label: 'Fried Rice',
+      cuisine: 'Chinese',
+      icon: Icons.ramen_dining_outlined,
+      image: FoodMedia.chinese,
+    ),
+    _CuisineStop(
+      label: 'Parotta',
+      cuisine: 'Kerala',
+      icon: Icons.brunch_dining_outlined,
+      image: FoodMedia.heroSouthIndian,
+    ),
+    _CuisineStop(
+      label: 'Pizza',
+      cuisine: 'Pizza',
+      icon: Icons.local_pizza_outlined,
+      image: FoodMedia.pizza,
+    ),
+    _CuisineStop(
+      label: 'Burger',
+      cuisine: 'Burgers',
+      icon: Icons.lunch_dining_outlined,
+      image: FoodMedia.burger,
+    ),
+    _CuisineStop(
+      label: 'Noodles',
+      cuisine: 'Chinese',
+      icon: Icons.ramen_dining_outlined,
+      image: FoodMedia.chinese,
+    ),
+    _CuisineStop(
+      label: 'Chinese',
+      cuisine: 'Chinese',
+      icon: Icons.ramen_dining_outlined,
+      image: FoodMedia.chinese,
+    ),
+    _CuisineStop(
+      label: 'South Indian',
+      cuisine: 'South Indian',
+      icon: Icons.breakfast_dining_outlined,
+      image: FoodMedia.heroSouthIndian,
+    ),
+    _CuisineStop(
+      label: 'North Indian',
+      cuisine: 'North Indian',
+      icon: Icons.dinner_dining_outlined,
+      image: FoodMedia.northIndian,
+    ),
+    _CuisineStop(
+      label: 'Shawarma',
+      query: 'Shawarma',
+      icon: Icons.kebab_dining_outlined,
+      image: FoodMedia.wrap,
+    ),
+    _CuisineStop(
+      label: 'Meals',
+      cuisine: 'North Indian',
+      icon: Icons.dinner_dining_outlined,
+      image: FoodMedia.thali,
+    ),
+    _CuisineStop(
+      label: 'Desserts',
+      cuisine: 'Desserts',
+      icon: Icons.cake_outlined,
+      image: FoodMedia.dessert,
+    ),
+    _CuisineStop(
+      label: 'Juice',
+      cuisine: 'Juices & Shakes',
+      icon: Icons.local_cafe_outlined,
+      image: FoodMedia.milkshake,
+    ),
+    _CuisineStop(
+      label: 'Ice Cream',
+      cuisine: 'Ice Cream',
+      icon: Icons.icecream_outlined,
+      image: FoodMedia.dessertBrownie,
+    ),
+    _CuisineStop(
+      label: 'Sandwich',
+      cuisine: 'Sandwiches',
+      icon: Icons.bakery_dining_outlined,
+      image: FoodMedia.sandwich,
+    ),
+    _CuisineStop(
+      label: 'Paneer',
+      query: 'Paneer',
+      icon: Icons.dinner_dining_outlined,
+      image: FoodMedia.curry,
+    ),
+    _CuisineStop(
       label: 'Rice',
       query: 'Rice',
       icon: Icons.rice_bowl_rounded,
@@ -273,6 +375,30 @@ class _FoodHomeTabState extends State<FoodHomeTab>
       RestaurantListingScreen(
         title: 'Under ₹$maxCost',
         initialFilters: _effectiveFilters.copyWith(maxCostForTwo: maxCost),
+      ),
+    );
+  }
+
+  void _showCuisinesSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => _CuisinesSheet(
+        onTap: (entry) {
+          Navigator.of(sheetContext).pop();
+          _onCuisineTap(
+            _CuisineStop(
+              label: entry.category,
+              cuisine: entry.category,
+              icon: entry.icon,
+              image: entry.image,
+            ),
+          );
+        },
       ),
     );
   }
@@ -857,29 +983,18 @@ class _FoodHomeTabState extends State<FoodHomeTab>
     return Container(
       key: const ValueKey('home_cuisine_strip'),
       color: Colors.white,
-      padding: const EdgeInsets.only(top: 12, bottom: 8),
+      padding: const EdgeInsets.only(top: 10, bottom: 8),
       child: LayoutBuilder(
         builder: (context, constraints) {
           const gap = 8.0;
-          const offersWidth = 64.0;
-          const budgetWidth = 64.0;
-          final available =
-              constraints.maxWidth -
-              (context.padX * 2) -
-              offersWidth -
-              budgetWidth -
-              (gap * 2);
-          final target = available >= 300
-              ? 5
-              : available >= 200
-              ? 4
-              : available >= 140
-              ? 3
-              : 2;
-          final itemWidth = (available - (gap * (target - 1))) / target;
-          final thumb = (itemWidth * 0.88).clamp(44.0, 56.0);
+          final thumb = constraints.maxWidth < 340
+              ? 76.0
+              : constraints.maxWidth < 400
+              ? 82.0
+              : 88.0;
+          final itemWidth = thumb + 12;
           return SizedBox(
-            height: 84,
+            height: thumb + 46,
             child: ListView.separated(
               key: const ValueKey('home_quick_cats'),
               scrollDirection: Axis.horizontal,
@@ -888,23 +1003,29 @@ class _FoodHomeTabState extends State<FoodHomeTab>
               separatorBuilder: (_, _) => const SizedBox(width: gap),
               itemBuilder: (context, i) {
                 if (i == 0) {
-                  return _BestOffersTile(onTap: _openOffers);
+                  return _OfferSelector(
+                    size: thumb,
+                    slotWidth: itemWidth,
+                    onOffers: _openOffers,
+                    onBudget: () => _openBudget(250),
+                  );
                 }
-                if (i == 1) {
-                  return _Under250Tile(onTap: () => _openBudget(250));
+                if (i == 1 + _cuisineStops.length) {
+                  return _SeeAllTile(onTap: _showCuisinesSheet);
                 }
-                final stop = _cuisineStops[i - 2];
+                final stop = _cuisineStops[i - 1];
+                final index = i - 1;
                 final selected = _activeStop == stop.label;
                 return Semantics(
                   selected: selected,
                   button: true,
                   label: stop.label,
                   child: GestureDetector(
-                    key: ValueKey('food_cuisine_${i - 2}'),
+                    key: ValueKey('food_cuisine_$index'),
                     onTap: () => _onCuisineTap(stop),
                     behavior: HitTestBehavior.opaque,
                     child: AnimatedScale(
-                      scale: selected ? 1.045 : 1,
+                      scale: selected ? 1.05 : 1,
                       duration: const Duration(milliseconds: 240),
                       curve: Curves.easeOutBack,
                       alignment: Alignment.topCenter,
@@ -918,38 +1039,16 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                               height: thumb,
                               padding: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
+                                color: selected
+                                    ? OxroColors.coral.withValues(alpha: 0.08)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(15),
                                 border: Border.all(
                                   color: selected
                                       ? OxroColors.coral
                                       : OxroColors.border,
                                   width: selected ? 2 : 1,
                                 ),
-                                boxShadow: selected
-                                    ? [
-                                        BoxShadow(
-                                          color: OxroColors.coral.withValues(
-                                            alpha: 0.36,
-                                          ),
-                                          blurRadius: 12,
-                                          spreadRadius: 1.5,
-                                        ),
-                                        BoxShadow(
-                                          color: OxroColors.coral.withValues(
-                                            alpha: 0.16,
-                                          ),
-                                          blurRadius: 20,
-                                          spreadRadius: 4,
-                                        ),
-                                      ]
-                                    : const [
-                                        BoxShadow(
-                                          color: Color(0x14075F70),
-                                          blurRadius: 9,
-                                          offset: Offset(0, 4),
-                                        ),
-                                      ],
                               ),
                               child: FoodImage(
                                 imageUrl: stop.image,
@@ -960,7 +1059,7 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                                 icon: stop.icon,
                                 width: thumb - 4,
                                 height: thumb - 4,
-                                radius: thumb,
+                                radius: 14,
                               ),
                             ),
                             const SizedBox(height: 5),
@@ -981,23 +1080,13 @@ class _FoodHomeTabState extends State<FoodHomeTab>
                             ),
                             const SizedBox(height: 4),
                             AnimatedContainer(
-                              key: ValueKey('food_cuisine_underline_${i - 2}'),
+                              key: ValueKey('food_cuisine_underline_$index'),
                               duration: const Duration(milliseconds: 180),
                               width: selected ? 26 : 0,
                               height: 3,
                               decoration: BoxDecoration(
                                 color: OxroColors.coral,
                                 borderRadius: BorderRadius.circular(2),
-                                boxShadow: selected
-                                    ? [
-                                        BoxShadow(
-                                          color: OxroColors.coral.withValues(
-                                            alpha: 0.45,
-                                          ),
-                                          blurRadius: 6,
-                                        ),
-                                      ]
-                                    : null,
                               ),
                             ),
                           ],
@@ -1177,7 +1266,7 @@ class _MicButton extends StatefulWidget {
 
 class _MicButtonState extends State<_MicButton>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse;
+  AnimationController? _pulse;
 
   @override
   void initState() {
@@ -1190,16 +1279,18 @@ class _MicButtonState extends State<_MicButton>
 
   @override
   void dispose() {
-    _pulse.dispose();
+    _pulse?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final pulse = _pulse;
+    if (pulse == null) return const SizedBox.shrink();
     return AnimatedBuilder(
-      animation: _pulse,
+      animation: pulse,
       builder: (context, _) {
-        final glow = 0.2 + 0.8 * _pulse.value;
+        final glow = 0.2 + 0.8 * pulse.value;
         return GestureDetector(
           key: const ValueKey('food_mic'),
           onTap: widget.onTap,
@@ -1248,130 +1339,20 @@ class _MicButtonState extends State<_MicButton>
   }
 }
 
-class _Under250Tile extends StatelessWidget {
-  const _Under250Tile({required this.onTap});
+class _CuisineStop {
+  const _CuisineStop({
+    required this.label,
+    required this.icon,
+    required this.image,
+    this.cuisine,
+    this.query,
+  });
 
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      key: const ValueKey('home_under250'),
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 64,
-        height: 80,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFFE8C4), Color(0xFFFFA740)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          border: Border.all(
-            color: const Color(0xFFE08000).withValues(alpha: 0.35),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFFF7A18).withValues(alpha: 0.18),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: Alignment.topCenter,
-                      radius: 1.0,
-                      colors: [
-                        const Color(0xFFFF7A18).withValues(alpha: 0.12),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF7A18), Color(0xFFB32D00)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(
-                              0xFFFF5A1F,
-                            ).withValues(alpha: 0.4),
-                            blurRadius: 6,
-                            spreadRadius: 0.5,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.currency_rupee_rounded,
-                        size: 12,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'UNDER',
-                        maxLines: 1,
-                        style: TextStyle(
-                          fontSize: 7,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black,
-                          letterSpacing: 0.5,
-                          height: 1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    const FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        '₹250',
-                        maxLines: 1,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black,
-                          height: 1,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  final String label;
+  final IconData icon;
+  final String image;
+  final String? cuisine;
+  final String? query;
 }
 
 class _DealsGlowHeader extends StatefulWidget {
@@ -1383,7 +1364,7 @@ class _DealsGlowHeader extends StatefulWidget {
 
 class _DealsGlowHeaderState extends State<_DealsGlowHeader>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse;
+  AnimationController? _pulse;
   bool _reduced = false;
 
   @override
@@ -1401,26 +1382,30 @@ class _DealsGlowHeaderState extends State<_DealsGlowHeader>
     final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     if (reduce == _reduced) return;
     _reduced = reduce;
+    final pulse = _pulse;
+    if (pulse == null) return;
     if (reduce) {
-      _pulse.stop();
-      _pulse.value = 0.4;
+      pulse.stop();
+      pulse.value = 0.4;
     } else {
-      _pulse.repeat(reverse: true);
+      pulse.repeat(reverse: true);
     }
   }
 
   @override
   void dispose() {
-    _pulse.dispose();
+    _pulse?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final pulse = _pulse;
+    if (pulse == null) return const SizedBox.shrink();
     return AnimatedBuilder(
-      animation: _pulse,
+      animation: pulse,
       builder: (context, _) {
-        final t = _reduced ? 0.4 : _pulse.value;
+        final t = _reduced ? 0.4 : pulse.value;
         final wave = (math.sin(t * math.pi * 2) + 1) / 2;
         final glow = 0.16 + 0.26 * wave;
         return Row(
@@ -1474,250 +1459,512 @@ class _DealsGlowHeaderState extends State<_DealsGlowHeader>
   }
 }
 
-class _CuisineStop {
-  const _CuisineStop({
-    required this.label,
-    required this.icon,
-    required this.image,
-    this.cuisine,
-    this.query,
+class _OfferSelector extends StatefulWidget {
+  const _OfferSelector({
+    required this.onOffers,
+    required this.onBudget,
+    required this.size,
+    this.slotWidth,
   });
 
-  final String label;
-  final IconData icon;
-  final String image;
-  final String? cuisine;
-  final String? query;
-}
-
-class _BestOffersTile extends StatefulWidget {
-  const _BestOffersTile({required this.onTap});
-
-  final VoidCallback onTap;
+  final VoidCallback onOffers;
+  final VoidCallback onBudget;
+  final double size;
+  final double? slotWidth;
 
   @override
-  State<_BestOffersTile> createState() => _BestOffersTileState();
+  State<_OfferSelector> createState() => _OfferSelectorState();
 }
 
-class _BestOffersTileState extends State<_BestOffersTile>
+class _OfferSelectorState extends State<_OfferSelector>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse;
+  bool _showBudget = false;
+  Timer? _timer;
+  AnimationController? _sheen;
   bool _reduced = false;
 
   @override
   void initState() {
     super.initState();
-    _pulse = AnimationController(
+    _sheen = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3200),
-    )..repeat();
+      duration: const Duration(milliseconds: 1900),
+    )..repeat(reverse: true);
+    _timer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (mounted) setState(() => _showBudget = !_showBudget);
+    });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduce = MediaQuery.disableAnimationsOf(context);
     if (reduce == _reduced) return;
     _reduced = reduce;
+    final sheen = _sheen;
+    if (sheen == null) return;
     if (reduce) {
-      _pulse.stop();
-      _pulse.value = 0.5;
+      sheen.stop();
+      sheen.value = 0.5;
     } else {
-      _pulse.repeat();
+      sheen.repeat(reverse: true);
     }
   }
 
   @override
   void dispose() {
-    _pulse.dispose();
+    _timer?.cancel();
+    _sheen?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final reduce = _reduced;
+    final modeKey = _showBudget ? 'under250' : 'offers';
     return GestureDetector(
-      key: const ValueKey('home_best_offers'),
-      onTap: widget.onTap,
+      key: const ValueKey('home_offer_selector'),
+      onTap: () {
+        if (_showBudget) {
+          widget.onBudget();
+        } else {
+          widget.onOffers();
+        }
+      },
       behavior: HitTestBehavior.opaque,
-      child: AnimatedBuilder(
-        animation: _pulse,
-        builder: (context, _) {
-          final t = _reduced ? 0.5 : _pulse.value;
-          final wave = (math.sin(t * math.pi * 2) + 1) / 2;
-          final glow = 0.45 + 0.55 * wave;
-          return SizedBox(
-            width: 64,
-            height: 80,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFFFFE8C4), Color(0xFFFFA740)],
-                      ),
-                      border: Border.all(
-                        color: const Color(0xFFE08000).withValues(alpha: 0.35),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFF7A18).withValues(alpha: 0.1),
-                          blurRadius: 12,
-                          spreadRadius: 0.5,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _NeonOfferPainter(progress: t, glow: glow * 0.4),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(6, 6, 6, 5),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFFFF7A18), Color(0xFFB32D00)],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFFFF5A1F,
-                              ).withValues(alpha: 0.35),
-                              blurRadius: 6,
-                              spreadRadius: 0.5,
+      child: SizedBox(
+        width: widget.slotWidth ?? widget.size,
+        height: widget.size + 46,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: widget.size,
+            height: widget.size,
+            child: Builder(
+              builder: (context) {
+                final sheen = _sheen;
+                if (sheen == null) return const SizedBox.shrink();
+                return AnimatedBuilder(
+                  animation: sheen,
+                  builder: (context, _) {
+                    final wave = reduce ? 0.5 : sheen.value;
+                    final glow = 0.45 + 0.55 * wave;
+                    return Stack(
+                      children: [
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  OxroColors.orangeBottom,
+                                  OxroColors.orangeTop,
+                                  OxroColors.orangeDark,
+                                ],
+                                stops: [0.0, 0.52, 1.0],
+                              ),
+                              border: Border.all(
+                                color: OxroColors.goldSoft.withValues(
+                                  alpha: 0.55,
+                                ),
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: OxroColors.orangeDark.withValues(
+                                    alpha: 0.30 + 0.22 * glow,
+                                  ),
+                                  blurRadius: 14 + 6 * glow,
+                                  spreadRadius: 0.5 + 1.4 * glow,
+                                  offset: const Offset(0, 7),
+                                ),
+                                BoxShadow(
+                                  color: OxroColors.orangeTop.withValues(
+                                    alpha: 0.22 + 0.18 * glow,
+                                  ),
+                                  blurRadius: 10,
+                                  spreadRadius: 0.5,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.local_offer_rounded,
-                          size: 14,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'BEST\nOFFERS',
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        style: TextStyle(
-                          fontSize: 7,
-                          height: 1.05,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Explore',
-                              style: TextStyle(
-                                fontSize: 8,
-                                height: 1,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: CustomPaint(
+                              painter: _OfferSheenPainter(
+                                progress: wave,
+                                glow: glow,
                               ),
                             ),
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              size: 11,
-                              color: Colors.black,
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                        Positioned.fill(
+                          child: AnimatedSwitcher(
+                            duration: reduce
+                                ? Duration.zero
+                                : const Duration(milliseconds: 620),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            transitionBuilder: (child, animation) {
+                              return _FlipTransition(
+                                animation: animation,
+                                child: child,
+                              );
+                            },
+                            child: Padding(
+                              key: ValueKey(modeKey),
+                              padding: const EdgeInsets.all(2),
+                              child: _showBudget
+                                  ? _selectorFace(label: 'UNDER\n₹250')
+                                  : _selectorFace(label: 'BEST\nOFFERS'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
             ),
-          );
-        },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _selectorFace({required String label}) {
+    return Center(
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        softWrap: true,
+        style: const TextStyle(
+          fontSize: 13,
+          height: 1.12,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.6,
+          color: Colors.black,
+        ),
       ),
     );
   }
 }
 
-class _NeonOfferPainter extends CustomPainter {
-  const _NeonOfferPainter({required this.progress, required this.glow});
+class _FlipTransition extends StatelessWidget {
+  const _FlipTransition({required this.animation, required this.child});
+
+  final Animation<double> animation;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final reverse = animation.status == AnimationStatus.reverse;
+    final matrix = Matrix4.identity()
+      ..setEntry(3, 2, 0.0012)
+      ..rotateY(
+        (reverse ? animation.value : 1 - animation.value) * math.pi / 2,
+      );
+    final opacity = Curves.easeOut.transform(animation.value.clamp(0.0, 1.0));
+    return Transform(
+      alignment: Alignment.center,
+      transform: matrix,
+      child: Opacity(opacity: opacity, child: child),
+    );
+  }
+}
+
+class _OfferSheenPainter extends CustomPainter {
+  const _OfferSheenPainter({required this.progress, required this.glow});
 
   final double progress;
   final double glow;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final rrect = RRect.fromRectAndRadius(
-      rect.deflate(0.8),
-      const Radius.circular(10.5),
-    );
-    final borderShader = const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [Color(0xFFFFB35C), Color(0xFFFF5A1F), Color(0xFFFF2D55)],
-    ).createShader(rect);
-
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.2
-        ..shader = borderShader
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 + 3 * glow),
-    );
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.1
-        ..shader = borderShader,
-    );
-
+    if (size.width <= 0 || size.height <= 0) return;
     canvas.save();
-    canvas.clipRRect(rrect);
-    final x = -size.width + progress * size.width * 2.4;
-    final shineRect = Rect.fromLTWH(x, 0, size.width * 0.36, size.height);
+    final rect = Offset.zero & size;
+    canvas.clipRect(rect);
+
+    // Top highlight gives the flip a 3D lit-card feel.
+    final top = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.white.withValues(alpha: 0.32 + 0.10 * glow),
+          Colors.white.withValues(alpha: 0.08),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.28, 0.72],
+      ).createShader(rect);
+    canvas.drawRect(rect, top);
+
+    final x = -size.width + progress * size.width * 2.25;
+    final shine = Rect.fromLTWH(x, 0, size.width * 0.38, size.height);
     canvas.drawRect(
-      shineRect,
+      shine,
       Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0x00FFFFFF), Color(0x55FFFFFF), Color(0x00FFFFFF)],
-        ).createShader(shineRect),
+        ..shader = LinearGradient(
+          colors: [
+            const Color(0x00FFFFFF),
+            Colors.white.withValues(alpha: 0.10 + 0.12 * glow),
+            OxroColors.goldSoft.withValues(alpha: 0.04 + 0.08 * glow),
+            const Color(0x00FFFFFF),
+          ],
+          stops: const [0.0, 0.35, 0.65, 1.0],
+        ).createShader(shine),
     );
     canvas.restore();
-
-    canvas.drawLine(
-      Offset(size.width * 0.18, 1.4),
-      Offset(size.width * 0.82, 1.4),
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.14 + 0.24 * glow)
-        ..strokeWidth = 1,
-    );
   }
 
   @override
-  bool shouldRepaint(covariant _NeonOfferPainter oldDelegate) =>
+  bool shouldRepaint(covariant _OfferSheenPainter oldDelegate) =>
       oldDelegate.progress != progress || oldDelegate.glow != glow;
+}
+
+class _SeeAllTile extends StatelessWidget {
+  const _SeeAllTile({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: const ValueKey('home_see_all'),
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 68,
+        height: 122,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: OxroColors.coral.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: OxroColors.coral.withValues(alpha: 0.35),
+                ),
+              ),
+              child: const Icon(
+                Icons.grid_view_rounded,
+                size: 22,
+                color: OxroColors.coral,
+              ),
+            ),
+            const SizedBox(height: 5),
+            const Text(
+              'See All',
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: OxroColors.coral,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DishEntry {
+  const _DishEntry({
+    required this.name,
+    required this.category,
+    required this.icon,
+    required this.image,
+  });
+
+  final String name;
+  final String category;
+  final IconData icon;
+  final String image;
+}
+
+String _dishImageFor(String category) {
+  switch (category) {
+    case 'Biryani':
+      return FoodMedia.biryani;
+    case 'North Indian':
+    case 'Punjabi':
+    case 'Mughlai':
+      return FoodMedia.northIndian;
+    case 'South Indian':
+    case 'Kerala':
+      return FoodMedia.dosa;
+    case 'Chinese':
+      return FoodMedia.chinese;
+    case 'Pizza':
+      return FoodMedia.pizza;
+    case 'Burgers':
+      return FoodMedia.burger;
+    case 'Rolls & Wraps':
+      return FoodMedia.wrap;
+    case 'Sandwiches':
+      return FoodMedia.sandwich;
+    case 'Momos':
+    case 'Tibetan':
+      return FoodMedia.momos;
+    case 'Pasta & Italian':
+      return FoodMedia.pasta;
+    case 'Thai':
+      return FoodMedia.chinese;
+    case 'Bengali':
+    case 'Seafood':
+      return FoodMedia.seafood;
+    case 'Gujarati':
+    case 'Rajasthani':
+    case 'Breakfast':
+      return FoodMedia.thali;
+    case 'Street Food':
+    case 'Chaat':
+      return FoodMedia.streetFood;
+    case 'Desserts':
+    case 'Bakery & Cakes':
+    case 'Ice Cream':
+      return FoodMedia.dessert;
+    case 'Beverages':
+    case 'Juices & Shakes':
+      return FoodMedia.milkshake;
+    case 'Tea & Coffee':
+      return FoodMedia.coffee;
+    case 'Healthy & Salads':
+      return FoodMedia.salad;
+    case 'BBQ & Grills':
+      return FoodMedia.bbq;
+    default:
+      return FoodMedia.curry;
+  }
+}
+
+final List<_DishEntry> _allDishes = _buildDishEntries();
+
+List<_DishEntry> _buildDishEntries() {
+  final seen = <String>{};
+  final out = <_DishEntry>[];
+  for (final category in foodCategories) {
+    final items = foodSubcategories[category.label] ?? const [];
+    for (final name in items) {
+      if (!seen.add(name.trim().toLowerCase())) continue;
+      out.add(
+        _DishEntry(
+          name: name,
+          category: category.label,
+          icon: category.icon,
+          image: _dishImageFor(category.label),
+        ),
+      );
+    }
+  }
+  return out;
+}
+
+class _CuisinesSheet extends StatelessWidget {
+  const _CuisinesSheet({required this.onTap});
+
+  final ValueChanged<_DishEntry> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.82,
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 10),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Cuisines and Dishes',
+                      key: ValueKey('cuisines_sheet_title'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                        color: OxroColors.charcoal,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const ValueKey('see_all_close'),
+                    tooltip: 'Close',
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, thickness: 1, color: OxroColors.border),
+            Expanded(
+              child: GridView.builder(
+                key: const ValueKey('cuisines_grid'),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 12,
+                  mainAxisExtent: 128,
+                ),
+                itemCount: _allDishes.length,
+                itemBuilder: (context, i) {
+                  final dish = _allDishes[i];
+                  return GestureDetector(
+                    key: ValueKey('cuisine_dish_$i'),
+                    onTap: () => onTap(dish),
+                    behavior: HitTestBehavior.opaque,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        FoodImage(
+                          imageUrl: dish.image,
+                          colors: const [Color(0xFFF7F2E8), Color(0xFFEFE6D8)],
+                          icon: dish.icon,
+                          width: double.infinity,
+                          height: 74,
+                          radius: 14,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          dish.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            height: 1.25,
+                            fontWeight: FontWeight.w600,
+                            color: OxroColors.charcoal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _VegToggle extends StatelessWidget {

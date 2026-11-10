@@ -36,14 +36,10 @@ Future<void> _dispose(WidgetTester tester) async {
   await tester.pumpWidget(Container());
 }
 
-/// Pumps the wallet screen and dismisses the one-time note dialog.
+/// Pumps the wallet screen.
 Future<void> _openWallet(WidgetTester tester) async {
   await tester.pumpWidget(const MaterialApp(home: WalletScreen()));
   await _settle(tester);
-  if (find.text('OXRO Money Note').evaluate().isNotEmpty) {
-    await tester.tap(find.text('Agree'));
-    await _settle(tester);
-  }
 }
 
 void main() {
@@ -77,11 +73,6 @@ void main() {
     expect(find.text('OXRO Money'), findsOneWidget);
     expect(find.text('OXRO Balance'), findsOneWidget);
     expect(find.byKey(const ValueKey('wallet_empty')), findsOneWidget);
-
-    // Dismiss the one-time "OXRO Money Note" dialog before interacting.
-    expect(find.text('OXRO Money Note'), findsOneWidget);
-    await tester.tap(find.text('Agree'));
-    await _settle(tester);
 
     await tester.tap(find.byKey(const ValueKey('wallet_add_500')));
     await _settle(tester);

@@ -232,9 +232,9 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await _settle(tester);
 
-    expect(find.byKey(const ValueKey('home_best_offers')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_offer_selector')), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('home_best_offers')));
+    await tester.tap(find.byKey(const ValueKey('home_offer_selector')));
     await _settle(tester);
     expect(find.byKey(const ValueKey('restaurant_list')), findsOneWidget);
     expect(find.text('Best offers'), findsWidgets);

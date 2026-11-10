@@ -48,7 +48,6 @@ class _WalletScreenState extends State<WalletScreen>
       duration: const Duration(seconds: 6),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showWalletNote();
       _applyCreditedSmartChange();
     });
   }
@@ -84,14 +83,6 @@ class _WalletScreenState extends State<WalletScreen>
     _ambient.dispose();
     _amtCtrl.dispose();
     super.dispose();
-  }
-
-  void _showWalletNote() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _WalletNoteDialog(),
-    );
   }
 
   void _add(int amount) {
@@ -1279,134 +1270,5 @@ class _WalletSheenPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _WalletSheenPainter oldDelegate) {
     return oldDelegate.t != t || oldDelegate.reduce != reduce;
-  }
-}
-
-class _WalletNoteDialog extends StatelessWidget {
-  const _WalletNoteDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      backgroundColor: OxroColors.premiumDeep,
-      elevation: 24,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        OxroColors.premiumChampagne,
-                        OxroColors.goldSoft,
-                      ],
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.info_outline_rounded,
-                    size: 18,
-                    color: OxroColors.premiumDeep,
-                  ),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'OXRO Money Note',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 14),
-            Container(
-              height: 1,
-              color: OxroColors.premiumChampagne.withValues(alpha: 0.2),
-            ),
-            SizedBox(height: 14),
-            Text(
-              '• Money added has an expiry of 1 year',
-              style: TextStyle(
-                fontSize: 13.5,
-                color: Colors.white.withValues(alpha: 0.9),
-                height: 1.5,
-              ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              '• Balance can not be transferred to a bank account as per RBI guidelines',
-              style: TextStyle(
-                fontSize: 13.5,
-                color: Colors.white.withValues(alpha: 0.9),
-                height: 1.5,
-              ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              '• Oxro Money can be used exclusively on Oxro.',
-              style: TextStyle(
-                fontSize: 13.5,
-                color: Colors.white.withValues(alpha: 0.9),
-                height: 1.5,
-              ),
-            ),
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.of(context).maybePop();
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: OxroColors.premiumChampagne,
-                  ),
-                  child: Text(
-                    'No',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                SizedBox(width: 8),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: OxroColors.premiumChampagne,
-                    foregroundColor: OxroColors.premiumDeep,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  ),
-                  child: Text(
-                    'Agree',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

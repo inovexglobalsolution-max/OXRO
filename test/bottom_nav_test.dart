@@ -102,10 +102,10 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await _settle(tester);
 
-    expect(find.byKey(const ValueKey('home_best_offers')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home_under250')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_offer_selector')), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('home_under250')));
+    await tester.pump(const Duration(milliseconds: 1100));
+    await tester.tap(find.byKey(const ValueKey('home_offer_selector')));
     await _settle(tester);
     expect(find.byKey(const ValueKey('restaurant_list')), findsOneWidget);
     expect(find.text('Under ₹250'), findsWidgets);

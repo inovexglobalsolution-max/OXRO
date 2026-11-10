@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:oxro/app/repositories/auth_repo.dart';
 import 'package:oxro/app/router/oxro_routes.dart';
 import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
@@ -39,6 +40,9 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   int _pos = 0;
   String? _error;
   bool _success = false;
+  bool _busy = false;
+  bool _resending = false;
+  final _repo = AuthRepo();
 
   Timer? _timer;
   int _left = 45;
@@ -194,8 +198,8 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     _shake.forward(from: 0);
   }
 
-  Future<void> _verify() async {
-    if (_success) return;
+  void _verify() {
+    if (_success || _busy) return;
     if (_locked) {
       setState(() => _error = 'Try again in ${_lockLeft}s');
       _shake.forward(from: 0);
@@ -206,15 +210,32 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       _fail('Enter all 6 digits');
       return;
     }
+    unawaited(_verifyRemote());
+  }
+
+  Future<void> _verifyRemote() async {
+    final contact = widget.contact.trim();
+    final token = _ctrls.map((c) => c.text).join();
     setState(() {
       _error = null;
-      _success = true;
+      _busy = true;
     });
+    final error = contact.contains('@')
+        ? await _repo.verifyOtp(email: contact, token: token, name: widget.name)
+        : null;
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (error == null) _success = true;
+    });
+    if (error != null) {
+      _fail(error);
+      return;
+    }
     HapticFeedback.mediumImpact();
     // Email vs phone are separate identities — never file a
     // phone number under email. A prefs/profile failure must never
     // block navigation (the success overlay eats all taps).
-    final contact = widget.contact.trim();
     try {
       if (contact.contains('@')) {
         await ProfileStore.instance.save(email: contact, name: widget.name);
@@ -241,7 +262,20 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   }
 
   void _resend() {
-    if (_left > 0 || _success) return;
+    if (_left > 0 || _success || _resending) return;
+    unawaited(_resendRemote());
+  }
+
+  Future<void> _resendRemote() async {
+    final contact = widget.contact.trim();
+    setState(() => _resending = true);
+    final error = contact.contains('@') ? await _repo.sendOtp(contact) : null;
+    if (!mounted) return;
+    setState(() => _resending = false);
+    if (error != null) {
+      showOxroSnack(context, error);
+      return;
+    }
     setState(() {
       for (final c in _ctrls) {
         c.clear();
@@ -648,7 +682,9 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                                             context.rs(6),
                                           ),
                                           child: OxroButton(
-                                            label: 'Verify',
+                                            label: _busy
+                                                ? 'Verifying…'
+                                                : 'Verify',
                                             onTap: _verify,
                                           ),
                                         ),

@@ -28,6 +28,7 @@
 - **Collapsible bill rows:** both bags (`bag_bill_toggle` in `BagBillCard`) and checkout (`checkout_bill_toggle` in `_summaryCard`) start **collapsed** (`_open`/`_billOpen = false`) and expand via `AnimatedSize(220ms)`. Any test asserting bill row text (`Small cart fee`, `Platform fee`, `GST (govt. taxes)`, `Delivery partner fee`, tips…) must tap the toggle first — use the `_expandBill(tester)` helper in `checkout_test.dart` / `pricing_test.dart`. Header (`Bill Summary` + item pill) and the **To pay** footer always stay visible.
 - Premium cream cards: `OxroColors.premiumCream` bg + `premiumChampagne` border + gold pulse — see `_restaurantDetailsCard` (tracking) for the `_ambient` shadow-breathing pattern; always gate with `MediaQuery.disableAnimationsOf(context)` (reduce → static `pulse = 0.5`).
 - Wallet screen title is **"OXRO Money"** (renamed from "OXRO Wallet" — header + profile menu label + `wallet_test.dart` expects).
+- Email OTP is backend-proxied Supabase Auth: Flutter → `POST /auth/send-otp` / `/auth/verify-otp` → Supabase `signInWithOtp` / `verifyOtp` (Resend SMTP `smtp.resend.com:465` configured via `node db/configure-auth-email.js --apply`; sender `info@oxro.in` — domain `oxro.in` verified in Resend). Under `FLUTTER_TEST` (`CustomerIdentity.networkEnabled == false`) both repo calls are no-ops — tests keep the demo "any 6 digits" behavior. No Supabase keys in Flutter.
 
 ## Env / secrets
 - Backend secrets live in `backend/.env` (gitignored). Names: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_ACCESS_TOKEN`.
