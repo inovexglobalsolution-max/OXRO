@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:oxro/app/api/api_client.dart';
@@ -48,6 +49,54 @@ class AuthRepo {
       return 'Server is taking too long — try again';
     } catch (_) {
       return 'Could not reach server — check connection';
+    }
+  }
+
+  static const _googleServerClientId =
+      String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+  bool _googleReady = false;
+
+  /// Interactive Google sign-in. Returns `(error, email, name)` — exactly one
+  /// of error/email is non-null.
+  Future<(String?, String?, String?)> googleSignIn() async {
+    if (!CustomerIdentity.networkEnabled) {
+      return (null, 'test@example.com', 'Test User');
+    }
+    if (_googleServerClientId.isEmpty) {
+      return ('Google sign-in is not configured', null, null);
+    }
+    try {
+      if (!_googleReady) {
+        await GoogleSignIn.instance.initialize(
+          serverClientId: _googleServerClientId,
+        );
+        _googleReady = true;
+      }
+      final account = await GoogleSignIn.instance.authenticate();
+      final idToken = account.authentication.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        return ('Could not get Google token', null, null);
+      }
+      final res = await _client.post(
+        '/auth/google',
+        body: {'idToken': idToken},
+      );
+      if (res.statusCode != 200) {
+        return (_errorFrom(res, 'Google sign-in failed'), null, null);
+      }
+      final decoded = jsonDecode(res.body) as Map<String, dynamic>;
+      final email = decoded['email'] as String?;
+      final name = decoded['name'] as String?;
+      return (null, email, name);
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        return ('Google sign-in cancelled', null, null);
+      }
+      return ('Google sign-in failed — try again', null, null);
+    } on TimeoutException {
+      return ('Server is taking too long — try again', null, null);
+    } catch (_) {
+      return ('Could not reach server — check connection', null, null);
     }
   }
 

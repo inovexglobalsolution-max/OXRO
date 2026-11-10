@@ -9,9 +9,11 @@ import 'package:oxro/app/theme/app_colors.dart';
 import 'package:oxro/app/theme/responsive.dart';
 import 'package:oxro/app/widgets/oxro_button.dart';
 import 'package:oxro/app/widgets/oxro_snack.dart';
+import 'package:oxro/features/account/data/profile_store.dart';
 import 'package:oxro/features/auth/presentation/screens/otp_screen.dart';
+import 'package:oxro/features/home/presentation/screens/home_screen.dart';
 
-/// 04 Login / Sign Up — reference minimal white style, brand centered.
+/// 04 Login / Sign Up --- reference minimal white style, brand centered.
 /// Segmented tabs: Login (email) | Sign Up (name + email + referral).
 /// Content block vertically centered; email-only, no phone.
 class LoginScreen extends StatefulWidget {
@@ -34,6 +36,9 @@ class _LoginScreenState extends State<LoginScreen>
   final _referralCtrl = TextEditingController();
   final _repo = AuthRepo();
   bool _sending = false;
+  int _cooldown = 0;
+  Timer? _cooldownTimer;
+  bool _googleBusy = false;
 
   String? _emailError;
   String? _nameError;
@@ -72,6 +77,7 @@ class _LoginScreenState extends State<LoginScreen>
     _emailCtrl.dispose();
     _nameCtrl.dispose();
     _referralCtrl.dispose();
+    _cooldownTimer?.cancel();
     _shake.dispose();
     _bg.dispose();
     _entry.dispose();
@@ -82,8 +88,43 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _fail() => _shake.forward(from: 0);
 
+  void _startCooldown(int seconds) {
+    _cooldownTimer?.cancel();
+    setState(() => _cooldown = seconds);
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      setState(() {
+        _cooldown -= 1;
+        if (_cooldown <= 0) {
+          _cooldown = 0;
+          t.cancel();
+        }
+      });
+    });
+  }
+
+  Future<void> _googleSignIn() async {
+    if (_googleBusy) return;
+    setState(() => _googleBusy = true);
+    final (error, email, name) = await _repo.googleSignIn();
+    if (!mounted) return;
+    setState(() => _googleBusy = false);
+    if (error != null || email == null) {
+      showOxroSnack(context, error ?? 'Google sign-in failed');
+      return;
+    }
+    try {
+      await ProfileStore.instance.save(email: email, name: name);
+    } catch (_) {}
+    if (!mounted) return;
+    replaceAllWith(context, HomeScreen(welcomeName: name));
+  }
+
   void _submit() {
-    if (_sending) return;
+    if (_sending || _cooldown > 0) return;
     final emailOk = _validEmail;
     setState(() {
       _emailError = emailOk
@@ -128,6 +169,9 @@ class _LoginScreenState extends State<LoginScreen>
     if (!mounted) return;
     setState(() => _sending = false);
     if (error != null) {
+      if (error.toLowerCase().contains('many attempts')) {
+        _startCooldown(60);
+      }
       showOxroSnack(context, error);
       return;
     }
@@ -189,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         child: Stack(
           children: [
-            // Premium animated background — fills top white space.
+            // Premium animated background --- fills top white space.
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _bg,
@@ -290,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ],
                             ),
                           ),
-                          // Middle block — vertically centered.
+                          // Middle block --- vertically centered.
                           // Scrolls on short screens instead of overflowing.
                           Expanded(
                             child: LayoutBuilder(
@@ -565,12 +609,9 @@ class _LoginScreenState extends State<LoginScreen>
                                             horizontal: context.padX,
                                           ),
                                           child: GestureDetector(
-                                            onTap: () {
-                                              showOxroSnack(
-                                                context,
-                                                'Google sign-in coming soon — use OTP for now',
-                                              );
-                                            },
+                                            onTap: _googleBusy
+                                                ? null
+                                                : _googleSignIn,
                                             child: Container(
                                               height: 50,
                                               alignment: Alignment.center,
@@ -610,7 +651,9 @@ class _LoginScreenState extends State<LoginScreen>
                                                   const SizedBox(width: 10),
                                                   Flexible(
                                                     child: Text(
-                                                      'Continue with Google',
+                                                      _googleBusy
+                                                          ? 'Signing in...'
+                                                          : 'Continue with Google',
                                                       maxLines: 1,
                                                       overflow:
                                                           TextOverflow.ellipsis,
@@ -683,7 +726,12 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
         SizedBox(height: context.rs(12)),
-        OxroButton(label: _sending ? 'Sending…' : 'Continue', onTap: _submit),
+        OxroButton(
+          label: _cooldown > 0
+              ? 'Retry in ${_cooldown}s'
+              : (_sending ? 'Sending...' : 'Continue'),
+          onTap: _submit,
+        ),
       ],
     );
   }
@@ -731,7 +779,9 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         SizedBox(height: context.rs(12)),
         OxroButton(
-          label: _sending ? 'Sending…' : 'Create Account',
+          label: _cooldown > 0
+              ? 'Retry in ${_cooldown}s'
+              : (_sending ? 'Sending...' : 'Create Account'),
           onTap: _submit,
         ),
       ],

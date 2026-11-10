@@ -3,6 +3,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const emailAuth = require('../services/emailAuth');
+const googleAuth = require('../services/googleAuth');
 const profileStore = require('../services/profileStore');
 
 const router = express.Router();
@@ -13,6 +14,16 @@ router.post('/login', (req, res) => {
   res.json({ token, refreshToken: 'refresh_' + Date.now(), status: 'ok' });
 });
 router.post('/logout', (req, res) => res.json({ loggedOut: true, status: 'scaffold' }));
+
+router.post('/google', async (req, res, next) => {
+  try {
+    const idToken = (req.body || {}).idToken;
+    const result = await googleAuth.GoogleAuth(idToken);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.post('/send-otp', async (req, res, next) => {
   try {
